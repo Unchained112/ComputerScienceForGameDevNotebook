@@ -1,0 +1,42 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import Render3D from '../../components/viz/Render3D.astro';
+---
+<BaseLayout title="3D Render · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Graphics / Render Pipeline</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">3D 渲染管线演示</span><span slot="en">3D Render Pipeline Demo</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">基于 WebGL（Three.js 封装）的实时渲染占位：几何体经顶点变换、光照计算与光栅化输出到屏幕。可拖拽观察光照与材质。</span>
+          <span slot="en">A real-time WebGL (Three.js) render placeholder: geometry is transformed, lit, and rasterized to the screen. Drag to inspect lighting and material.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <Render3D />
+
+    <section class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">坐标与变换</span><span slot="en">Transform</span></Bilingual></h2>
+        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">模型/视图/投影矩阵将顶点映射到裁剪空间。</span><span slot="en">Model/view/projection matrices map vertices to clip space.</span></Bilingual></p>
+      </div>
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">光照模型</span><span slot="en">Lighting</span></Bilingual></h2>
+        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">Phong / PBR 计算漫反射与高光，刻画材质质感。</span><span slot="en">Phong / PBR compute diffuse & specular for material feel.</span></Bilingual></p>
+      </div>
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">着色器</span><span slot="en">Shaders</span></Bilingual></h2>
+        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">顶点/片元着色器在 GPU 上并行执行核心渲染逻辑。</span><span slot="en">Vertex/fragment shaders run the core rendering logic on the GPU.</span></Bilingual></p>
+      </div>
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">光栅化</span><span slot="en">Rasterization</span></Bilingual></h2>
+        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">将图元转为像素，经深度测试合成最终图像。</span><span slot="en">Primitives become pixels, then depth-tested into the final image.</span></Bilingual></p>
+      </div>
+    </section>
+  </article>
+</BaseLayout>

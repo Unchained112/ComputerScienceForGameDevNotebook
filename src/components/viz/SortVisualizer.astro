@@ -1,0 +1,298 @@
+---
+// 排序交互可视化：SVG 柱状图，支持 冒泡/插入/快排/归并，播放/单步/调速/打乱
+---
+<div class="sort-viz glass p-5" data-viz="sort">
+  <div class="flex flex-wrap items-center gap-3 mb-4">
+    <label class="flex items-center gap-2 text-sm text-ink-muted">
+      <span data-ui="algorithm" data-lang="zh">算法</span><span data-ui="algorithm" data-lang="en">Algorithm</span>
+      <select id="sort-algo" class="btn !py-1.5">
+        <option value="bubble">Bubble</option>
+        <option value="insertion">Insertion</option>
+        <option value="quick">Quick</option>
+        <option value="merge">Merge</option>
+      </select>
+    </label>
+    <button id="sort-shuffle" class="btn"><span data-ui="shuffle" data-lang="zh">打乱</span><span data-ui="shuffle" data-lang="en">Shuffle</span></button>
+    <button id="sort-play" class="btn btn-primary"><span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span></button>
+    <button id="sort-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+    <button id="sort-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-5 mb-3 text-sm text-ink-muted">
+    <label class="flex items-center gap-2">
+      <span data-ui="speed" data-lang="zh">速度</span><span data-ui="speed" data-lang="en">Speed</span>
+      <input id="sort-speed" type="range" min="1" max="100" value="55" class="accent-primary-cyan" />
+    </label>
+    <label class="flex items-center gap-2">
+      <span data-ui="size" data-lang="zh">数量</span><span data-ui="size" data-lang="en">Size</span>
+      <input id="sort-size" type="range" min="5" max="40" value="18" class="accent-primary-cyan" />
+    </label>
+    <span class="ml-auto font-mono text-xs">
+      <span data-ui="comparisons" data-lang="zh">比较</span><span data-ui="comparisons" data-lang="en">Cmp</span>:
+      <b id="sort-cmp" class="text-primary-cyan">0</b> ·
+      <span data-ui="swaps" data-lang="zh">交换</span><span data-ui="swaps" data-lang="en">Swp</span>:
+      <b id="sort-swp" class="text-func-red">0</b>
+    </span>
+  </div>
+
+  <svg id="sort-svg" viewBox="0 0 800 320" class="w-full h-72 rounded-xl bg-black/20 border border-white/5" preserveAspectRatio="none"></svg>
+</div>
+
+<script>
+  type Step = {
+    arr: number[];
+    compare?: [number, number];
+    swap?: [number, number];
+    write?: number;
+    pivot?: number;
+    sorted: number[];
+    cmp: number;
+    swp: number;
+  };
+
+  const COLORS = {
+    def: '#22D3EE',
+    compare: '#FBBF24',
+    swap: '#F87171',
+    write: '#34D399',
+    pivot: '#A855F7',
+    sorted: '#34D399',
+  };
+
+  function makeInitial(arr: number[]): Step {
+    return { arr: arr.slice(), sorted: [], cmp: 0, swp: 0 };
+  }
+
+  function bubble(a: number[]): Step[] {
+    const arr = a.slice();
+    const steps: Step[] = [makeInitial(arr)];
+    let cmp = 0, swp = 0;
+    const sorted: number[] = [];
+    for (let i = 0; i < arr.length - 1; i++) {
+      for (let j = 0; j < arr.length - 1 - i; j++) {
+        cmp++;
+        steps.push({ arr: arr.slice(), compare: [j, j + 1], sorted: sorted.slice(), cmp, swp });
+        if (arr[j] > arr[j + 1]) {
+          [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+          swp++;
+          steps.push({ arr: arr.slice(), swap: [j, j + 1], sorted: sorted.slice(), cmp, swp });
+        }
+      }
+      sorted.push(arr.length - 1 - i);
+    }
+    sorted.push(0);
+    steps.push({ arr: arr.slice(), sorted: sorted.slice(), cmp, swp });
+    return steps;
+  }
+
+  function insertion(a: number[]): Step[] {
+    const arr = a.slice();
+    const steps: Step[] = [makeInitial(arr)];
+    let cmp = 0, swp = 0;
+    const sorted = [0];
+    for (let i = 1; i < arr.length; i++) {
+      let j = i;
+      while (j > 0) {
+        cmp++;
+        steps.push({ arr: arr.slice(), compare: [j, j - 1], sorted: sorted.slice(), cmp, swp });
+        if (arr[j] < arr[j - 1]) {
+          [arr[j], arr[j - 1]] = [arr[j - 1], arr[j]];
+          swp++;
+          steps.push({ arr: arr.slice(), swap: [j, j - 1], sorted: sorted.slice(), cmp, swp });
+          j--;
+        } else break;
+      }
+      sorted.push(i);
+    }
+    steps.push({ arr: arr.slice(), sorted: arr.map((_, i) => i), cmp, swp });
+    return steps;
+  }
+
+  function quick(a: number[]): Step[] {
+    const arr = a.slice();
+    const steps: Step[] = [makeInitial(arr)];
+    let cmp = 0, swp = 0;
+    const sorted: number[] = [];
+    const qs = (lo: number, hi: number) => {
+      if (lo >= hi) {
+        if (lo === hi) sorted.push(lo);
+        return;
+      }
+      const pivot = arr[hi];
+      let i = lo;
+      for (let j = lo; j < hi; j++) {
+        cmp++;
+        steps.push({ arr: arr.slice(), compare: [j, hi], pivot: hi, sorted: sorted.slice(), cmp, swp });
+        if (arr[j] < pivot) {
+          if (i !== j) {
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+            swp++;
+            steps.push({ arr: arr.slice(), swap: [i, j], pivot: hi, sorted: sorted.slice(), cmp, swp });
+          }
+          i++;
+        }
+      }
+      [arr[i], arr[hi]] = [arr[hi], arr[i]];
+      swp++;
+      steps.push({ arr: arr.slice(), swap: [i, hi], sorted: sorted.slice(), cmp, swp });
+      sorted.push(i);
+      qs(lo, i - 1);
+      qs(i + 1, hi);
+    };
+    qs(0, arr.length - 1);
+    steps.push({ arr: arr.slice(), sorted: arr.map((_, i) => i), cmp, swp });
+    return steps;
+  }
+
+  function merge(a: number[]): Step[] {
+    const arr = a.slice();
+    const steps: Step[] = [makeInitial(arr)];
+    let cmp = 0, swp = 0;
+    const sorted: number[] = [];
+    const aux = arr.slice();
+    const ms = (lo: number, mid: number, hi: number) => {
+      for (let k = lo; k <= hi; k++) aux[k] = arr[k];
+      let i = lo, j = mid + 1;
+      for (let k = lo; k <= hi; k++) {
+        if (i > mid) {
+          arr[k] = aux[j++];
+        } else if (j > hi) {
+          arr[k] = aux[i++];
+        } else {
+          cmp++;
+          steps.push({ arr: arr.slice(), compare: [i, j], sorted: sorted.slice(), cmp, swp });
+          if (aux[i] <= aux[j]) arr[k] = aux[i++];
+          else arr[k] = aux[j++];
+        }
+        swp++;
+        steps.push({ arr: arr.slice(), write: k, sorted: sorted.slice(), cmp, swp });
+      }
+    };
+    const msort = (lo: number, hi: number) => {
+      if (lo >= hi) return;
+      const mid = (lo + hi) >> 1;
+      msort(lo, mid);
+      msort(mid + 1, hi);
+      ms(lo, mid, hi);
+    };
+    msort(0, arr.length - 1);
+    steps.push({ arr: arr.slice(), sorted: arr.map((_, i) => i), cmp, swp });
+    return steps;
+  }
+
+  const gen: Record<string, (a: number[]) => Step[]> = { bubble, insertion, quick, merge };
+
+  const svg = document.getElementById('sort-svg') as unknown as SVGSVGElement;
+  const algoSel = document.getElementById('sort-algo') as HTMLSelectElement;
+  const speed = document.getElementById('sort-speed') as HTMLInputElement;
+  const sizeEl = document.getElementById('sort-size') as HTMLInputElement;
+  const cmpEl = document.getElementById('sort-cmp') as HTMLElement;
+  const swpEl = document.getElementById('sort-swp') as HTMLElement;
+  const SVGNS = 'http://www.w3.org/2000/svg';
+
+  let baseArr: number[] = [];
+  let steps: Step[] = [];
+  let idx = 0;
+  let timer: number | null = null;
+
+  function randomArray(n: number): number[] {
+    return Array.from({ length: n }, () => Math.floor(Math.random() * 95) + 5);
+  }
+
+  function render(step: Step) {
+    const n = step.arr.length;
+    const W = 800, H = 300, pad = 6;
+    const bw = (W - pad * 2) / n;
+    svg.innerHTML = '';
+    for (let i = 0; i < n; i++) {
+      const v = step.arr[i];
+      const h = (v / 100) * H;
+      let fill = COLORS.def;
+      if (step.swap && (i === step.swap[0] || i === step.swap[1])) fill = COLORS.swap;
+      else if (step.write === i) fill = COLORS.write;
+      else if (step.compare && (i === step.compare[0] || i === step.compare[1])) fill = COLORS.compare;
+      else if (step.pivot === i) fill = COLORS.pivot;
+      else if (step.sorted.includes(i)) fill = COLORS.sorted;
+      const rect = document.createElementNS(SVGNS, 'rect');
+      rect.setAttribute('x', String(pad + i * bw + 1));
+      rect.setAttribute('y', String(H - h));
+      rect.setAttribute('width', String(Math.max(1, bw - 2)));
+      rect.setAttribute('height', String(h));
+      rect.setAttribute('rx', '2');
+      rect.setAttribute('fill', fill);
+      rect.style.transition = 'fill 0.12s ease';
+      svg.appendChild(rect);
+    }
+    cmpEl.textContent = String(step.cmp);
+    swpEl.textContent = String(step.swp);
+  }
+
+  function rebuild() {
+    stop();
+    steps = gen[algoSel.value](baseArr);
+    idx = 0;
+    render(steps[0]);
+  }
+
+  function stop() {
+    if (timer !== null) {
+      clearInterval(timer);
+      timer = null;
+    }
+    const playBtn = document.getElementById('sort-play');
+    if (playBtn) playBtn.innerHTML = langText('play');
+  }
+
+  function advance() {
+    if (idx < steps.length - 1) {
+      idx++;
+      render(steps[idx]);
+      return true;
+    }
+    return false;
+  }
+
+  function play() {
+    if (timer !== null) {
+      stop();
+      return;
+    }
+    const playBtn = document.getElementById('sort-play');
+    if (playBtn) playBtn.innerHTML = langText('pause');
+    const delay = 320 - Number(speed.value) * 3;
+    timer = window.setInterval(() => {
+      if (!advance()) stop();
+    }, Math.max(20, delay));
+  }
+
+  function langText(key: string): string {
+    const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${lang}"]`);
+    return el ? el.textContent || '' : '';
+  }
+
+  function refreshLabels() {
+    (['algorithm', 'shuffle', 'play', 'step', 'reset', 'speed', 'size', 'comparisons', 'swaps'] as const).forEach((k) => {
+      const el = document.querySelector(`[data-ui="${k}"]`) as HTMLElement | null;
+      if (el) el.textContent = langText(k);
+    });
+  }
+
+  document.getElementById('sort-play')?.addEventListener('click', play);
+  document.getElementById('sort-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('sort-reset')?.addEventListener('click', () => { stop(); idx = 0; render(steps[0]); });
+  document.getElementById('sort-shuffle')?.addEventListener('click', () => {
+    baseArr = randomArray(Number(sizeEl.value));
+    rebuild();
+  });
+  algoSel?.addEventListener('change', rebuild);
+  sizeEl?.addEventListener('input', () => {
+    baseArr = randomArray(Number(sizeEl.value));
+    rebuild();
+  });
+  document.addEventListener('langchange', refreshLabels);
+
+  // 初始化
+  baseArr = randomArray(Number(sizeEl.value));
+  rebuild();
+</script>

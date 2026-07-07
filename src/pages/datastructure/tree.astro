@@ -1,0 +1,38 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import TreeVisualizer from '../../components/viz/TreeVisualizer.astro';
+---
+<BaseLayout title="Tree · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Data Structures / Trees</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">树结构可视化</span><span slot="en">Tree Structure Visualizer</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">输入一组数值构建二叉搜索树（BST），选择遍历方式观察访问顺序。<b class="text-primary-indigo">蓝紫=已访问</b>、<b class="text-func-amber">黄=当前节点</b>。</span>
+          <span slot="en">Build a BST from input values and pick a traversal to watch the visit order. <b class="text-primary-indigo">indigo=visited</b>, <b class="text-func-amber">amber=current</b>.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <TreeVisualizer />
+
+    <section class="grid sm:grid-cols-3 gap-4">
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">BFS（层序）</span><span slot="en">BFS (level)</span></Bilingual></h2>
+        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">按层从左到右访问，常用于求最短路径与层级展开。</span><span slot="en">Visits level by level, left to right — used for shortest paths and level expansion.</span></Bilingual></p>
+      </div>
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">DFS（前/中/后序）</span><span slot="en">DFS (pre/in/post)</span></Bilingual></h2>
+        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">深度优先；中序遍历 BST 可得升序序列。</span><span slot="en">Depth-first; in-order on a BST yields ascending values.</span></Bilingual></p>
+      </div>
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">平衡与变形</span><span slot="en">Balance & Variants</span></Bilingual></h2>
+        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">AVL / 红黑树通过旋转保持平衡，Trie 用于前缀匹配。</span><span slot="en">AVL / Red-Black keep balance via rotations; Trie powers prefix matching.</span></Bilingual></p>
+      </div>
+    </section>
+  </article>
+</BaseLayout>

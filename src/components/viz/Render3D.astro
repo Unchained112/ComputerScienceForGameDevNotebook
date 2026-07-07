@@ -1,0 +1,111 @@
+---
+// 图形学 3D 渲染占位：Three.js 基础场景（彩色光照立方体 + 线框 + 拖拽旋转 + 自动旋转）
+---
+<div class="render3d glass p-5" data-viz="render3d">
+  <div class="flex items-center gap-3 mb-3">
+    <button id="r3d-toggle" class="btn">
+      <span data-ui="autorotate" data-lang="zh">自动旋转</span><span data-ui="autorotate" data-lang="en">Auto-rotate</span>
+    </button>
+    <span class="text-xs text-ink-muted">
+      <span data-ui="drag" data-lang="zh">拖拽旋转 · WebGL 实时渲染</span><span data-ui="drag" data-lang="en">Drag to rotate · WebGL real-time</span>
+    </span>
+  </div>
+  <div id="r3d-canvas-wrap" class="w-full h-80 rounded-xl overflow-hidden border border-white/5 bg-black/40"></div>
+</div>
+
+<script>
+  import * as THREE from 'three';
+
+  const wrap = document.getElementById('r3d-canvas-wrap');
+  if (wrap) {
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(50, wrap.clientWidth / wrap.clientHeight || 1, 0.1, 100);
+    camera.position.set(0, 0, 5);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+    wrap.appendChild(renderer.domElement);
+
+    const geo = new THREE.BoxGeometry(2.2, 2.2, 2.2, 3, 3, 3);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x22d3ee,
+      metalness: 0.35,
+      roughness: 0.35,
+      flatShading: true,
+    });
+    const cube = new THREE.Mesh(geo, mat);
+    scene.add(cube);
+
+    const wire = new THREE.LineSegments(
+      new THREE.EdgesGeometry(geo),
+      new THREE.LineBasicMaterial({ color: 0xa855f7 })
+    );
+    cube.add(wire);
+
+    const l1 = new THREE.DirectionalLight(0x22d3ee, 2.6);
+    l1.position.set(5, 5, 5);
+    const l2 = new THREE.DirectionalLight(0xa855f7, 2.6);
+    l2.position.set(-5, -3, 4);
+    scene.add(l1, l2, new THREE.AmbientLight(0xffffff, 0.35));
+
+    let rotX = 0.3, rotY = 0, auto = true;
+    let dragging = false, lastX = 0, lastY = 0;
+    let rafId = 0;
+
+    const el = renderer.domElement;
+    el.style.cursor = 'grab';
+    el.addEventListener('pointerdown', (e) => { dragging = true; lastX = e.clientX; lastY = e.clientY; el.style.cursor = 'grabbing'; });
+    window.addEventListener('pointerup', () => { dragging = false; el.style.cursor = 'grab'; });
+    window.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      rotY += (e.clientX - lastX) * 0.01;
+      rotX += (e.clientY - lastY) * 0.01;
+      lastX = e.clientX; lastY = e.clientY;
+    });
+
+    function langText(key: string): string {
+      const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+      const node = document.querySelector(`[data-ui="${key}"][data-lang="${lang}"]`);
+      return node ? node.textContent || '' : '';
+    }
+
+    function refreshToggle() {
+      const b = document.getElementById('r3d-toggle');
+      if (b) b.innerHTML = langText('autorotate');
+    }
+
+    document.getElementById('r3d-toggle')?.addEventListener('click', () => {
+      auto = !auto;
+      refreshToggle();
+    });
+    document.addEventListener('langchange', refreshToggle);
+
+    const ro = new ResizeObserver(() => {
+      const w = wrap.clientWidth, h = wrap.clientHeight;
+      if (w && h) {
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      }
+    });
+    ro.observe(wrap);
+
+    function animate() {
+      rafId = requestAnimationFrame(animate);
+      if (auto && !dragging) rotY += 0.006;
+      cube.rotation.x = rotX;
+      cube.rotation.y = rotY;
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('beforeunload', () => {
+      cancelAnimationFrame(rafId);
+      ro.disconnect();
+      renderer.dispose();
+      geo.dispose();
+      mat.dispose();
+    });
+  }
+</script>

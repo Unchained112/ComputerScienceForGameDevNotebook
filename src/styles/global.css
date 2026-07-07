@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent-cyan: #22d3ee;
+  --accent-purple: #a855f7;
+  --accent-indigo: #6366f1;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-bg text-ink font-sans antialiased;
+  background-image:
+    radial-gradient(800px 500px at 12% -10%, rgba(34, 211, 238, 0.12), transparent 60%),
+    radial-gradient(700px 500px at 100% 0%, rgba(168, 85, 247, 0.12), transparent 55%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* 玻璃拟态面板 */
+.glass {
+  @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl;
+  box-shadow: 0 8px 32px rgba(2, 6, 23, 0.45);
+}
+
+.glass-hover {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.glass-hover:hover {
+  transform: translateY(-3px);
+  border-color: rgba(34, 211, 238, 0.4);
+  box-shadow: 0 12px 40px rgba(34, 211, 238, 0.18);
+}
+
+/* 渐变文字 */
+.text-gradient {
+  @apply bg-accent-gradient bg-clip-text text-transparent;
+}
+
+/* 导航链接高亮 */
+.nav-link {
+  @apply block px-3 py-2 rounded-lg text-ink-muted hover:text-ink transition-colors;
+}
+.nav-link-active {
+  @apply text-ink bg-white/5;
+}
+
+/* 双语区块切换：由 <html data-lang> 控制显示哪一套文本 */
+html[data-lang='zh'] [data-lang='en'] { display: none !important; }
+html[data-lang='en'] [data-lang='zh'] { display: none !important; }
+
+/* 按钮基础 */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium
+         border border-white/10 bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+}
+.btn-primary {
+  @apply text-white bg-accent-gradient hover:opacity-90 border-transparent shadow-glow;
+}
+
+/* 进入视口的微动效 */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fadeUp 0.5s ease both;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #22d3ee, #6366f1);
+  border-radius: 999px;
+}
+
+/* 浅色主题覆盖 */
+html.light body {
+  @apply bg-slate-100 text-slate-800;
+  background-image: none;
+}
+html.light .glass {
+  @apply bg-white/80 border-black/5;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+}
+html.light .nav-link { @apply text-slate-500; }
+html.light .nav-link:hover { @apply text-slate-900; }
+html.light .nav-link-active { @apply text-slate-900 bg-black/5; }
+html.light .text-gradient {
+  background: linear-gradient(135deg, #0891b2 0%, #4f46e5 50%, #7e22ce 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+html.light .btn { @apply bg-black/5 border-black/10 text-slate-700; }
+html.light .btn:hover { @apply bg-black/10; }

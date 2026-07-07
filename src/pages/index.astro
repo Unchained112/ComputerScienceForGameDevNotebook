@@ -1,0 +1,55 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Bilingual from '../components/Bilingual.astro';
+import { outline } from '../content/outline';
+
+const home = import.meta.env.BASE_URL;
+---
+<BaseLayout title="CS·GameDev Notebook">
+  <section class="animate-fade-up glass p-8 sm:p-12 mb-8 relative overflow-hidden">
+    <div class="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-primary-purple/20 blur-3xl"></div>
+    <div class="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-primary-cyan/20 blur-3xl"></div>
+    <div class="relative">
+      <p class="text-sm uppercase tracking-[0.3em] text-primary-cyan mb-3">Notebook · Visualization</p>
+      <h1 class="text-3xl sm:text-4xl font-bold leading-tight mb-4">
+        <Bilingual>
+          <span slot="zh">面向游戏开发的<br /><span class="text-gradient">计算机科学知识汇总</span></span>
+          <span slot="en">Computer Science for<br /><span class="text-gradient">Game Development</span></span>
+        </Bilingual>
+      </h1>
+      <p class="text-ink-muted max-w-2xl leading-relaxed">
+        <Bilingual>
+          <span slot="zh">一个静态、可交互的学习笔记站：支持中英文切换，并用可视化与交互动画帮助理解数据结构、算法、计算机结构、图形学等核心知识。</span>
+          <span slot="en">A static, interactive notebook: bilingual (zh/en), with visualizations and interactive animations for data structures, algorithms, computer architecture, and graphics.</span>
+        </Bilingual>
+      </p>
+      <div class="flex flex-wrap gap-3 mt-6">
+        <a class="btn btn-primary" href={home + 'algorithm/sorting'}>
+          <Bilingual><span slot="zh">查看排序可视化</span><span slot="en">Try Sorting Viz</span></Bilingual>
+        </a>
+        <a class="btn" href={home + 'graphics/render'}>
+          <Bilingual><span slot="zh">3D 渲染演示</span><span slot="en">3D Render Demo</span></Bilingual>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+    {
+      outline.map((topic) => (
+        <a href={topic.href ?? '#'} class="glass glass-hover p-5 block group">
+          <h2 class="text-lg font-semibold mb-1 group-hover:text-gradient transition-colors">
+            <Bilingual>
+              <span slot="zh">{topic.zh}</span>
+              <span slot="en">{topic.en}</span>
+            </Bilingual>
+          </h2>
+          <p class="text-sm text-ink-muted">
+            {topic.children?.length}
+            <Bilingual><span slot="zh">个子主题</span><span slot="en"> sub-topics</span></Bilingual>
+          </p>
+        </a>
+      ))
+    }
+  </section>
+</BaseLayout>

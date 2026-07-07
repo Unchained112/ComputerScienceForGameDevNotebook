@@ -1,0 +1,80 @@
+---
+import type { OutlineNode } from '../content/outline';
+import Bilingual from './Bilingual.astro';
+
+interface Props {
+  node: OutlineNode;
+  depth?: number;
+}
+const { node, depth = 0 } = Astro.props;
+const hasChildren = !!node.children?.length;
+const pad = 12 + depth * 14;
+---
+
+{
+  hasChildren ? (
+    <div class="sidebar-group">
+      <button
+        class="sidebar-group-btn w-full text-left flex items-center gap-2 nav-link"
+        data-group
+        style={`padding-left:${pad}px`}
+      >
+        <span class="caret text-ink-muted text-xs">▸</span>
+        <Bilingual>
+          <span slot="zh">{node.zh}</span>
+          <span slot="en">{node.en}</span>
+        </Bilingual>
+      </button>
+      <div class="sidebar-children hidden pl-2" style={`padding-left:${pad}px`}>
+        {node.children?.map((child) => (
+          <Astro.self node={child} depth={depth + 1} />
+        ))}
+      </div>
+    </div>
+  ) : (
+    <a
+      href={node.href}
+      class="sidebar-leaf nav-link flex items-center gap-2"
+      data-viz={node.viz ?? undefined}
+      style={`padding-left:${pad + 14}px`}
+    >
+      <Bilingual>
+        <span slot="zh">{node.zh}</span>
+        <span slot="en">{node.en}</span>
+      </Bilingual>
+      {node.viz && (
+        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-primary-cyan/20 text-primary-cyan border border-primary-cyan/30">
+          DEMO
+        </span>
+      )}
+    </a>
+  )
+}
+
+<script>
+  // 分组展开/收起
+  document.querySelectorAll<HTMLButtonElement>('[data-group]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const children = btn.parentElement?.querySelector<HTMLElement>('.sidebar-children');
+      if (!children) return;
+      const hidden = children.classList.toggle('hidden');
+      btn.classList.toggle('open', !hidden);
+    });
+  });
+
+  // 高亮当前页，并展开其所属分组
+  const path = location.pathname.replace(/\/+$/, '');
+  document.querySelectorAll<HTMLAnchorElement>('.sidebar-leaf').forEach((a) => {
+    const href = (a.getAttribute('href') || '').replace(/\/+$/, '');
+    if (href && path === href) {
+      a.classList.add('nav-link-active');
+      let p = a.closest<HTMLElement>('.sidebar-children');
+      while (p) {
+        p.classList.remove('hidden');
+        const gb = p.previousElementSibling as HTMLElement | null;
+        gb?.classList?.add('open');
+        p = p.parentElement?.closest<HTMLElement>('.sidebar-children') ?? null;
+      }
+    }
+  });
+</script>

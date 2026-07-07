@@ -1,0 +1,56 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import { getTopicSlugs, findNodeByHref } from '../../content/outline';
+
+export function getStaticPaths() {
+  return getTopicSlugs().map((slug) => ({ params: { topic: slug } }));
+}
+
+const { topic } = Astro.params;
+const node = findNodeByHref('/topics/' + topic);
+const titleZh = node?.zh ?? 'Topic';
+const titleEn = node?.en ?? 'Topic';
+
+// 收集该节点下所有叶子作为子主题清单
+function leaves(n: typeof node): { zh: string; en: string; href?: string }[] {
+  if (!n) return [];
+  if (!n.children || n.children.length === 0) return [{ zh: n.zh, en: n.en, href: n.href }];
+  return n.children.flatMap((c) => leaves(c));
+}
+const items = leaves(node);
+---
+<BaseLayout title={`${titleEn} · CS Notebook`}>
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Topic</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">{titleZh}</span><span slot="en">{titleEn}</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted">
+        <span data-ui="comingSoon" data-lang="zh">内容建设中</span><span data-ui="comingSoon" data-lang="en">Content in progress</span>
+        <span class="text-ink-muted"> — </span>
+        <span data-ui="placeholderHint" data-lang="zh">本页为该主题的占位页，正文与可视化将逐步补充。</span>
+        <span data-ui="placeholderHint" data-lang="en">This is a placeholder page for the topic; content and visualizations will be added progressively.</span>
+      </p>
+    </header>
+
+    {
+      items.length > 0 && (
+        <section class="glass p-6">
+          <h2 class="font-semibold mb-3">
+            <Bilingual><span slot="zh">本主题涵盖</span><span slot="en">Covers</span></Bilingual>
+          </h2>
+          <ul class="grid sm:grid-cols-2 gap-2">
+            {items.map((it) => (
+              <li class="flex items-center gap-2 text-sm text-ink-muted">
+                <span class="w-1.5 h-1.5 rounded-full bg-accent-gradient" />
+                <Bilingual><span slot="zh">{it.zh}</span><span slot="en">{it.en}</span></Bilingual>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+  </article>
+</BaseLayout>

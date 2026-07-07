@@ -1,0 +1,48 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import SortVisualizer from '../../components/viz/SortVisualizer.astro';
+---
+<BaseLayout title="Sorting · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Algorithms / Sorting</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">排序算法可视化</span><span slot="en">Sorting Visualizer</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">选择算法与规模，点击播放观察比较与交换过程。柱状图颜色含义：<b class="text-func-amber">黄=比较</b>、<b class="text-func-red">红=交换</b>、<b class="text-func-green">绿=已就位</b>、<b class="text-primary-purple">紫=基准(pivot)</b>。</span>
+          <span slot="en">Pick an algorithm and size, then play to watch comparisons and swaps. Colors: <b class="text-func-amber">amber=compare</b>, <b class="text-func-red">red=swap</b>, <b class="text-func-green">green=sorted</b>, <b class="text-primary-purple">purple=pivot</b>.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <SortVisualizer />
+
+    <section class="grid sm:grid-cols-2 gap-4">
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2">
+          <Bilingual><span slot="zh">冒泡 / 插入</span><span slot="en">Bubble / Insertion</span></Bilingual>
+        </h2>
+        <p class="text-sm text-ink-muted">
+          <Bilingual>
+            <span slot="zh">基础 O(n²) 算法，适合小数组与教学，直观展示相邻比较与逐步归位。</span>
+            <span slot="en">Elementary O(n²) algorithms, great for small arrays and teaching — adjacent comparisons, incremental placement.</span>
+          </Bilingual>
+        </p>
+      </div>
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2">
+          <Bilingual><span slot="zh">快排 / 归并</span><span slot="en">Quick / Merge</span></Bilingual>
+        </h2>
+        <p class="text-sm text-ink-muted">
+          <Bilingual>
+            <span slot="zh">分治策略，平均 O(n log n)。快排用基准分区，归并稳定地合并有序子段。</span>
+            <span slot="en">Divide & conquer, average O(n log n). Quick uses a pivot partition; merge stably merges sorted runs.</span>
+          </Bilingual>
+        </p>
+      </div>
+    </section>
+  </article>
+</BaseLayout>

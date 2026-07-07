@@ -1,0 +1,9 @@
+---
+// 双语内容包装：同一内容维护中英文两套，由 <html data-lang> 切换显示
+interface Props {
+  class?: string;
+}
+const { class: cls = '' } = Astro.props;
+---
+
+<span class={cls} data-lang="zh"><slot name="zh" /></span><span class={cls} data-lang="en"><slot name="en" /></span>

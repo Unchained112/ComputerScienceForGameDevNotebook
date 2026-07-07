@@ -1,0 +1,202 @@
+---
+// 树结构 SVG 可视化：由输入构建 BST，支持遍历高亮（BFS / 前序 / 中序 / 后序）
+---
+<div class="tree-viz glass p-5" data-viz="tree">
+  <div class="flex flex-wrap items-center gap-3 mb-4">
+    <label class="flex items-center gap-2 text-sm text-ink-muted">
+      <span data-ui="values" data-lang="zh">数值</span><span data-ui="values" data-lang="en">Values</span>
+      <input id="tree-input" value="50,30,70,20,40,60,80,10,35" class="btn !py-1.5 w-56 font-mono text-xs" />
+    </label>
+    <button id="tree-build" class="btn"><span data-ui="build" data-lang="zh">构建</span><span data-ui="build" data-lang="en">Build</span></button>
+    <label class="flex items-center gap-2 text-sm text-ink-muted">
+      <span data-ui="traversal" data-lang="zh">遍历</span><span data-ui="traversal" data-lang="en">Traversal</span>
+      <select id="tree-traversal" class="btn !py-1.5">
+        <option value="bfs">BFS</option>
+        <option value="pre">Pre-order</option>
+        <option value="in">In-order</option>
+        <option value="post">Post-order</option>
+      </select>
+    </label>
+    <button id="tree-play" class="btn btn-primary"><span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span></button>
+    <button id="tree-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+    <button id="tree-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+  </div>
+
+  <svg id="tree-svg" viewBox="0 0 800 360" class="w-full h-80 rounded-xl bg-black/20 border border-white/5"></svg>
+</div>
+
+<script>
+  interface TNode {
+    value: number;
+    left: TNode | null;
+    right: TNode | null;
+    depth: number;
+    order: number; // in-order index
+    id: number;
+  }
+
+  function buildBST(values: number[]): TNode | null {
+    let root: TNode | null = null;
+    let idc = 0;
+    const insert = (node: TNode | null, v: number, depth: number): TNode => {
+      if (!node) return { value: v, left: null, right: null, depth, order: 0, id: idc++ };
+      if (v < node.value) node.left = insert(node.left, v, depth + 1);
+      else if (v > node.value) node.right = insert(node.right, v, depth + 1);
+      return node;
+    };
+    for (const v of values) root = insert(root, v, 0);
+    return root;
+  }
+
+  function assignOrder(node: TNode | null, counter: { i: number }) {
+    if (!node) return;
+    assignOrder(node.left, counter);
+    node.order = counter.i++;
+    assignOrder(node.right, counter);
+  }
+
+  function collect(node: TNode | null, out: TNode[]) {
+    if (node) { out.push(node); collect(node.left, out); collect(node.right, out); }
+  }
+
+  function traversalOrder(root: TNode | null, kind: string): number[] {
+    const res: number[] = [];
+    if (!root) return res;
+    if (kind === 'bfs') {
+      const q = [root];
+      while (q.length) {
+        const n = q.shift()!;
+        res.push(n.id);
+        if (n.left) q.push(n.left);
+        if (n.right) q.push(n.right);
+      }
+    } else {
+      const dfs = (n: TNode | null) => {
+        if (!n) return;
+        if (kind === 'pre') res.push(n.id);
+        dfs(n.left);
+        if (kind === 'in') res.push(n.id);
+        dfs(n.right);
+        if (kind === 'post') res.push(n.id);
+      };
+      dfs(root);
+    }
+    return res;
+  }
+
+  const svg = document.getElementById('tree-svg') as unknown as SVGSVGElement;
+  const input = document.getElementById('tree-input') as HTMLInputElement;
+  const traversal = document.getElementById('tree-traversal') as HTMLSelectElement;
+  const SVGNS = 'http://www.w3.org/2000/svg';
+
+  let nodes: TNode[] = [];
+  let order: number[] = [];
+  let idx = 0;
+  let timer: number | null = null;
+
+  const COL_DEFAULT = '#22D3EE';
+  const COL_VISITED = '#6366F1';
+  const COL_CURRENT = '#FBBF24';
+
+  function langText(key: string): string {
+    const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${lang}"]`);
+    return el ? el.textContent || '' : '';
+  }
+
+  function render(visited: Set<number>, current: number | null) {
+    const W = 800, H = 360, padX = 40, padY = 30;
+    const maxOrder = Math.max(1, ...nodes.map((n) => n.order));
+    const maxDepth = Math.max(1, ...nodes.map((n) => n.depth));
+    const xStep = (W - padX * 2) / maxOrder;
+    const yStep = (H - padY * 2) / maxDepth;
+    const pos = (n: TNode) => ({ x: padX + n.order * xStep, y: padY + n.depth * yStep });
+
+    svg.innerHTML = '';
+    // edges
+    for (const n of nodes) {
+      const p = pos(n);
+      for (const c of [n.left, n.right]) {
+        if (!c) continue;
+        const cp = pos(c);
+        const line = document.createElementNS(SVGNS, 'line');
+        line.setAttribute('x1', String(p.x));
+        line.setAttribute('y1', String(p.y));
+        line.setAttribute('x2', String(cp.x));
+        line.setAttribute('y2', String(cp.y));
+        line.setAttribute('stroke', 'rgba(148,163,184,0.35)');
+        line.setAttribute('stroke-width', '2');
+        svg.appendChild(line);
+      }
+    }
+    // nodes
+    for (const n of nodes) {
+      const p = pos(n);
+      const isCur = n.id === current;
+      const fill = isCur ? COL_CURRENT : visited.has(n.id) ? COL_VISITED : COL_DEFAULT;
+      const circle = document.createElementNS(SVGNS, 'circle');
+      circle.setAttribute('cx', String(p.x));
+      circle.setAttribute('cy', String(p.y));
+      circle.setAttribute('r', '16');
+      circle.setAttribute('fill', fill);
+      circle.setAttribute('stroke', '#0B1120');
+      circle.setAttribute('stroke-width', '2');
+      svg.appendChild(circle);
+      const text = document.createElementNS(SVGNS, 'text');
+      text.setAttribute('x', String(p.x));
+      text.setAttribute('y', String(p.y + 4));
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-size', '12');
+      text.setAttribute('fill', '#0B1120');
+      text.setAttribute('font-weight', '600');
+      text.textContent = String(n.value);
+      svg.appendChild(text);
+    }
+  }
+
+  function rebuild() {
+    stop();
+    const vals = input.value.split(',').map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n));
+    const root = buildBST(vals);
+    nodes = [];
+    if (root) {
+      assignOrder(root, { i: 0 });
+      collect(root, nodes);
+    }
+    order = traversalOrder(root, traversal.value);
+    idx = 0;
+    render(new Set(), null);
+  }
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('tree-play');
+    if (b) b.innerHTML = langText('play');
+  }
+
+  function advance() {
+    if (idx < order.length) {
+      idx++;
+      const visited = new Set(order.slice(0, idx));
+      const current = order[idx - 1];
+      render(visited, idx < order.length ? current : null);
+      return true;
+    }
+    return false;
+  }
+
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('tree-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 600);
+  }
+
+  document.getElementById('tree-build')?.addEventListener('click', rebuild);
+  document.getElementById('tree-play')?.addEventListener('click', play);
+  document.getElementById('tree-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('tree-reset')?.addEventListener('click', () => { stop(); idx = 0; render(new Set(), null); });
+  traversal?.addEventListener('change', rebuild);
+
+  rebuild();
+</script>
