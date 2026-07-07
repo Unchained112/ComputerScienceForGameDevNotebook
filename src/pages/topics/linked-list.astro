@@ -1,0 +1,215 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Linked Lists · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Data Structures / Linked Lists</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">链表（单 / 双 / 循环）</span><span slot="en">Linked Lists (Singly / Doubly / Circular)</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">链表用<b>节点 + 指针</b>把分散的内存串起来，插入/删除只需改指针 O(1)，但失去随机访问。下方逐步演示<b class="text-func-green">反转单链表</b>时 <code>next</code> 指针如何翻转。</span>
+          <span slot="en">A linked list chains scattered memory via <b>nodes + pointers</b>: insert/delete are O(1) (just relink), at the cost of random access. Watch the <b class="text-func-green">reverse</b> steps below — see how each <code>next</code> pointer flips.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5" data-viz="linkedlist">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="ll-play" class="btn btn-primary">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+        </button>
+        <button id="ll-step" class="btn">
+          <span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span>
+        </button>
+        <button id="ll-reset" class="btn">
+          <span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span>
+        </button>
+        <button id="ll-new" class="btn">
+          <span data-ui="newlist" data-lang="zh">新数据</span><span data-ui="newlist" data-lang="en">New list</span>
+        </button>
+      </div>
+      <div id="ll-desc" class="text-sm text-primary-cyan mb-4 min-h-[1.5rem] font-mono"></div>
+      <div id="ll-stage" class="flex flex-wrap gap-3"></div>
+      <p class="text-xs text-ink-muted mt-3">
+        <Bilingual>
+          <span slot="zh">每张卡片显示节点值与其 <code>next</code> 指向；反转后箭头逐个反向。指针标记：<b class="text-primary-purple">HEAD</b> / <b class="text-func-amber">PREV</b> / <b class="text-func-green">CURR</b> / <b class="text-func-red">NEXT</b>。</span>
+          <span slot="en">Each card shows a node's value and its <code>next</code> target; arrows flip one by one. Pointer tags: <b class="text-primary-purple">HEAD</b> / <b class="text-func-amber">PREV</b> / <b class="text-func-green">CURR</b> / <b class="text-func-red">NEXT</b>.</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="grid sm:grid-cols-3 gap-4">
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">单向链表</span><span slot="en">Singly</span></Bilingual></h2>
+        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">每节点含 <code>next</code>，单向遍历。内存不连续，插入/删除 O(1)。</span><span slot="en">Each node holds <code>next</code>; one-way traversal. Non-contiguous, insert/delete O(1).</span></Bilingual></p>
+      </div>
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">双向链表</span><span slot="en">Doubly</span></Bilingual></h2>
+        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">含 <code>prev</code> + <code>next</code>，可双向遍历，删除给定节点 O(1)。</span><span slot="en">Holds <code>prev</code> + <code>next</code>; bidirectional, delete a given node in O(1).</span></Bilingual></p>
+      </div>
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">循环链表</span><span slot="en">Circular</span></Bilingual></h2>
+        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">尾节点 <code>next</code> 指回头节点，适合轮转调度、约瑟夫环。</span><span slot="en">Tail's <code>next</code> points back to head — round-robin scheduling, Josephus problem.</span></Bilingual></p>
+      </div>
+    </section>
+
+    <section class="grid lg:grid-cols-2 gap-4">
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">迭代反转</span><span slot="en">Iterative reverse</span></Bilingual></h2>
+        <pre class="text-xs sm:text-sm bg-black/30 rounded-xl p-4 overflow-x-auto font-mono leading-relaxed"><code>// 迭代反转单链表  O(n) / O(1)
+ListNode* reverse(ListNode* head) &#123;
+    ListNode* prev = nullptr;
+    ListNode* curr = head;
+    while (curr) &#123;
+        ListNode* next = curr-&gt;next;  // 1. 暂存后继
+        curr-&gt;next = prev;            // 2. 翻转指向
+        prev = curr;                  // 3. prev 前移
+        curr = next;                  // 4. curr 前移
+    &#125;
+    return prev;                      // 新头
+&#125;</code></pre>
+      </div>
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">递归反转</span><span slot="en">Recursive reverse</span></Bilingual></h2>
+        <pre class="text-xs sm:text-sm bg-black/30 rounded-xl p-4 overflow-x-auto font-mono leading-relaxed"><code>// 递归反转单链表  O(n) / O(n) 栈
+ListNode* reverse(ListNode* head) &#123;
+    if (!head || !head-&gt;next) return head;
+    ListNode* newHead = reverse(head-&gt;next);
+    head-&gt;next-&gt;next = head;   // 后继指回自己
+    head-&gt;next = nullptr;      // 断开旧方向
+    return newHead;
+&#125;</code></pre>
+        <p class="text-xs text-ink-muted mt-2"><Bilingual><span slot="zh">递归版更简洁但栈深 O(n)，长链表易爆栈；生产环境多用迭代版。</span><span slot="en">Recursive is cleaner but uses O(n) stack — iterative is preferred in production.</span></Bilingual></p>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 反转单链表可视化
+  type Step = {
+    nextArr: number[]; // nextArr[i] = 目标索引，-1 表示 null
+    prev: number; curr: number; nextP: number; head: number;
+    descZh: string; descEn: string;
+  };
+
+  const stage = document.getElementById('ll-stage') as HTMLElement;
+  const descEl = document.getElementById('ll-desc') as HTMLElement;
+  const playBtn = document.getElementById('ll-play') as HTMLButtonElement;
+
+  let vals: number[] = [];
+  let steps: Step[] = [];
+  let idx = 0;
+  let timer: number | null = null;
+
+  function makeVals() {
+    const n = 5 + Math.floor(Math.random() * 2);
+    const used = new Set<number>();
+    const out: number[] = [];
+    while (out.length < n) {
+      const v = Math.floor(Math.random() * 90) + 10;
+      if (!used.has(v)) { used.add(v); out.push(v); }
+    }
+    return out;
+  }
+
+  function buildSteps(): Step[] {
+    const n = vals.length;
+    const nextArr: number[] = vals.map((_, i) => (i + 1 < n ? i + 1 : -1));
+    const head = 0;
+    const out: Step[] = [];
+    let prev = -1, curr = head;
+    out.push({
+      nextArr: nextArr.slice(), prev, curr, nextP: curr !== -1 ? nextArr[curr] : -1, head,
+      descZh: '初始：prev = ∅，curr = head',
+      descEn: 'init: prev = null, curr = head',
+    });
+    while (curr !== -1) {
+      const nxt = nextArr[curr];
+      nextArr[curr] = prev;
+      prev = curr;
+      curr = nxt;
+      out.push({
+        nextArr: nextArr.slice(), prev, curr, nextP: curr !== -1 ? nextArr[curr] : -1, head,
+        descZh: `curr.next ← prev；prev ← curr；curr ← next`,
+        descEn: `curr.next ← prev; prev ← curr; curr ← next`,
+      });
+    }
+    const doneHead = prev;
+    out.push({
+      nextArr: nextArr.slice(), prev: -1, curr: -1, nextP: -1, head: doneHead,
+      descZh: '完成：head ← prev（新头）',
+      descEn: 'done: head ← prev (new head)',
+    });
+    return out;
+  }
+
+  function tag(label: string, color: string): string {
+    return `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full ${color} mb-1">${label}</span>`;
+  }
+
+  function render() {
+    const s = steps[idx];
+    stage.innerHTML = '';
+    for (let i = 0; i < vals.length; i++) {
+      const target = s.nextArr[i];
+      const targetTxt = target === -1 ? '∅' : vals[target];
+      const badges: string[] = [];
+      if (i === s.head) badges.push(tag('HEAD', 'bg-primary-purple/20 text-primary-purple border border-primary-purple/30'));
+      if (i === s.prev) badges.push(tag('PREV', 'bg-func-amber/20 text-func-amber border border-func-amber/30'));
+      if (i === s.curr) badges.push(tag('CURR', 'bg-func-green/20 text-func-green border border-func-green/30'));
+      if (i === s.nextP) badges.push(tag('NEXT', 'bg-func-red/20 text-func-red border border-func-red/30'));
+      const card = document.createElement('div');
+      card.className = 'flex flex-col items-center w-20';
+      card.innerHTML =
+        `<div class="flex flex-col items-center mb-1 min-h-[20px]">${badges.join('')}</div>` +
+        `<div class="w-20 rounded-lg border border-primary-cyan/50 bg-primary-cyan/10 px-2 py-2 text-center">
+           <div class="font-mono text-base text-primary-cyan">${vals[i]}</div>
+           <div class="font-mono text-[11px] text-ink-muted">next → ${targetTxt}</div>
+         </div>`;
+      stage.appendChild(card);
+    }
+    descEl.innerHTML = `<span data-lang="zh">${s.descZh}</span><span data-lang="en">${s.descEn}</span>`;
+  }
+
+  function langText(key: 'play' | 'pause'): string {
+    const l = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+    return key === 'play' ? (l === 'en' ? 'Play' : '播放') : (l === 'en' ? 'Pause' : '暂停');
+  }
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    playBtn.innerHTML = `<span data-ui="play" data-lang="zh">${langText('play') === '播放' ? '播放' : 'Play'}</span><span data-ui="play" data-lang="en">${langText('play') === 'Play' ? 'Play' : '播放'}</span>`;
+  }
+
+  function advance(): boolean {
+    if (idx < steps.length - 1) { idx++; render(); return true; }
+    return false;
+  }
+
+  function play() {
+    if (timer !== null) { stop(); return; }
+    playBtn.innerHTML = `<span data-ui="play" data-lang="zh">暂停</span><span data-ui="play" data-lang="en">Pause</span>`;
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 900);
+  }
+
+  function rebuild() {
+    stop();
+    steps = buildSteps();
+    idx = 0;
+    render();
+  }
+
+  playBtn.addEventListener('click', play);
+  document.getElementById('ll-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('ll-reset')?.addEventListener('click', () => { stop(); idx = 0; render(); });
+  document.getElementById('ll-new')?.addEventListener('click', () => { vals = makeVals(); rebuild(); });
+  document.addEventListener('langchange', render);
+
+  vals = makeVals();
+  rebuild();
+</script>

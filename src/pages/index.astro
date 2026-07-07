@@ -1,9 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Bilingual from '../components/Bilingual.astro';
-import { outline } from '../content/outline';
-
-const home = import.meta.env.BASE_URL;
+import { outline, withBase } from '../content/outline';
 ---
 <BaseLayout title="CS·GameDev Notebook">
   <section class="animate-fade-up glass p-8 sm:p-12 mb-8 relative overflow-hidden">
@@ -24,10 +22,10 @@ const home = import.meta.env.BASE_URL;
         </Bilingual>
       </p>
       <div class="flex flex-wrap gap-3 mt-6">
-        <a class="btn btn-primary" href={home + 'algorithm/sorting'}>
+        <a class="btn btn-primary" href={withBase('/algorithm/sorting')}>
           <Bilingual><span slot="zh">查看排序可视化</span><span slot="en">Try Sorting Viz</span></Bilingual>
         </a>
-        <a class="btn" href={home + 'graphics/render'}>
+        <a class="btn" href={withBase('/graphics/render')}>
           <Bilingual><span slot="zh">3D 渲染演示</span><span slot="en">3D Render Demo</span></Bilingual>
         </a>
       </div>
@@ -37,7 +35,7 @@ const home = import.meta.env.BASE_URL;
   <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
     {
       outline.map((topic) => (
-        <a href={topic.href ?? '#'} class="glass glass-hover p-5 block group">
+        <a href={withBase(topic.href) ?? '#'} class="glass glass-hover p-5 block group">
           <h2 class="text-lg font-semibold mb-1 group-hover:text-gradient transition-colors">
             <Bilingual>
               <span slot="zh">{topic.zh}</span>

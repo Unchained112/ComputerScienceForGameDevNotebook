@@ -1,0 +1,184 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Arrays & Dynamic Arrays · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Data Structures / Arrays</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">数组与动态数组</span><span slot="en">Arrays & Dynamic Arrays</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">数组是内存中连续存储的同类型元素集合，支持 O(1) 随机访问。动态数组（如 C++ <code>std::vector</code>）在容量不足时自动扩容，把元素拷贝到更大的连续块。下面演示 <b class="text-func-amber">倍增扩容</b>与 <b class="text-func-green">push_back</b> 的均摊代价。</span>
+          <span slot="en">An array stores elements contiguously for O(1) random access. A dynamic array (e.g. C++ <code>std::vector</code>) grows by allocating a bigger block and copying elements when full. Watch <b class="text-func-amber">capacity doubling</b> and the <b class="text-func-green">push_back</b> amortized cost below.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5" data-viz="array">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="arr-push" class="btn btn-primary">
+          <span data-ui="push" data-lang="zh">尾插 push</span><span data-ui="push" data-lang="en">push_back</span>
+        </button>
+        <button id="arr-pop" class="btn">
+          <span data-ui="pop" data-lang="zh">尾删 pop</span><span data-ui="pop" data-lang="en">pop_back</span>
+        </button>
+        <button id="arr-reset" class="btn">
+          <span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span>
+        </button>
+        <span class="ml-auto font-mono text-xs text-ink-muted">
+          <span data-ui="sizecap" data-lang="zh">容量</span><span data-ui="sizecap" data-lang="en">size/cap</span>:
+          <b id="arr-size" class="text-primary-cyan">0</b>/<b id="arr-cap" class="text-primary-purple">1</b>
+          · <span data-ui="cost" data-lang="zh">总代价</span><span data-ui="cost" data-lang="en">total</span>:
+          <b id="arr-cost" class="text-func-amber">0</b>
+          · <span data-ui="amort" data-lang="zh">均摊</span><span data-ui="amort" data-lang="en">amortized</span>:
+          <b id="arr-amort" class="text-func-green">0.00</b>
+        </span>
+      </div>
+
+      <div id="arr-banner" class="text-sm text-func-amber mb-3 min-h-[1.25rem] font-mono"></div>
+      <div id="arr-cells" class="flex flex-wrap gap-2"></div>
+      <p class="text-xs text-ink-muted mt-3">
+        <Bilingual>
+          <span slot="zh"><b class="text-primary-cyan">青=已用</b> · <b class="text-ink-muted">灰=空闲容量</b> · <b class="text-func-green">绿=刚插入</b> · <b class="text-func-amber">黄=扩容时拷贝</b></span>
+          <span slot="en"><b class="text-primary-cyan">cyan=used</b> · <b class="text-ink-muted">grey=free</b> · <b class="text-func-green">green=just pushed</b> · <b class="text-func-amber">amber=copied on resize</b></span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="grid lg:grid-cols-2 gap-4">
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">C++ std::vector push_back</span><span slot="en">C++ std::vector push_back</span></Bilingual></h2>
+        <pre class="text-xs sm:text-sm bg-black/30 rounded-xl p-4 overflow-x-auto font-mono leading-relaxed"><code>std::vector&lt;int&gt; v;
+v.push_back(x);            // 摊还 O(1)
+// 容量不足时内部近似等价于：
+//   new_cap = max(1, cap * 2);     // 倍增策略
+//   int* p  = new int[new_cap];    // 分配新块
+//   std::copy(begin, end, p);      // 拷贝旧元素  ← O(n)
+//   delete[] old;                  // 释放旧块
+//   cap = new_cap;
+v[i];                      // O(1) 随机访问
+v.size(), v.capacity();    // 元素数 / 已分配容量</code></pre>
+      </div>
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">均摊 O(1) 是怎么来的</span><span slot="en">Why push_back is amortized O(1)</span></Bilingual></h2>
+        <p class="text-sm text-ink-muted leading-relaxed">
+          <Bilingual>
+            <span slot="zh">倍增扩容时单次拷贝是 O(n)，但两次扩容之间隔着 n 次"廉价"插入。把 n+1 次操作的总代价求和后均摊，每次仅 <b class="text-func-green">≈ 3 次基本操作</b>，故 push_back 的<b>均摊时间复杂度为 O(1)</b>。代价是偶发 O(n) 抖动——实时游戏帧应预 <code>reserve</code> 避免 hitch。</span>
+            <span slot="en">A single resize copy is O(n), but it follows n cheap pushes. Summing n+1 operations and amortizing gives <b class="text-func-green">≈ 3 ops per push</b>, so push_back is <b>amortized O(1)</b>. The trade-off: occasional O(n) spikes — pre-<code>reserve</code> in real-time games to avoid hitches.</span>
+          </Bilingual>
+        </p>
+        <table class="w-full text-xs mt-3 font-mono">
+          <thead class="text-ink-muted"><tr><th class="text-left py-1">op</th><th class="text-left">avg</th><th class="text-left">worst</th></tr></thead>
+          <tbody class="text-ink">
+            <tr><td class="py-1">push_back</td><td class="text-func-green">O(1) 摊还</td><td class="text-func-red">O(n)</td></tr>
+            <tr><td class="py-1">pop_back</td><td class="text-func-green">O(1)</td><td class="text-func-green">O(1)</td></tr>
+            <tr><td class="py-1">access [i]</td><td class="text-func-green">O(1)</td><td class="text-func-green">O(1)</td></tr>
+            <tr><td class="py-1">insert mid</td><td class="text-func-amber">O(n)</td><td class="text-func-amber">O(n)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 动态数组扩容可视化
+  type Lang = 'zh' | 'en';
+  const lang = (): Lang => (document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh');
+
+  const cells = document.getElementById('arr-cells') as HTMLElement;
+  const sizeEl = document.getElementById('arr-size') as HTMLElement;
+  const capEl = document.getElementById('arr-cap') as HTMLElement;
+  const costEl = document.getElementById('arr-cost') as HTMLElement;
+  const amortEl = document.getElementById('arr-amort') as HTMLElement;
+  const banner = document.getElementById('arr-banner') as HTMLElement;
+
+  let arr: number[] = [];
+  let size = 0;
+  let cap = 1;
+  let cost = 0;
+  let pushes = 0;
+  let lastIdx = -1;
+  let copyIdx: number[] = [];
+  let lastResize: { o: number; n: number } | null = null;
+
+  function updateBanner() {
+    if (lastResize) {
+      const { o, n } = lastResize;
+      banner.innerHTML =
+        `<span data-lang="zh">扩容 ${o} → ${n}，拷贝 ${o} 个元素</span>` +
+        `<span data-lang="en">resize ${o} → ${n}, copying ${o} elements</span>`;
+    } else {
+      banner.innerHTML = '';
+    }
+  }
+
+  function render() {
+    cells.innerHTML = '';
+    for (let i = 0; i < cap; i++) {
+      const used = i < size;
+      const div = document.createElement('div');
+      let cls = 'w-14 h-14 grid place-items-center rounded-lg border font-mono text-sm transition-colors ';
+      if (used) {
+        cls += 'border-primary-cyan/50 ';
+        if (i === lastIdx) cls += 'bg-func-green/25 text-func-green';
+        else if (copyIdx.includes(i)) cls += 'bg-func-amber/25 text-func-amber';
+        else cls += 'bg-primary-cyan/15 text-primary-cyan';
+        div.textContent = String(arr[i]);
+      } else {
+        cls += 'border-white/10 bg-white/5 text-ink-muted/40';
+        div.textContent = '·';
+      }
+      div.className = cls;
+      cells.appendChild(div);
+    }
+    sizeEl.textContent = String(size);
+    capEl.textContent = String(cap);
+    costEl.textContent = String(cost);
+    amortEl.textContent = pushes > 0 ? (cost / pushes).toFixed(2) : '0.00';
+    updateBanner();
+  }
+
+  function pushBack() {
+    copyIdx = [];
+    if (size === cap) {
+      const oldCap = cap;
+      cap = Math.max(1, cap * 2);
+      cost += oldCap; // 拷贝代价
+      copyIdx = Array.from({ length: oldCap }, (_, i) => i);
+      lastResize = { o: oldCap, n: cap };
+    } else {
+      lastResize = null;
+    }
+    arr[size] = Math.floor(Math.random() * 90) + 10;
+    cost += 1; // 写入代价
+    pushes += 1;
+    lastIdx = size;
+    size += 1;
+    render();
+  }
+
+  function popBack() {
+    if (size === 0) return;
+    size -= 1;
+    lastIdx = -1;
+    copyIdx = [];
+    lastResize = null;
+    render();
+  }
+
+  function reset() {
+    arr = []; size = 0; cap = 1; cost = 0; pushes = 0;
+    lastIdx = -1; copyIdx = []; lastResize = null;
+    render();
+  }
+
+  document.getElementById('arr-push')?.addEventListener('click', pushBack);
+  document.getElementById('arr-pop')?.addEventListener('click', popBack);
+  document.getElementById('arr-reset')?.addEventListener('click', reset);
+  document.addEventListener('langchange', render);
+  reset();
+</script>

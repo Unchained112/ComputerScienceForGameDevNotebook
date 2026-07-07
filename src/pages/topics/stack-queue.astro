@@ -1,0 +1,181 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Stack & Queue · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Data Structures / Stack & Queue</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">栈与队列</span><span slot="en">Stack & Queue</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">栈是<b>后进先出（LIFO）</b>，队列是<b>先进先出（FIFO）</b>。栈常用于括号匹配、回溯、表达式求值；队列常用于 BFS、滑动窗口、任务调度。下方用栈实时校验<b class="text-func-green">括号匹配</b>。</span>
+          <span slot="en">A stack is <b>LIFO</b>, a queue is <b>FIFO</b>. Stacks power bracket matching, backtracking, expression eval; queues power BFS, sliding windows, scheduling. Watch the stack validate <b class="text-func-green">brackets</b> live.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5" data-viz="stack">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <input id="sq-input" type="text" spellcheck="false" autocomplete="off"
+          class="btn !py-2 font-mono w-64" placeholder="()[]{}" value="({[]})" />
+        <button class="btn sq-preset" data-s="()"><Bilingual><span slot="zh">简单</span><span slot="en">simple</span></Bilingual></button>
+        <button class="btn sq-preset" data-s="()[]{}"><Bilingual><span slot="zh">正确</span><span slot="en">valid</span></Bilingual></button>
+        <button class="btn sq-preset" data-s="([)]"><Bilingual><span slot="zh">交叉</span><span slot="en">crossed</span></Bilingual></button>
+        <button class="btn sq-preset" data-s="((()))"><Bilingual><span slot="zh">嵌套</span><span slot="en">nested</span></Bilingual></button>
+        <button id="sq-clear" class="btn"><Bilingual><span slot="zh">清空</span><span slot="en">Clear</span></Bilingual></button>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs uppercase tracking-wider text-ink-muted mb-2"><Bilingual><span slot="zh">输入（逐字符）</span><span slot="en">input (char by char)</span></Bilingual></p>
+          <div id="sq-chars" class="flex flex-wrap gap-1 min-h-[2.5rem]"></div>
+        </div>
+        <div>
+          <p class="text-xs uppercase tracking-wider text-ink-muted mb-2"><Bilingual><span slot="zh">栈（顶在上）</span><span slot="en">stack (top first)</span></Bilingual></p>
+          <div id="sq-stack" class="flex flex-col-reverse gap-1 min-h-[2.5rem]"></div>
+        </div>
+      </div>
+      <div id="sq-result" class="mt-4 text-sm font-mono min-h-[1.5rem]"></div>
+    </section>
+
+    <section class="grid lg:grid-cols-2 gap-4">
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">括号匹配（栈）</span><span slot="en">Bracket matching (stack)</span></Bilingual></h2>
+        <pre class="text-xs sm:text-sm bg-black/30 rounded-xl p-4 overflow-x-auto font-mono leading-relaxed"><code>bool isValid(string s) &#123;
+    stack&lt;char&gt; st;
+    for (int i = 0; i &lt; s.size(); i++) &#123;
+        char c = s[i];
+        if (c=='('||c=='['||c=='&#123;') st.push(c);
+        else &#123;
+            if (st.empty()) return false;       // 多余右括号
+            char t = st.top(); st.pop();
+            if ((c==')' &&amp; t!='(') ||
+                (c==']' &&amp; t!='[') ||
+                (c=='}' &&amp; t!='&#123;')) return false; // 不匹配
+        &#125;
+    &#125;
+    return st.empty();                           // 栈空才算成功
+&#125;</code></pre>
+      </div>
+      <div class="glass p-5">
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">滑动窗口最大值（单调队列）</span><span slot="en">Sliding window max (monotone deque)</span></Bilingual></h2>
+        <pre class="text-xs sm:text-sm bg-black/30 rounded-xl p-4 overflow-x-auto font-mono leading-relaxed"><code>from collections import deque
+def max_sliding_window(nums, k):
+    dq = deque()          # 存下标，对应值单调递减
+    res = []
+    for i, x in enumerate(nums):
+        while dq and nums[dq[-1]] &lt;= x:   # 维护单调性
+            dq.pop()
+        dq.append(i)
+        if dq[0] &lt;= i - k:                 # 队首出窗
+            dq.popleft()
+        if i &gt;= k - 1:
+            res.append(nums[dq[0]])        # 队首即最大值
+    return res</code></pre>
+        <p class="text-xs text-ink-muted mt-2"><Bilingual><span slot="zh">单调双端队列把"窗口内求最值"做到 O(n)。游戏场景：阻塞队列做生产-消费、网络消息缓冲。</span><span slot="en">A monotone deque makes "max in window" O(n). In games: blocking queues for producer-consumer and network message buffering.</span></Bilingual></p>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">栈 vs 队列 速查</span><span slot="en">Stack vs Queue</span></Bilingual></h2>
+      <div class="grid sm:grid-cols-2 gap-4 text-sm">
+        <div>
+          <p class="text-primary-cyan font-semibold mb-1">Stack · LIFO</p>
+          <ul class="text-ink-muted space-y-1 list-disc list-inside">
+            <li><Bilingual><span slot="zh">push / pop / top 均 O(1)</span><span slot="en">push / pop / top — O(1)</span></Bilingual></li>
+            <li><Bilingual><span slot="zh">括号匹配、DFS、撤销栈、调用栈</span><span slot="en">bracket matching, DFS, undo, call stack</span></Bilingual></li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-primary-purple font-semibold mb-1">Queue · FIFO</p>
+          <ul class="text-ink-muted space-y-1 list-disc list-inside">
+            <li><Bilingual><span slot="zh">push / pop / front 均 O(1)</span><span slot="en">push / pop / front — O(1)</span></Bilingual></li>
+            <li><Bilingual><span slot="zh">BFS、任务调度、消息缓冲、流水线</span><span slot="en">BFS, scheduling, message buffer, pipeline</span></Bilingual></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 括号匹配：栈可视化
+  const input = document.getElementById('sq-input') as HTMLInputElement;
+  const charsEl = document.getElementById('sq-chars') as HTMLElement;
+  const stackEl = document.getElementById('sq-stack') as HTMLElement;
+  const resultEl = document.getElementById('sq-result') as HTMLElement;
+
+  const PAIR: Record<string, string> = { ')': '(', ']': '[', '}': '{' };
+  const OPEN = '([{';
+  const COLOR: Record<string, string> = {
+    '(': 'text-primary-cyan', ')': 'text-primary-cyan',
+    '[': 'text-primary-purple', ']': 'text-primary-purple',
+    '{': 'text-func-amber', '}': 'text-func-amber',
+  };
+
+  function process() {
+    const s = input.value;
+    charsEl.innerHTML = '';
+    stackEl.innerHTML = '';
+    const stack: string[] = [];
+    let ok = true;
+    let errIdx = -1;
+
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      const isBracket = OPEN.includes(c) || c in PAIR;
+      const cell = document.createElement('span');
+      cell.className = `w-7 h-8 grid place-items-center rounded border border-white/10 bg-white/5 font-mono text-sm ${COLOR[c] ?? 'text-ink-muted/40'}`;
+      cell.textContent = c;
+      charsEl.appendChild(cell);
+
+      if (!isBracket) continue;
+      if (OPEN.includes(c)) {
+        stack.push(c);
+      } else {
+        const top = stack.pop();
+        if (top === undefined || top !== PAIR[c]) {
+          ok = false; errIdx = i; break;
+        }
+      }
+      renderStack(stack);
+    }
+    if (ok && stack.length > 0) ok = false;
+    renderStack(stack);
+
+    if (s.length === 0) {
+      resultEl.innerHTML = `<span class="text-ink-muted">∅</span>`;
+    } else if (ok) {
+      resultEl.innerHTML = `<span data-lang="zh" class="text-func-green">✓ 合法：所有括号正确闭合，栈最终为空。</span><span data-lang="en" class="text-func-green">✓ valid: all brackets matched, stack empty.</span>`;
+    } else if (errIdx >= 0) {
+      resultEl.innerHTML = `<span data-lang="zh" class="text-func-red">✗ 非法：第 ${errIdx + 1} 个字符 '${s[errIdx]}' 无匹配左括号。</span><span data-lang="en" class="text-func-red">✗ invalid: char #${errIdx + 1} '${s[errIdx]}' has no matching opener.</span>`;
+    } else {
+      resultEl.innerHTML = `<span data-lang="zh" class="text-func-red">✗ 非法：仍有 ${stack.length} 个左括号未闭合。</span><span data-lang="en" class="text-func-red">✗ invalid: ${stack.length} unclosed opener(s) remain.</span>`;
+    }
+  }
+
+  function renderStack(stack: string[]) {
+    stackEl.innerHTML = '';
+    if (stack.length === 0) {
+      stackEl.innerHTML = `<span class="text-ink-muted/40 font-mono text-sm">∅</span>`;
+      return;
+    }
+    for (const c of stack) {
+      const cell = document.createElement('div');
+      cell.className = `w-9 h-9 grid place-items-center rounded-lg border border-white/15 bg-white/10 font-mono text-base ${COLOR[c]}`;
+      cell.textContent = c;
+      stackEl.appendChild(cell);
+    }
+  }
+
+  input.addEventListener('input', process);
+  document.querySelectorAll<HTMLButtonElement>('.sq-preset').forEach((b) => {
+    b.addEventListener('click', () => { input.value = b.dataset.s || ''; process(); });
+  });
+  document.getElementById('sq-clear')?.addEventListener('click', () => { input.value = ''; process(); });
+  document.addEventListener('langchange', process);
+  process();
+</script>

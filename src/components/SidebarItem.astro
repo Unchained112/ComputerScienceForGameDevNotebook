@@ -1,5 +1,6 @@
 ---
 import type { OutlineNode } from '../content/outline';
+import { withBase } from '../content/outline';
 import Bilingual from './Bilingual.astro';
 
 interface Props {
@@ -9,6 +10,8 @@ interface Props {
 const { node, depth = 0 } = Astro.props;
 const hasChildren = !!node.children?.length;
 const pad = 12 + depth * 14;
+// 渲染时补上部署 base 前缀，避免 GitHub Pages 子路径下 404
+const href = withBase(node.href);
 ---
 
 {
@@ -33,7 +36,7 @@ const pad = 12 + depth * 14;
     </div>
   ) : (
     <a
-      href={node.href}
+      href={href}
       class="sidebar-leaf nav-link flex items-center gap-2"
       data-viz={node.viz ?? undefined}
       style={`padding-left:${pad + 14}px`}

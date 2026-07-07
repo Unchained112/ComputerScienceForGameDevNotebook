@@ -198,3 +198,17 @@ export function findNodeByHref(href: string): OutlineNode | undefined {
   walk(outline);
   return found;
 }
+
+/**
+ * 将站点内部路径（以 / 开头，如 /topics/array）补上部署 base 前缀，
+ * 生成可直接用于 <a href> 的绝对路径。
+ * 必须用于渲染任何 outline 中的 href——否则在 GitHub Pages 子路径部署下会 404。
+ * 注意：import.meta.env.BASE_URL 不保证带尾斜杠，因此这里手动归一化，
+ * 保证 base 与路径之间恰好一个 '/'。
+ * 传入 undefined（无 href 的分组节点）返回 undefined。
+ */
+export function withBase(href?: string): string | undefined {
+  if (!href) return undefined;
+  const base = import.meta.env.BASE_URL.replace(/\/+$/, ''); // 去掉尾斜杠
+  return `${base}${href}`; // href 自带前导 '/'
+}
