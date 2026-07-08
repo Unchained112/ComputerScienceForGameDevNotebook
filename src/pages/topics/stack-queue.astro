@@ -128,7 +128,7 @@ def max_sliding_window(nums, k):
       const c = s[i];
       const isBracket = OPEN.includes(c) || c in PAIR;
       const cell = document.createElement('span');
-      cell.className = `w-7 h-8 grid place-items-center rounded border border-white/10 bg-white/5 font-mono text-sm ${COLOR[c] ?? 'text-ink-muted/40'}`;
+      cell.className = `w-7 h-8 grid place-items-center rounded viz-cell font-mono text-sm ${COLOR[c] ?? 'text-ink-muted/40'}`;
       cell.textContent = c;
       charsEl.appendChild(cell);
 
@@ -165,7 +165,7 @@ def max_sliding_window(nums, k):
     }
     for (const c of stack) {
       const cell = document.createElement('div');
-      cell.className = `w-9 h-9 grid place-items-center rounded-lg border border-white/15 bg-white/10 font-mono text-base ${COLOR[c]}`;
+      cell.className = `w-9 h-9 grid place-items-center rounded-lg viz-cell font-mono text-base ${COLOR[c]}`;
       cell.textContent = c;
       stackEl.appendChild(cell);
     }

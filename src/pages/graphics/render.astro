@@ -12,30 +12,71 @@ import Render3D from '../../components/viz/Render3D.astro';
       </h1>
       <p class="text-ink-muted leading-relaxed">
         <Bilingual>
-          <span slot="zh">基于 WebGL（Three.js 封装）的实时渲染占位：几何体经顶点变换、光照计算与光栅化输出到屏幕。可拖拽观察光照与材质。</span>
-          <span slot="en">A real-time WebGL (Three.js) render placeholder: geometry is transformed, lit, and rasterized to the screen. Drag to inspect lighting and material.</span>
+          <span slot="zh">实时渲染把 3D 场景变成 2D 像素：顶点经矩阵变换到屏幕空间，光照模型计算颜色，光栅化填充三角形并做深度测试。下方 WebGL 演示可拖拽观察光照与材质。</span>
+          <span slot="en">Real-time rendering turns a 3D scene into 2D pixels: vertices are matrix-transformed to screen space, a lighting model computes color, rasterization fills triangles and depth-tests them. Drag the WebGL demo below to inspect lighting and material.</span>
         </Bilingual>
       </p>
     </header>
 
     <Render3D />
 
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">渲染管线五阶段</span><span slot="en">Render Pipeline — 5 Stages</span></Bilingual></h2>
+      <ol class="text-sm text-ink-muted space-y-2 list-decimal pl-5">
+        <li><Bilingual><span slot="zh"><b class="text-ink">顶点输入</b>：从顶点缓冲读入位置、法线、UV 等属性。</span><span slot="en"><b class="text-ink">Vertex input</b>: read position, normal, UV, etc. from vertex buffers.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><b class="text-ink">顶点变换</b>：用 Model→View→Projection 矩阵把顶点从模型空间映射到裁剪空间。</span><span slot="en"><b class="text-ink">Vertex transform</b>: Model→View→Projection matrices map vertices from model to clip space.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><b class="text-ink">光栅化</b>：把三角形拆成片元（候选像素），用重心坐标插值属性。</span><span slot="en"><b class="text-ink">Rasterization</b>: break triangles into fragments (candidate pixels), interpolating attributes via barycentric coords.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><b class="text-ink">片元着色</b>：根据光照/纹理计算每个片元的最终颜色。</span><span slot="en"><b class="text-ink">Fragment shading</b>: compute each fragment's final color from lighting/textures.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><b class="text-ink">逐片元测试</b>：深度/模板/混合测试，决定是否写入帧缓冲。</span><span slot="en"><b class="text-ink">Per-fragment tests</b>: depth/stencil/blend tests decide whether to write the framebuffer.</span></Bilingual></li>
+      </ol>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">坐标与 MVP 矩阵</span><span slot="en">Coords & MVP Matrices</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">顶点经三次变换：M（模型→世界）放置物体，V（世界→视图）对齐相机，P（视图→裁剪）做透视投影。齐次坐标用 4×4 矩阵统一表达平移与线性变换。</span><span slot="en">A vertex passes three transforms: M (model→world) places the object, V (world→view) aligns the camera, P (view→clip) applies perspective. Homogeneous coordinates express translation + linear maps uniformly as 4×4 matrices.</span></Bilingual></p>
+      <pre><code>// 顶点着色器核心：gl_Position = P * V * M * vec4(pos, 1.0)
+uniform mat4 uM, uV, uP;
+in vec3 aPos;
+void main() &#123;
+    gl_Position = uP * uV * uM * vec4(aPos, 1.0);
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">光照模型（Phong）</span><span slot="en">Lighting (Phong)</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">Phong 模型叠加三项：环境光（常量底色）、漫反射（与法线和光照方向夹角成正比）、高光（视线与反射方向的夹角幂次）。PBR 在此基础上用金属度/粗糙度物理化反射。</span><span slot="en">Phong sums three terms: ambient (constant base), diffuse (∝ angle between normal & light dir), specular (power of angle between view & reflection). PBR extends this physically with metalness/roughness.</span></Bilingual></p>
+      <pre><code>// 最小片元着色器：Phong 光照
+in vec3 vNormal; in vec3 vPos;
+uniform vec3 uLightPos, uLightColor, uViewPos;
+out vec4 FragColor;
+void main() &#123;
+    vec3 N = normalize(vNormal);
+    vec3 L = normalize(uLightPos - vPos);
+    vec3 V = normalize(uViewPos  - vPos);
+    vec3 R = reflect(-L, N);
+    vec3 ambient  = 0.15 * uLightColor;
+    vec3 diffuse  = max(dot(N, L), 0.0) * uLightColor;
+    vec3 specular = pow(max(dot(R, V), 0.0), 32.0) * uLightColor;
+    FragColor = vec4(ambient + diffuse + specular, 1.0);
+&#125;</code></pre>
+    </section>
+
     <section class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="glass p-5">
-        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">坐标与变换</span><span slot="en">Transform</span></Bilingual></h2>
-        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">模型/视图/投影矩阵将顶点映射到裁剪空间。</span><span slot="en">Model/view/projection matrices map vertices to clip space.</span></Bilingual></p>
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">光栅化</span><span slot="en">Rasterization</span></Bilingual></h2>
+        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">三角形遍历生成片元，重心坐标插值颜色/UV/法线。</span><span slot="en">Triangle traversal emits fragments; barycentric coords interpolate color/UV/normals.</span></Bilingual></p>
       </div>
       <div class="glass p-5">
-        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">光照模型</span><span slot="en">Lighting</span></Bilingual></h2>
-        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">Phong / PBR 计算漫反射与高光，刻画材质质感。</span><span slot="en">Phong / PBR compute diffuse & specular for material feel.</span></Bilingual></p>
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">深度测试</span><span slot="en">Depth Test</span></Bilingual></h2>
+        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">比较片元深度，保留最近表面，避免远处物体覆盖近处。</span><span slot="en">Compares fragment depth, keeping the nearest surface so far objects don't occlude near ones.</span></Bilingual></p>
       </div>
       <div class="glass p-5">
         <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">着色器</span><span slot="en">Shaders</span></Bilingual></h2>
         <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">顶点/片元着色器在 GPU 上并行执行核心渲染逻辑。</span><span slot="en">Vertex/fragment shaders run the core rendering logic on the GPU.</span></Bilingual></p>
       </div>
       <div class="glass p-5">
-        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">光栅化</span><span slot="en">Rasterization</span></Bilingual></h2>
-        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">将图元转为像素，经深度测试合成最终图像。</span><span slot="en">Primitives become pixels, then depth-tested into the final image.</span></Bilingual></p>
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">纹理与采样</span><span slot="en">Texturing</span></Bilingual></h2>
+        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">UV 映射 + mipmap 多级金字塔，近大远小抗锯齿。</span><span slot="en">UV mapping + mipmap pyramids anti-alias minified surfaces.</span></Bilingual></p>
       </div>
     </section>
   </article>

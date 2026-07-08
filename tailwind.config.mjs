@@ -5,35 +5,39 @@ export default {
   theme: {
     extend: {
       colors: {
-        // 科技风主色板
+        // 语义色指向 RGB 通道变量，支持 /透明度 修饰符（如 bg-primary-cyan/15）
+        // 变量定义见 global.css 的 :root(浅色) / html.dark(深色)
         primary: {
-          cyan: '#22D3EE',
-          purple: '#A855F7',
-          indigo: '#6366F1',
+          cyan: 'rgb(var(--c-primary-cyan) / <alpha-value>)',
+          purple: 'rgb(var(--c-primary-purple) / <alpha-value>)',
+          indigo: 'rgb(var(--c-primary-indigo) / <alpha-value>)',
         },
         bg: {
-          DEFAULT: '#0B1120',
-          soft: '#111827',
-          card: '#1E293B',
+          DEFAULT: 'rgb(var(--c-bg) / <alpha-value>)',
+          soft: 'rgb(var(--c-bg-soft) / <alpha-value>)',
+          card: 'rgb(var(--c-bg-card) / <alpha-value>)',
         },
         ink: {
-          DEFAULT: '#E2E8F0',
-          muted: '#94A3B8',
+          DEFAULT: 'rgb(var(--c-ink) / <alpha-value>)',
+          soft: 'rgb(var(--c-ink-soft) / <alpha-value>)',
+          muted: 'rgb(var(--c-ink-muted) / <alpha-value>)',
         },
         func: {
-          green: '#34D399',
-          red: '#F87171',
-          amber: '#FBBF24',
+          green: 'rgb(var(--c-func-green) / <alpha-value>)',
+          red: 'rgb(var(--c-func-red) / <alpha-value>)',
+          amber: 'rgb(var(--c-func-amber) / <alpha-value>)',
+          blue: 'rgb(var(--c-func-blue) / <alpha-value>)',
         },
       },
       fontFamily: {
         sans: ['"Noto Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       boxShadow: {
-        glow: '0 0 24px rgba(34, 211, 238, 0.25)',
+        glow: 'var(--glow)',
       },
       backgroundImage: {
-        'accent-gradient': 'linear-gradient(135deg, #22D3EE 0%, #6366F1 50%, #A855F7 100%)',
+        'accent-gradient': 'var(--accent-gradient)',
       },
     },
   },

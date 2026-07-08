@@ -1,0 +1,207 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Union-Find · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Data Structures / Disjoint Set</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">并查集（Union-Find）</span><span slot="en">Disjoint Set (Union-Find)</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">并查集维护若干不相交集合，支持「查找根」与「合并」两种操作。配合<b class="text-primary-cyan">路径压缩</b>与<b class="text-primary-purple">按秩合并</b>，单次操作近似 O(α(n))≈O(1)，是连通性、最小生成树（Kruskal）、动态连通分量的利器。下方逐步执行一组 union，观察父指针变化：<b class="text-func-amber">黄=本次合并的两点</b>、<b class="text-func-green">绿=涉及的两个根</b>。</span>
+          <span slot="en">A disjoint-set (union-find) maintains disjoint sets with "find root" and "union" ops. With <b class="text-primary-cyan">path compression</b> + <b class="text-primary-purple">union by rank</b>, each op is ~O(α(n))≈O(1) — ideal for connectivity, MST (Kruskal), dynamic components. Step through unions below and watch parent pointers: <b class="text-func-amber">amber=the two nodes</b>, <b class="text-func-green">green=the two roots</b>.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="uf-viz glass p-5" data-viz="unionfind">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="uf-play" class="btn btn-primary">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+          <span data-ui="pause" data-lang="zh" class="hidden">暂停</span><span data-ui="pause" data-lang="en" class="hidden">Pause</span>
+        </button>
+        <button id="uf-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+        <button id="uf-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+        <span id="uf-status" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="uf-svg" viewBox="0 0 800 240" class="w-full h-60 viz-stage"></svg>
+      <p class="text-xs text-ink-muted mt-2">
+        <span data-ui="components" data-lang="zh">连通分量</span><span data-ui="components" data-lang="en">Components</span>:
+        <span id="uf-count" class="font-mono text-ink"></span>
+      </p>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">两个优化</span><span slot="en">Two Optimizations</span></Bilingual></h2>
+      <div class="grid sm:grid-cols-2 gap-4 text-sm text-ink-muted">
+        <div>
+          <h3 class="font-semibold text-ink mb-1"><Bilingual><span slot="zh">路径压缩（find）</span><span slot="en">Path Compression (find)</span></Bilingual></h3>
+          <p><Bilingual><span slot="zh">查找时把路径上每个节点直接挂到根，树被压扁，后续查询更快。</span><span slot="en">During find, re-point every node on the path straight to the root, flattening the tree for future queries.</span></Bilingual></p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-ink mb-1"><Bilingual><span slot="zh">按秩合并（union）</span><span slot="en">Union by Rank (union)</span></Bilingual></h3>
+          <p><Bilingual><span slot="zh">把矮树挂到高树下，避免树变深；秩仅记高度上界，合并同高时才 +1。</span><span slot="en">Attach the shorter tree under the taller one to avoid depth growth; rank tracks a height upper-bound, +1 only when equal.</span></Bilingual></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">并查集代码</span><span slot="en">Union-Find Code</span></Bilingual></h2>
+      <pre><code>class UnionFind &#123;
+    vector&lt;int&gt; parent, rnk;
+public:
+    UnionFind(int n) : parent(n), rnk(n, 0) &#123;
+        iota(parent.begin(), parent.end(), 0);   // 初始各自为根
+    &#125;
+    int find(int x) &#123;                           // 路径压缩
+        return parent[x] == x ? x : parent[x] = find(parent[x]);
+    &#125;
+    bool unite(int a, int b) &#123;                   // 按秩合并
+        int ra = find(a), rb = find(b);
+        if (ra == rb) return false;              // 已同属一组
+        if (rnk[ra] &lt; rnk[rb]) parent[ra] = rb;
+        else if (rnk[ra] &gt; rnk[rb]) parent[rb] = ra;
+        else &#123; parent[rb] = ra; rnk[ra]++; &#125;
+        return true;
+    &#125;
+&#125;;</code></pre>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">单次 find/unite 均摊 O(α(n))，其中 α 是阿克曼反函数，对任意可表 n 几乎 ≤ 4，故视作常数。统计连通分量：根数 = ∑(parent[i]==i)。</span><span slot="en">Amortized O(α(n)) per find/unite, where α is the inverse Ackermann — effectively ≤ 4 for any representable n, so treated as constant. Components = count of roots ∑(parent[i]==i).</span></Bilingual></p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">典型应用</span><span slot="en">Typical Applications</span></Bilingual></h2>
+      <ul class="text-sm text-ink-muted space-y-1 list-disc pl-5">
+        <li><Bilingual><span slot="zh">连通分量 / 动态连通性判断。</span><span slot="en">Connected components / dynamic connectivity.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh">Kruskal 最小生成树：按边权排序，端点不同集则合并。</span><span slot="en">Kruskal MST: sort edges by weight, unite if endpoints differ.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh">无向图环检测：合并前两端已同根则有环。</span><span slot="en">Undirected cycle detection: a cycle exists if both ends already share a root.</span></Bilingual></li>
+      </ul>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  const N = 8;
+  const POS: number[][] = Array.from({ length: N }, (_, i) => [80 + i * 90, 120]);
+  const UNIONS: number[][] = [[1, 0], [3, 2], [2, 1], [5, 4], [7, 6], [6, 5], [2, 5]];
+
+  const COL_DEFAULT = '#22D3EE', COL_PAIR = '#FBBF24', COL_ROOT = '#34D399', COL_EDGE = 'rgba(148,163,184,0.55)';
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('uf-svg') as unknown as SVGSVGElement;
+  const statusEl = document.getElementById('uf-status');
+  const countEl = document.getElementById('uf-count');
+
+  let parent: number[] = [];
+  let rnk: number[] = [];
+  let step = 0;
+  let timer: number | null = null;
+  let hi = { a: -1, b: -1, ra: -1, rb: -1 };
+
+  function reset() {
+    parent = Array.from({ length: N }, (_, i) => i);
+    rnk = new Array(N).fill(0);
+    step = 0;
+    hi = { a: -1, b: -1, ra: -1, rb: -1 };
+  }
+
+  function find(x: number): number {
+    while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+    return x;
+  }
+
+  function components(): number {
+    let c = 0;
+    for (let i = 0; i < N; i++) if (parent[i] === i) c++;
+    return c;
+  }
+
+  function langText(key: string): string {
+    const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${lang}"]`);
+    return el ? el.textContent || '' : '';
+  }
+
+  function render() {
+    svg.innerHTML = '';
+    // 箭头标记
+    const defs = document.createElementNS(SVGNS, 'defs');
+    const m = document.createElementNS(SVGNS, 'marker');
+    m.setAttribute('id', 'uf-arrow'); m.setAttribute('viewBox', '0 0 10 10');
+    m.setAttribute('refX', '9'); m.setAttribute('refY', '5');
+    m.setAttribute('markerWidth', '6'); m.setAttribute('markerHeight', '6'); m.setAttribute('orient', 'auto');
+    const mp = document.createElementNS(SVGNS, 'path');
+    mp.setAttribute('d', 'M0,0 L10,5 L0,10 z'); mp.setAttribute('fill', COL_EDGE);
+    m.appendChild(mp); defs.appendChild(m); svg.appendChild(defs);
+
+    // 父指针边（非根节点 → parent）
+    for (let i = 0; i < N; i++) {
+      if (parent[i] === i) continue;
+      const [x1, y1] = POS[i];
+      const [x2, y2] = POS[parent[i]];
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', String(x1)); line.setAttribute('y1', String(y1 - 16));
+      line.setAttribute('x2', String(x2)); line.setAttribute('y2', String(y2 - 16));
+      line.setAttribute('stroke', COL_EDGE); line.setAttribute('stroke-width', '2');
+      line.setAttribute('marker-end', 'url(#uf-arrow)');
+      svg.appendChild(line);
+    }
+    // 节点
+    for (let i = 0; i < N; i++) {
+      const [x, y] = POS[i];
+      const isPair = i === hi.a || i === hi.b;
+      const isRootInvolved = i === hi.ra || i === hi.rb;
+      const isRoot = parent[i] === i;
+      const fill = isPair ? COL_PAIR : isRootInvolved ? COL_ROOT : COL_DEFAULT;
+      const c = document.createElementNS(SVGNS, 'circle');
+      c.setAttribute('cx', String(x)); c.setAttribute('cy', String(y)); c.setAttribute('r', '17');
+      c.setAttribute('fill', fill); c.setAttribute('stroke', '#0B1120');
+      c.setAttribute('stroke-width', isRoot ? '3' : '2');
+      if (isRoot) c.setAttribute('stroke-dasharray', '2 2');
+      svg.appendChild(c);
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(x)); t.setAttribute('y', String(y + 4)); t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('font-size', '12'); t.setAttribute('fill', '#0B1120'); t.setAttribute('font-weight', '600');
+      t.textContent = String(i); svg.appendChild(t);
+    }
+    if (countEl) countEl.textContent = String(components());
+  }
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('uf-play');
+    if (b) b.innerHTML = langText('play');
+  }
+
+  function advance(): boolean {
+    if (step >= UNIONS.length) { hi = { a: -1, b: -1, ra: -1, rb: -1 }; render(); return false; }
+    const [a, b] = UNIONS[step];
+    const ra = find(a), rb = find(b);
+    hi = { a, b, ra, rb };
+    if (ra !== rb) {
+      if (rnk[ra] < rnk[rb]) parent[ra] = rb;
+      else if (rnk[ra] > rnk[rb]) parent[rb] = ra;
+      else { parent[rb] = ra; rnk[ra]++; }
+    }
+    step++;
+    if (statusEl) statusEl.textContent = `union(${a}, ${b}) → roots ${ra}, ${rb}`;
+    render();
+    return true;
+  }
+
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('uf-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 900);
+  }
+
+  document.getElementById('uf-play')?.addEventListener('click', play);
+  document.getElementById('uf-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('uf-reset')?.addEventListener('click', () => { stop(); reset(); if (statusEl) statusEl.textContent = ''; render(); });
+  document.addEventListener('langchange', () => { if (timer === null) { const b = document.getElementById('uf-play'); if (b) b.innerHTML = langText('play'); } });
+
+  reset();
+  render();
+</script>

@@ -1,22 +1,25 @@
 ---
 import Bilingual from './Bilingual.astro';
-const home = import.meta.env.BASE_URL;
+// 归一化 base（去尾斜杠），用于 logo 等绝对路径，避免 GitHub Pages 子路径 404
+const home = import.meta.env.BASE_URL.replace(/\/+$/, '') || '/';
 ---
-<header class="sticky top-0 z-30 px-3 sm:px-6 py-3">
-  <div class="glass mx-auto max-w-7xl flex items-center gap-3 px-4 py-2.5">
-    <a href={home} class="flex items-center gap-2.5 group">
-      <span class="grid place-items-center w-9 h-9 rounded-xl bg-accent-gradient shadow-glow text-sm font-bold text-white">CS</span>
-      <span class="leading-tight">
-        <span class="block font-semibold text-ink">CS<span class="text-gradient">·</span>GameDev</span>
-        <span class="block text-xs text-ink-muted">
-          <Bilingual><span slot="zh">计算机科学笔记</span><span slot="en">CS Knowledge Notebook</span></Bilingual>
+<header class="sticky top-0 z-30 py-3">
+  <div class="mx-auto max-w-7xl px-3 sm:px-6">
+    <div class="glass flex items-center gap-3 px-4 py-2.5">
+      <a href={home} class="flex items-center gap-2.5 group">
+        <span class="grid place-items-center w-9 h-9 rounded-xl bg-accent-gradient shadow-glow text-sm font-bold text-white">CS</span>
+        <span class="leading-tight">
+          <span class="block font-semibold text-ink">CS<span class="text-gradient">·</span>GameDev</span>
+          <span class="block text-xs text-ink-muted">
+            <Bilingual><span slot="zh">计算机科学笔记</span><span slot="en">CS Knowledge Notebook</span></Bilingual>
+          </span>
         </span>
-      </span>
-    </a>
+      </a>
 
-    <div class="ml-auto flex items-center gap-2">
-      <button id="lang-toggle" class="btn" aria-label="Toggle language">EN</button>
-      <button id="theme-toggle" class="btn" aria-label="Toggle theme">☀️</button>
+      <div class="ml-auto flex items-center gap-2">
+        <button id="lang-toggle" class="btn" aria-label="Toggle language">EN</button>
+        <button id="theme-toggle" class="btn" aria-label="Toggle theme">🌙</button>
+      </div>
     </div>
   </div>
 </header>

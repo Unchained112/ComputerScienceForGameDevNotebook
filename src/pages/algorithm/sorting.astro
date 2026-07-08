@@ -12,36 +12,104 @@ import SortVisualizer from '../../components/viz/SortVisualizer.astro';
       </h1>
       <p class="text-ink-muted leading-relaxed">
         <Bilingual>
-          <span slot="zh">选择算法与规模，点击播放观察比较与交换过程。柱状图颜色含义：<b class="text-func-amber">黄=比较</b>、<b class="text-func-red">红=交换</b>、<b class="text-func-green">绿=已就位</b>、<b class="text-primary-purple">紫=基准(pivot)</b>。</span>
-          <span slot="en">Pick an algorithm and size, then play to watch comparisons and swaps. Colors: <b class="text-func-amber">amber=compare</b>, <b class="text-func-red">red=swap</b>, <b class="text-func-green">green=sorted</b>, <b class="text-primary-purple">purple=pivot</b>.</span>
+          <span slot="zh">排序将无序序列重排为有序。选择算法与规模，点击播放观察比较与交换过程。柱状图颜色含义：<b class="text-func-amber">黄=比较</b>、<b class="text-func-red">红=交换</b>、<b class="text-func-green">绿=已就位</b>、<b class="text-primary-purple">紫=基准(pivot)</b>。</span>
+          <span slot="en">Sorting rearranges a sequence into order. Pick an algorithm and size, then play to watch comparisons and swaps. Colors: <b class="text-func-amber">amber=compare</b>, <b class="text-func-red">red=swap</b>, <b class="text-func-green">green=sorted</b>, <b class="text-primary-purple">purple=pivot</b>.</span>
         </Bilingual>
       </p>
     </header>
 
     <SortVisualizer />
 
-    <section class="grid sm:grid-cols-2 gap-4">
-      <div class="glass p-5">
-        <h2 class="font-semibold mb-2">
-          <Bilingual><span slot="zh">冒泡 / 插入</span><span slot="en">Bubble / Insertion</span></Bilingual>
-        </h2>
-        <p class="text-sm text-ink-muted">
-          <Bilingual>
-            <span slot="zh">基础 O(n²) 算法，适合小数组与教学，直观展示相邻比较与逐步归位。</span>
-            <span slot="en">Elementary O(n²) algorithms, great for small arrays and teaching — adjacent comparisons, incremental placement.</span>
-          </Bilingual>
-        </p>
-      </div>
-      <div class="glass p-5">
-        <h2 class="font-semibold mb-2">
-          <Bilingual><span slot="zh">快排 / 归并</span><span slot="en">Quick / Merge</span></Bilingual>
-        </h2>
-        <p class="text-sm text-ink-muted">
-          <Bilingual>
-            <span slot="zh">分治策略，平均 O(n log n)。快排用基准分区，归并稳定地合并有序子段。</span>
-            <span slot="en">Divide & conquer, average O(n log n). Quick uses a pivot partition; merge stably merges sorted runs.</span>
-          </Bilingual>
-        </p>
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">冒泡排序 O(n²)</span><span slot="en">Bubble Sort O(n²)</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">反复比较相邻元素并交换，每轮把最大值「冒泡」到末尾。加提前退出标志可对近乎有序数据接近 O(n)。稳定排序。</span><span slot="en">Repeatedly compare & swap neighbors; each pass bubbles the max to the end. An early-exit flag makes it ~O(n) on nearly-sorted data. Stable.</span></Bilingual></p>
+      <pre><code>void bubbleSort(int a[], int n) &#123;
+    for (int i = 0; i &lt; n - 1; i++) &#123;
+        bool swapped = false;
+        for (int j = 0; j &lt; n - 1 - i; j++) &#123;
+            if (a[j] &gt; a[j + 1]) &#123;
+                swap(a[j], a[j + 1]);
+                swapped = true;
+            &#125;
+        &#125;
+        if (!swapped) break;   // 已有序，提前退出
+    &#125;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">插入排序 O(n²)</span><span slot="en">Insertion Sort O(n²)</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">把每个新元素插入到前方已排序段的正确位置，类似整理扑克牌。小规模或近乎有序时极快，是快排/归并的底层小数组兜底。稳定排序。</span><span slot="en">Insert each element into its place in the sorted prefix — like sorting a hand of cards. Very fast on small / nearly-sorted input; used as the base case inside quick/merge. Stable.</span></Bilingual></p>
+      <pre><code>void insertionSort(int a[], int n) &#123;
+    for (int i = 1; i &lt; n; i++) &#123;
+        int key = a[i], j = i - 1;
+        while (j &gt;= 0 &amp;&amp; a[j] &gt; key) &#123;
+            a[j + 1] = a[j];
+            j--;
+        &#125;
+        a[j + 1] = key;
+    &#125;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">快速排序 平均 O(n log n)</span><span slot="en">Quick Sort avg O(n log n)</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">分治：选基准 pivot，将小于者划到左、大于者划到右，再递归两侧。原址排序、缓存友好，实际最快；但最坏 O(n²)（已有序 + 选端点为基准），可用随机化/三数取中规避。不稳定。</span><span slot="en">Divide & conquer: pick a pivot, partition smaller-left/larger-right, recurse. In-place and cache-friendly — fastest in practice; worst case O(n²) on sorted input (mitigate via random/median-of-three). Unstable.</span></Bilingual></p>
+      <pre><code>int partition(int a[], int lo, int hi) &#123;
+    int pivot = a[hi];          // 取末位为基准
+    int i = lo - 1;
+    for (int j = lo; j &lt; hi; j++) &#123;
+        if (a[j] &lt;= pivot) &#123;
+            i++;
+            swap(a[i], a[j]);
+        &#125;
+    &#125;
+    swap(a[i + 1], a[hi]);
+    return i + 1;               // 基准最终位置
+&#125;
+
+void quickSort(int a[], int lo, int hi) &#123;
+    if (lo &lt; hi) &#123;
+        int p = partition(a, lo, hi);
+        quickSort(a, lo, p - 1);
+        quickSort(a, p + 1, hi);
+    &#125;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">归并排序 O(n log n)</span><span slot="en">Merge Sort O(n log n)</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">分治：递归对半切分，再将两个有序子段合并。时间稳定 O(n log n)、稳定排序，适合链表与外部排序；需 O(n) 额外空间。</span><span slot="en">Divide & conquer: recurse on halves, then merge two sorted runs. Guaranteed O(n log n), stable — good for lists and external sort; needs O(n) extra space.</span></Bilingual></p>
+      <pre><code>void merge(int a[], int lo, int mid, int hi) &#123;
+    vector&lt;int&gt; L(a + lo, a + mid + 1), R(a + mid + 1, a + hi + 1);
+    int i = 0, j = 0, k = lo;
+    while (i &lt; L.size() &amp;&amp; j &lt; R.size())
+        a[k++] = (L[i] &lt;= R[j]) ? L[i++] : R[j++];
+    while (i &lt; L.size()) a[k++] = L[i++];
+    while (j &lt; R.size()) a[k++] = R[j++];
+&#125;
+
+void mergeSort(int a[], int lo, int hi) &#123;
+    if (lo &gt;= hi) return;
+    int mid = (lo + hi) / 2;
+    mergeSort(a, lo, mid);
+    mergeSort(a, mid + 1, hi);
+    merge(a, lo, mid, hi);
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">复杂度与稳定性对照</span><span slot="en">Complexity & Stability</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4">算法</th><th class="py-2 pr-4">最好</th><th class="py-2 pr-4">平均</th><th class="py-2 pr-4">最坏</th><th class="py-2 pr-4">空间</th><th class="py-2 pr-4">稳定</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">冒泡</td><td class="py-2 pr-4">O(n)</td><td class="py-2 pr-4">O(n²)</td><td class="py-2 pr-4">O(n²)</td><td class="py-2 pr-4">O(1)</td><td class="py-2 pr-4 text-func-green">✓</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">插入</td><td class="py-2 pr-4">O(n)</td><td class="py-2 pr-4">O(n²)</td><td class="py-2 pr-4">O(n²)</td><td class="py-2 pr-4">O(1)</td><td class="py-2 pr-4 text-func-green">✓</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">快排</td><td class="py-2 pr-4">O(n log n)</td><td class="py-2 pr-4">O(n log n)</td><td class="py-2 pr-4 text-func-red">O(n²)</td><td class="py-2 pr-4">O(log n)</td><td class="py-2 pr-4 text-func-red">✗</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">归并</td><td class="py-2 pr-4">O(n log n)</td><td class="py-2 pr-4">O(n log n)</td><td class="py-2 pr-4">O(n log n)</td><td class="py-2 pr-4">O(n)</td><td class="py-2 pr-4 text-func-green">✓</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
   </article>

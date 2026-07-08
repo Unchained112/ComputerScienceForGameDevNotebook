@@ -72,17 +72,17 @@ import Bilingual from '../../components/Bilingual.astro';
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="text-ink-muted text-left">
-            <tr class="border-b border-white/10">
+            <tr class="border-b border-[color:var(--glass-border)]">
               <th class="py-2 pr-4"></th>
               <th class="py-2 pr-4 text-primary-cyan">Chaining</th>
               <th class="py-2 pr-4 text-primary-purple">Open Addressing</th>
             </tr>
           </thead>
           <tbody class="text-ink">
-            <tr class="border-b border-white/5"><td class="py-2 pr-4 text-ink-muted">冲突处理</td><td class="py-2 pr-4">桶挂链表/红黑树</td><td class="py-2 pr-4">顺次探查空位</td></tr>
-            <tr class="border-b border-white/5"><td class="py-2 pr-4 text-ink-muted">负载因子 α</td><td class="py-2 pr-4">可 &gt; 1</td><td class="py-2 pr-4">须 &lt; 1（常 ≤ 0.75）</td></tr>
-            <tr class="border-b border-white/5"><td class="py-2 pr-4 text-ink-muted">删除</td><td class="py-2 pr-4 text-func-green">直接删节点</td><td class="py-2 pr-4 text-func-amber">需懒删除标记</td></tr>
-            <tr class="border-b border-white/5"><td class="py-2 pr-4 text-ink-muted">缓存友好</td><td class="py-2 pr-4 text-func-amber">较差（指针跳转）</td><td class="py-2 pr-4 text-func-green">好（连续内存）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">冲突处理</td><td class="py-2 pr-4">桶挂链表/红黑树</td><td class="py-2 pr-4">顺次探查空位</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">负载因子 α</td><td class="py-2 pr-4">可 &gt; 1</td><td class="py-2 pr-4">须 &lt; 1（常 ≤ 0.75）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">删除</td><td class="py-2 pr-4 text-func-green">直接删节点</td><td class="py-2 pr-4 text-func-amber">需懒删除标记</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">缓存友好</td><td class="py-2 pr-4 text-func-amber">较差（指针跳转）</td><td class="py-2 pr-4 text-func-green">好（连续内存）</td></tr>
             <tr><td class="py-2 pr-4 text-ink-muted">代表实现</td><td class="py-2 pr-4">Java HashMap, C++ unordered_map</td><td class="py-2 pr-4">Python dict, Lua table</td></tr>
           </tbody>
         </table>
@@ -227,7 +227,7 @@ bool insert(int table[], bool used[], int M, int key) &#123;
         const v = openTable[i];
         const start = v !== null ? h(v) : -1;
         if (v === null) {
-          cls += 'border-white/10 bg-white/5 text-ink-muted/30';
+          cls += 'viz-cell text-ink-muted/30';
           slot.textContent = '·';
         } else {
           if (start === i) cls += 'border-primary-cyan/50 bg-primary-cyan/15 text-primary-cyan';

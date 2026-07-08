@@ -2,10 +2,80 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   主题变量：浅色为默认（纸张文档风），深色经 html.dark 覆盖。
+   颜色变量以空格分隔的 RGB 通道存储，供 tailwind 的
+   rgb(var(--c-x) / <alpha-value>) 使用，支持 /透明度 修饰符。
+   非颜色变量（渐变/阴影/玻璃/舞台）直接存完整值。
+   ============================================================ */
 :root {
-  --accent-cyan: #22d3ee;
-  --accent-purple: #a855f7;
-  --accent-indigo: #6366f1;
+  --c-bg: 248 250 252;
+  --c-bg-soft: 241 245 249;
+  --c-bg-card: 255 255 255;
+  --c-ink: 15 23 42;
+  --c-ink-soft: 51 65 85;
+  --c-ink-muted: 100 116 139;
+
+  --c-primary-cyan: 8 145 178;
+  --c-primary-purple: 147 51 234;
+  --c-primary-indigo: 79 70 229;
+  --c-func-green: 22 163 74;
+  --c-func-red: 220 38 38;
+  --c-func-amber: 217 119 6;
+  --c-func-blue: 37 99 235;
+
+  --accent-gradient: linear-gradient(135deg, #0891B2 0%, #4F46E5 50%, #9333EA 100%);
+  --glow: 0 0 20px rgba(8, 145, 178, 0.20);
+
+  --glass-bg: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --glass-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+
+  --hover-border: rgb(var(--c-primary-cyan));
+  --hover-shadow: 0 10px 30px rgba(15, 23, 42, 0.10);
+
+  --active-bg: rgba(15, 23, 42, 0.06);
+
+  --stage-bg: #F1F5F9;
+  --stage-border: rgba(15, 23, 42, 0.08);
+
+  --code-bg: #F1F5F9;
+  --code-border: rgba(15, 23, 42, 0.08);
+}
+
+html.dark {
+  --c-bg: 11 17 32;
+  --c-bg-soft: 17 24 39;
+  --c-bg-card: 30 41 59;
+  --c-ink: 226 232 240;
+  --c-ink-soft: 203 213 225;
+  --c-ink-muted: 148 163 184;
+
+  --c-primary-cyan: 34 211 238;
+  --c-primary-purple: 168 85 247;
+  --c-primary-indigo: 99 102 241;
+  --c-func-green: 52 211 153;
+  --c-func-red: 248 113 113;
+  --c-func-amber: 251 191 36;
+  --c-func-blue: 96 165 250;
+
+  --accent-gradient: linear-gradient(135deg, #22D3EE 0%, #6366F1 50%, #A855F7 100%);
+  --glow: 0 0 24px rgba(34, 211, 238, 0.25);
+
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.10);
+  --glass-shadow: 0 8px 32px rgba(2, 6, 23, 0.45);
+
+  --hover-border: rgba(34, 211, 238, 0.4);
+  --hover-shadow: 0 12px 40px rgba(34, 211, 238, 0.18);
+
+  --active-bg: rgba(255, 255, 255, 0.06);
+
+  --stage-bg: rgba(0, 0, 0, 0.25);
+  --stage-border: rgba(255, 255, 255, 0.06);
+
+  --code-bg: rgba(0, 0, 0, 0.30);
+  --code-border: rgba(255, 255, 255, 0.06);
 }
 
 html {
@@ -14,17 +84,25 @@ html {
 
 body {
   @apply bg-bg text-ink font-sans antialiased;
+  min-height: 100vh;
+}
+
+/* 深色模式保留柔和背景光晕；浅色模式为纯净纸面，专注阅读 */
+html.dark body {
   background-image:
     radial-gradient(800px 500px at 12% -10%, rgba(34, 211, 238, 0.12), transparent 60%),
     radial-gradient(700px 500px at 100% 0%, rgba(168, 85, 247, 0.12), transparent 55%);
   background-attachment: fixed;
-  min-height: 100vh;
 }
 
-/* 玻璃拟态面板 */
+/* 玻璃 / 卡片面板（浅色为干净白底卡片，深色为玻璃拟态） */
 .glass {
-  @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl;
-  box-shadow: 0 8px 32px rgba(2, 6, 23, 0.45);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 1rem;
+  box-shadow: var(--glass-shadow);
 }
 
 .glass-hover {
@@ -32,34 +110,88 @@ body {
 }
 .glass-hover:hover {
   transform: translateY(-3px);
-  border-color: rgba(34, 211, 238, 0.4);
-  box-shadow: 0 12px 40px rgba(34, 211, 238, 0.18);
+  border-color: var(--hover-border);
+  box-shadow: var(--hover-shadow);
 }
 
 /* 渐变文字 */
 .text-gradient {
-  @apply bg-accent-gradient bg-clip-text text-transparent;
+  background-image: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
-/* 导航链接高亮 */
+/* 导航链接 */
 .nav-link {
-  @apply block px-3 py-2 rounded-lg text-ink-muted hover:text-ink transition-colors;
+  @apply block px-3 py-2 rounded-lg transition-colors;
+  color: rgb(var(--c-ink-muted));
+}
+.nav-link:hover {
+  color: rgb(var(--c-ink));
 }
 .nav-link-active {
-  @apply text-ink bg-white/5;
+  color: rgb(var(--c-ink));
+  background: var(--active-bg);
 }
 
 /* 双语区块切换：由 <html data-lang> 控制显示哪一套文本 */
 html[data-lang='zh'] [data-lang='en'] { display: none !important; }
 html[data-lang='en'] [data-lang='zh'] { display: none !important; }
 
-/* 按钮基础 */
+/* 按钮 */
 .btn {
   @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium
-         border border-white/10 bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+         transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+  border: 1px solid var(--glass-border);
+  background: var(--c-bg-soft);
+  color: rgb(var(--c-ink));
+}
+.btn:hover {
+  background: var(--c-bg-card);
 }
 .btn-primary {
-  @apply text-white bg-accent-gradient hover:opacity-90 border-transparent shadow-glow;
+  @apply text-white border-transparent;
+  background-image: var(--accent-gradient);
+  box-shadow: var(--glow);
+}
+.btn-primary:hover {
+  opacity: 0.92;
+}
+
+/* 可视化画布舞台：主题感知背景 */
+.viz-stage {
+  background: var(--stage-bg);
+  border: 1px solid var(--stage-border);
+  border-radius: 0.75rem;
+}
+
+/* 可视化中的单元格/格子（栈帧、哈希桶等）：主题感知 */
+.viz-cell {
+  background: var(--active-bg);
+  border: 1px solid var(--glass-border);
+}
+
+/* 代码块：neutralize 行内 bg/border/padding，统一由 pre code 提供主题感知样式 */
+pre {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0;
+}
+pre code {
+  display: block;
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  font-family: '"JetBrains Mono"', ui-monospace, monospace;
+  @apply text-[13px] leading-relaxed;
+  color: rgb(var(--c-ink-soft));
+}
+html.dark pre code {
+  color: rgb(var(--c-ink));
 }
 
 /* 进入视口的微动效 */
@@ -75,27 +207,6 @@ html[data-lang='en'] [data-lang='zh'] { display: none !important; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #22d3ee, #6366f1);
+  background: linear-gradient(180deg, rgb(var(--c-primary-cyan)), rgb(var(--c-primary-indigo)));
   border-radius: 999px;
 }
-
-/* 浅色主题覆盖 */
-html.light body {
-  @apply bg-slate-100 text-slate-800;
-  background-image: none;
-}
-html.light .glass {
-  @apply bg-white/80 border-black/5;
-  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
-}
-html.light .nav-link { @apply text-slate-500; }
-html.light .nav-link:hover { @apply text-slate-900; }
-html.light .nav-link-active { @apply text-slate-900 bg-black/5; }
-html.light .text-gradient {
-  background: linear-gradient(135deg, #0891b2 0%, #4f46e5 50%, #7e22ce 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-html.light .btn { @apply bg-black/5 border-black/10 text-slate-700; }
-html.light .btn:hover { @apply bg-black/10; }

@@ -12,26 +12,102 @@ import TreeVisualizer from '../../components/viz/TreeVisualizer.astro';
       </h1>
       <p class="text-ink-muted leading-relaxed">
         <Bilingual>
-          <span slot="zh">输入一组数值构建二叉搜索树（BST），选择遍历方式观察访问顺序。<b class="text-primary-indigo">蓝紫=已访问</b>、<b class="text-func-amber">黄=当前节点</b>。</span>
-          <span slot="en">Build a BST from input values and pick a traversal to watch the visit order. <b class="text-primary-indigo">indigo=visited</b>, <b class="text-func-amber">amber=current</b>.</span>
+          <span slot="zh">树是层级化的非线性结构：一个根节点连接若干子树，天然表达「一对多」关系。二叉搜索树（BST）保证「左子 &lt; 根 &lt; 右子」，使查找/插入/删除在平衡时为 O(log n)。下方输入数值构建 BST，选择遍历方式观察访问顺序：<b class="text-primary-indigo">蓝紫=已访问</b>、<b class="text-func-amber">黄=当前节点</b>。</span>
+          <span slot="en">A tree is a hierarchical non-linear structure: a root connects subtrees, modeling one-to-many relations. A Binary Search Tree (BST) keeps left &lt; root &lt; right, giving O(log n) search/insert/delete when balanced. Build a BST below and pick a traversal: <b class="text-primary-indigo">indigo=visited</b>, <b class="text-func-amber">amber=current</b>.</span>
         </Bilingual>
       </p>
     </header>
 
     <TreeVisualizer />
 
-    <section class="grid sm:grid-cols-3 gap-4">
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">BST 节点定义与插入</span><span slot="en">BST Node & Insertion</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">每个节点存值与左右孩子指针。插入按 BST 性质递归下行：比当前小走左子树，大走右子树，遇到空位即挂载。n 次插入退化为链时最坏 O(n²)，随机/平衡时 O(n log n)。</span><span slot="en">Each node stores a value and left/right child pointers. Insertion recurses by the BST property: smaller goes left, larger goes right, mounted at the first empty slot. Worst case O(n²) when degenerated to a list; O(n log n) when random/balanced.</span></Bilingual></p>
+      <pre><code>struct Node &#123;
+    int val;
+    Node* left;
+    Node* right;
+    Node(int v) : val(v), left(nullptr), right(nullptr) &#123;&#125;
+&#125;;
+
+// 插入：返回插入后的（子）树根
+Node* insert(Node* root, int v) &#123;
+    if (!root) return new Node(v);
+    if (v &lt; root-&gt;val) root-&gt;left  = insert(root-&gt;left,  v);
+    else if (v &gt; root-&gt;val) root-&gt;right = insert(root-&gt;right, v);
+    // v 已存在则忽略（去重）
+    return root;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">BST 删除（三种情况）</span><span slot="en">BST Deletion (3 Cases)</span></Bilingual></h2>
+      <ul class="text-sm text-ink-muted space-y-1 mb-3 list-disc pl-5">
+        <li><Bilingual><span slot="zh">叶子节点：直接删除。</span><span slot="en">Leaf: just remove.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh">单孩子：用孩子顶替被删节点。</span><span slot="en">One child: splice in the child.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh">双孩子：用右子树最小值（或左子树最大值）覆盖，再删除该后继。</span><span slot="en">Two children: overwrite with the right-subtree min (or left-subtree max), then delete that successor.</span></Bilingual></li>
+      </ul>
+      <pre><code>// 删除值为 v 的节点，返回新根
+Node* remove(Node* root, int v) &#123;
+    if (!root) return nullptr;
+    if (v &lt; root-&gt;val) root-&gt;left  = remove(root-&gt;left,  v);
+    else if (v &gt; root-&gt;val) root-&gt;right = remove(root-&gt;right, v);
+    else &#123;                                // 命中待删节点
+        if (!root-&gt;left)  &#123; Node* r = root-&gt;right; delete root; return r; &#125;
+        if (!root-&gt;right) &#123; Node* l = root-&gt;left;  delete root; return l; &#125;
+        // 双孩子：找右子树最小值替换
+        Node* succ = root-&gt;right;
+        while (succ-&gt;left) succ = succ-&gt;left;
+        root-&gt;val = succ-&gt;val;
+        root-&gt;right = remove(root-&gt;right, succ-&gt;val);
+    &#125;
+    return root;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">四种遍历</span><span slot="en">Four Traversals</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">前序（根→左→右）适合复制/序列化；中序（左→根→右）对 BST 得升序；后序（左→右→根）适合释放；层序（BFS）按深度逐层访问。</span><span slot="en">Pre-order (root→L→R) suits cloning; in-order (L→root→R) yields sorted values on a BST; post-order (L→R→root) suits freeing; level-order (BFS) visits depth by depth.</span></Bilingual></p>
+      <pre><code>void preOrder (Node* p) &#123; if (!p) return; visit(p); preOrder(p-&gt;left);  preOrder(p-&gt;right); &#125;
+void inOrder  (Node* p) &#123; if (!p) return; inOrder(p-&gt;left);  visit(p); inOrder(p-&gt;right);  &#125;
+void postOrder(Node* p) &#123; if (!p) return; postOrder(p-&gt;left); postOrder(p-&gt;right); visit(p); &#125;
+
+// 层序：借助队列
+void levelOrder(Node* root) &#123;
+    if (!root) return;
+    queue&lt;Node*&gt; q; q.push(root);
+    while (!q.empty()) &#123;
+        Node* p = q.front(); q.pop();
+        visit(p);
+        if (p-&gt;left)  q.push(p-&gt;left);
+        if (p-&gt;right) q.push(p-&gt;right);
+    &#125;
+&#125;</code></pre>
+    </section>
+
+    <section class="grid sm:grid-cols-2 gap-4">
       <div class="glass p-5">
-        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">BFS（层序）</span><span slot="en">BFS (level)</span></Bilingual></h2>
-        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">按层从左到右访问，常用于求最短路径与层级展开。</span><span slot="en">Visits level by level, left to right — used for shortest paths and level expansion.</span></Bilingual></p>
-      </div>
-      <div class="glass p-5">
-        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">DFS（前/中/后序）</span><span slot="en">DFS (pre/in/post)</span></Bilingual></h2>
-        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">深度优先；中序遍历 BST 可得升序序列。</span><span slot="en">Depth-first; in-order on a BST yields ascending values.</span></Bilingual></p>
+        <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">复杂度</span><span slot="en">Complexity</span></Bilingual></h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4">操作</th><th class="py-2 pr-4">平均</th><th class="py-2 pr-4">最坏(退化)</th></tr></thead>
+            <tbody class="text-ink">
+              <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">查找</td><td class="py-2 pr-4">O(log n)</td><td class="py-2 pr-4 text-func-red">O(n)</td></tr>
+              <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">插入</td><td class="py-2 pr-4">O(log n)</td><td class="py-2 pr-4 text-func-red">O(n)</td></tr>
+              <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">删除</td><td class="py-2 pr-4">O(log n)</td><td class="py-2 pr-4 text-func-red">O(n)</td></tr>
+              <tr><td class="py-2 pr-4 text-ink-muted">中序遍历</td><td class="py-2 pr-4" colspan="2">O(n)</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
       <div class="glass p-5">
         <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">平衡与变形</span><span slot="en">Balance & Variants</span></Bilingual></h2>
-        <p class="text-sm text-ink-muted"><Bilingual><span slot="zh">AVL / 红黑树通过旋转保持平衡，Trie 用于前缀匹配。</span><span slot="en">AVL / Red-Black keep balance via rotations; Trie powers prefix matching.</span></Bilingual></p>
+        <p class="text-sm text-ink-muted leading-relaxed">
+          <Bilingual>
+            <span slot="zh"><b class="text-primary-cyan">AVL 树</b>：任意节点左右高度差 ≤ 1，插入/删除后旋转恢复，查找快但写开销大。<br><b class="text-primary-purple">红黑树</b>：用颜色约束近似平衡，旋转少，C++ <code>std::map</code> 即基于此。<br><b class="text-func-amber">Trie</b>：按字符分叉的前缀树，公共前缀共享，适合自动补全/字典。</span>
+            <span slot="en"><b class="text-primary-cyan">AVL tree</b>: height diff ≤ 1, rotates on update — fast lookup, costlier writes.<br><b class="text-primary-purple">Red-Black tree</b>: color rules for near-balance, fewer rotations — backs C++ <code>std::map</code>.<br><b class="text-func-amber">Trie</b>: branches per character sharing prefixes — good for autocomplete/dictionaries.</span>
+          </Bilingual>
+        </p>
       </div>
     </section>
   </article>

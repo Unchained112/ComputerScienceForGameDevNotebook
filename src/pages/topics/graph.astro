@@ -1,0 +1,184 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Graph · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Data Structures / Graphs</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">图与遍历</span><span slot="en">Graphs & Traversal</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">图由顶点（V）和边（E）组成，表达多对多关系。常用邻接表（省空间、适合稀疏图）或邻接矩阵（O(1) 查边、适合稠密图）存储。下方演示 BFS（层序最短路）与 DFS（深度探索）的访问顺序：<b class="text-primary-indigo">蓝紫=已访问</b>、<b class="text-func-amber">黄=当前</b>。</span>
+          <span slot="en">A graph is vertices (V) + edges (E), modeling many-to-many relations. Store as adjacency list (space-efficient for sparse graphs) or matrix (O(1) edge query, dense graphs). Below: BFS (level-order shortest path) vs DFS (deep exploration): <b class="text-primary-indigo">indigo=visited</b>, <b class="text-func-amber">amber=current</b>.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="graph-viz glass p-5" data-viz="graph">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <label class="flex items-center gap-2 text-sm text-ink-muted">
+          <span data-ui="mode" data-lang="zh">方式</span><span data-ui="mode" data-lang="en">Mode</span>
+          <select id="g-mode" class="btn !py-1.5">
+            <option value="bfs">BFS</option>
+            <option value="dfs">DFS</option>
+          </select>
+        </label>
+        <button id="g-play" class="btn btn-primary">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+          <span data-ui="pause" data-lang="zh" class="hidden">暂停</span><span data-ui="pause" data-lang="en" class="hidden">Pause</span>
+        </button>
+        <button id="g-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+        <button id="g-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+        <span id="g-order" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="g-svg" viewBox="0 0 800 360" class="w-full h-80 viz-stage"></svg>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">邻接表 vs 邻接矩阵</span><span slot="en">Adjacency List vs Matrix</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"></th><th class="py-2 pr-4 text-primary-cyan">邻接表</th><th class="py-2 pr-4 text-primary-purple">邻接矩阵</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">空间</td><td class="py-2 pr-4">O(V+E)</td><td class="py-2 pr-4">O(V²)</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">查询边 (u,v)</td><td class="py-2 pr-4">O(deg u)</td><td class="py-2 pr-4 text-func-green">O(1)</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">遍历邻居</td><td class="py-2 pr-4 text-func-green">O(deg u)</td><td class="py-2 pr-4">O(V)</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">适合</td><td class="py-2 pr-4">稀疏图</td><td class="py-2 pr-4">稠密图</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">代表</td><td class="py-2 pr-4">vector&lt;vector&lt;int&gt;&gt;</td><td class="py-2 pr-4">bool g[V][V]</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">邻接表 + BFS / DFS 代码</span><span slot="en">Adjacency List + BFS / DFS</span></Bilingual></h2>
+      <pre><code>vector&lt;vector&lt;int&gt;&gt; adj;     // 邻接表
+
+void bfs(int start) &#123;
+    vector&lt;bool&gt; vis(adj.size(), false);
+    queue&lt;int&gt; q; q.push(start); vis[start] = true;
+    while (!q.empty()) &#123;
+        int u = q.front(); q.pop();
+        visit(u);
+        for (int v : adj[u]) if (!vis[v]) &#123;
+            vis[v] = true; q.push(v);
+        &#125;
+    &#125;
+&#125;
+
+void dfs(int u, vector&lt;bool&gt;&amp; vis) &#123;
+    vis[u] = true; visit(u);
+    for (int v : adj[u]) if (!vis[v]) dfs(v, vis);
+&#125;</code></pre>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">BFS 借队列逐层扩展，无权图最短路；DFS 借递归/栈深入，适合连通性、拓扑、环检测。两者均为 O(V+E)。</span><span slot="en">BFS uses a queue for level expansion (shortest path in unweighted graphs); DFS uses recursion/stack for deep exploration (connectivity, topo sort, cycle detection). Both run in O(V+E).</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 固定无向图（8 顶点）
+  const POS: number[][] = [
+    [120, 80], [300, 60], [500, 90], [680, 70],
+    [200, 210], [400, 230], [600, 210], [350, 330]
+  ];
+  const EDGES: number[][] = [[0,1],[0,4],[1,2],[1,5],[2,3],[2,6],[4,5],[5,6],[5,7],[6,7],[3,6]];
+  const ADJ: number[][] = POS.map(() => []);
+  for (const [a, b] of EDGES) { ADJ[a].push(b); ADJ[b].push(a); }
+  ADJ.forEach((l) => l.sort((x, y) => x - y));
+
+  const COL_DEFAULT = '#22D3EE', COL_VISITED = '#6366F1', COL_CURRENT = '#FBBF24';
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('g-svg') as unknown as SVGSVGElement;
+  const modeSel = document.getElementById('g-mode') as HTMLSelectElement;
+  const orderEl = document.getElementById('g-order');
+
+  let order: number[] = [];
+  let idx = 0;
+  let timer: number | null = null;
+
+  function compute(kind: string): number[] {
+    const vis = new Array(POS.length).fill(false);
+    const res: number[] = [];
+    if (kind === 'bfs') {
+      const q = [0]; vis[0] = true;
+      while (q.length) {
+        const u = q.shift() as number; res.push(u);
+        for (const v of ADJ[u]) if (!vis[v]) { vis[v] = true; q.push(v); }
+      }
+    } else {
+      const st = [0]; vis[0] = true;
+      while (st.length) {
+        const u = st.pop() as number; res.push(u);
+        for (let i = ADJ[u].length - 1; i >= 0; i--) {
+          const v = ADJ[u][i];
+          if (!vis[v]) { vis[v] = true; st.push(v); }
+        }
+      }
+    }
+    return res;
+  }
+
+  function langText(key: string): string {
+    const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${lang}"]`);
+    return el ? el.textContent || '' : '';
+  }
+
+  function render(visited: Set<number>, current: number | null) {
+    svg.innerHTML = '';
+    for (const [a, b] of EDGES) {
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', String(POS[a][0])); line.setAttribute('y1', String(POS[a][1]));
+      line.setAttribute('x2', String(POS[b][0])); line.setAttribute('y2', String(POS[b][1]));
+      line.setAttribute('stroke', 'rgba(148,163,184,0.4)');
+      line.setAttribute('stroke-width', '2');
+      svg.appendChild(line);
+    }
+    for (let i = 0; i < POS.length; i++) {
+      const [x, y] = POS[i];
+      const fill = i === current ? COL_CURRENT : visited.has(i) ? COL_VISITED : COL_DEFAULT;
+      const c = document.createElementNS(SVGNS, 'circle');
+      c.setAttribute('cx', String(x)); c.setAttribute('cy', String(y)); c.setAttribute('r', '17');
+      c.setAttribute('fill', fill); c.setAttribute('stroke', '#0B1120'); c.setAttribute('stroke-width', '2');
+      svg.appendChild(c);
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(x)); t.setAttribute('y', String(y + 4)); t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('font-size', '12'); t.setAttribute('fill', '#0B1120'); t.setAttribute('font-weight', '600');
+      t.textContent = String(i); svg.appendChild(t);
+    }
+    if (orderEl) orderEl.textContent = order.slice(0, idx).join(' → ');
+  }
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('g-play');
+    if (b) b.innerHTML = langText('play');
+  }
+  function rebuild() { stop(); order = compute(modeSel.value); idx = 0; render(new Set(), null); }
+  function advance(): boolean {
+    if (idx < order.length) {
+      idx++;
+      const visited = new Set(order.slice(0, idx));
+      const current = order[idx - 1];
+      render(visited, idx < order.length ? current : null);
+      return true;
+    }
+    return false;
+  }
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('g-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 600);
+  }
+
+  document.getElementById('g-play')?.addEventListener('click', play);
+  document.getElementById('g-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('g-reset')?.addEventListener('click', () => { stop(); idx = 0; render(new Set(), null); });
+  modeSel?.addEventListener('change', rebuild);
+  document.addEventListener('langchange', () => { if (timer === null) { const b = document.getElementById('g-play'); if (b) b.innerHTML = langText('play'); } });
+  rebuild();
+</script>
