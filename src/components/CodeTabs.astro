@@ -1,0 +1,27 @@
+---
+/**
+ * CodeTabs.astro — C++/Python 代码标签切换组件
+ *
+ * 用法（通过 props 传入代码字符串，set:html 渲染）:
+ * <CodeTabs
+ *   cpp={`<pre><code>...C++ (HTML实体转义 &lt; &gt; &amp; &#123; &#125;)...</code></pre>`}
+ *   py={`<pre><code>...Python (直接用 { } 即可)...</code></pre>`}
+ * />
+ *
+ * 全站共享语言偏好（localStorage 'csnote-codelang'），
+ * CSS 通过 html[data-codelang] 声明式控制显隐（零 FOUC）。
+ */
+interface Props {
+  cpp: string;
+  py: string;
+}
+const { cpp, py } = Astro.props;
+---
+<div class="code-tabs" data-code-tabs>
+  <div class="code-tab-bar">
+    <button class="code-tab" data-code-tab="cpp" type="button">C++</button>
+    <button class="code-tab" data-code-tab="py" type="button">Python</button>
+  </div>
+  <div data-code-panel="cpp" set:html={cpp} />
+  <div data-code-panel="py" set:html={py} />
+</div>

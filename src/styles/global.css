@@ -203,6 +203,36 @@ html.dark pre code {
   animation: fadeUp 0.5s ease both;
 }
 
+/* 代码标签切换 (C++ / Python)：由 html[data-codelang] 控制，与双语切换同理 */
+html:not([data-codelang='py']) [data-code-panel='py'] { display: none !important; }
+html[data-codelang='py'] [data-code-panel='cpp'] { display: none !important; }
+
+.code-tab-bar {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+.code-tab {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-family: '"JetBrains Mono"', ui-monospace, monospace;
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  color: rgb(var(--c-ink-muted));
+  background: transparent;
+}
+.code-tab:hover {
+  color: rgb(var(--c-ink-soft));
+}
+html:not([data-codelang='py']) [data-code-tab='cpp'],
+html[data-codelang='py'] [data-code-tab='py'] {
+  color: rgb(var(--c-primary-cyan));
+  background: var(--code-bg);
+  border-color: var(--code-border);
+}
+
 /* 自定义滚动条 */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }

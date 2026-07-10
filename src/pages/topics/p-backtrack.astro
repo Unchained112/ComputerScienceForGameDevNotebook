@@ -1,0 +1,173 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Backtracking Problems · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Problems / Backtracking</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">回溯与排列组合题型</span><span slot="en">Backtracking & Permutation Problems</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">回溯是枚举解空间的通用框架：「选择 → 递归 → 撤销」。三道经典题：全排列（used 标记去重）、子集（选/不选）、单词搜索（网格 DFS + 回溯）。每题给出 C++ 与 Python 双解。</span>
+          <span slot="en">Backtracking is a general framework for enumerating solution spaces: "choose → recurse → undo". Three classics: Permutations (used[] for dedup), Subsets (take/skip), Word Search (grid DFS + backtrack). C++ and Python for each.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Permutations（全排列）</span><span slot="en">Permutations</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：给定不含重复数字的数组，返回所有全排列。<b>思路</b>：回溯 + <code>used[]</code> 标记。每层从 0 遍历到 n-1，跳过已用的，选一个加入 path，递归下一层，回溯时撤销。当 path 长度等于 n 时记录一个解。时间 O(n!·n)。</span><span slot="en"><b>Problem</b>: Given distinct numbers, return all permutations. <b>Approach</b>: backtracking + <code>used[]</code> marker. Each level iterates 0..n-1, skips used, picks one into path, recurses, then undoes on backtrack. When path length == n, record a solution. Time O(n!·n).</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 全排列  O(n!·n)
+vector&lt;vector&lt;int&gt;&gt; res;
+vector&lt;int&gt; path;
+bool used[8];
+
+void backtrack(vector&lt;int&gt;&amp; a) &#123;
+    if (path.size() == a.size()) &#123;
+        res.push_back(path); return;
+    &#125;
+    for (int i = 0; i &lt; a.size(); i++) &#123;
+        if (used[i]) continue;         // 已用，跳过
+        used[i] = true; path.push_back(a[i]);
+        backtrack(a);
+        used[i] = false; path.pop_back();  // 回溯
+    &#125;
+&#125;
+
+vector&lt;vector&lt;int&gt;&gt; permute(vector&lt;int&gt;&amp; a) &#123;
+    res.clear(); path.clear();
+    fill(used, used + 8, false);
+    backtrack(a);
+    return res;
+&#125;</code></pre>`}
+  py={`<pre><code># 全排列  O(n!·n)
+def permute(a):
+    res = []
+    path = []
+    used = [False] * len(a)
+
+    def backtrack():
+        if len(path) == len(a):
+            res.append(path[:]); return
+        for i in range(len(a)):
+            if used[i]: continue         # 已用，跳过
+            used[i] = True; path.append(a[i])
+            backtrack()
+            used[i] = False; path.pop()  # 回溯
+
+    backtrack()
+    return res</code></pre>`}
+        />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Subsets（子集）</span><span slot="en">Subsets</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：给定不含重复元素的数组，返回所有子集（幂集）。<b>思路</b>：回溯，每个元素「选 / 不选」。从下标 i 开始，先记录当前 path 为一个子集，再递归：不选 a[i]（直接 i+1）和选 a[i]（push 后 i+1 再 pop）。也可用「只往后选」的方式避免重复。时间 O(2^n·n)。</span><span slot="en"><b>Problem</b>: Given distinct elements, return all subsets (power set). <b>Approach</b>: backtracking, each element "take / skip". From index i, first record the current path as a subset, then recurse: skip a[i] (i+1 directly) and take a[i] (push, i+1, pop). Alternatively, "only pick forward" to avoid duplicates. Time O(2^n·n).</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 子集  O(2^n·n)
+vector&lt;vector&lt;int&gt;&gt; res;
+vector&lt;int&gt; path;
+
+void backtrack(int start, vector&lt;int&gt;&amp; a) &#123;
+    res.push_back(path);               // 每个节点都是一个子集
+    for (int i = start; i &lt; a.size(); i++) &#123;
+        path.push_back(a[i]);          // 选 a[i]
+        backtrack(i + 1, a);           // 只往后选
+        path.pop_back();               // 回溯
+    &#125;
+&#125;
+
+vector&lt;vector&lt;int&gt;&gt; subsets(vector&lt;int&gt;&amp; a) &#123;
+    res.clear(); path.clear();
+    backtrack(0, a);
+    return res;
+&#125;</code></pre>`}
+  py={`<pre><code># 子集  O(2^n·n)
+def subsets(a):
+    res = []
+    path = []
+
+    def backtrack(start):
+        res.append(path[:])              # 每个节点都是一个子集
+        for i in range(start, len(a)):
+            path.append(a[i])            # 选 a[i]
+            backtrack(i + 1)             # 只往后选
+            path.pop()                   # 回溯
+
+    backtrack(0)
+    return res</code></pre>`}
+        />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Word Search（单词搜索）</span><span slot="en">Word Search</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：在 m×n 网格中搜索单词 word，单词由相邻格子（上下左右）的字母组成，同一格不能重复使用。<b>思路</b>：遍历每个格子作起点，DFS 四向扩展匹配字符。用 <code>visited</code> 标记或原地修改格子（访问时暂存、回溯时恢复）。任一路径匹配成功即返回 true。时间 O(mn·3^L)，L 为单词长度。</span><span slot="en"><b>Problem</b>: Search for word in an m×n grid; letters from adjacent cells (up/down/left/right), each cell used once. <b>Approach</b>: try each cell as a start, DFS four directions matching chars. Mark visited or temporarily modify the cell in place (restore on backtrack). Return true if any path matches. Time O(mn·3^L), L = word length.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 单词搜索  O(mn·3^L)
+int m, n, dx[] = &#123;0,0,1,-1&#125;, dy[] = &#123;1,-1,0,0&#125;;
+string word;
+
+bool dfs(vector&lt;vector&lt;char&gt;&gt;&amp; b, int x, int y, int k) &#123;
+    if (b[x][y] != word[k]) return false;
+    if (k == word.size() - 1) return true;   // 全部匹配
+    char tmp = b[x][y]; b[x][y] = '#';       // 原地标记已访问
+    for (int d = 0; d &lt; 4; d++) &#123;
+        int nx = x + dx[d], ny = y + dy[d];
+        if (nx &gt;= 0 &amp;&amp; nx &lt; m &amp;&amp; ny &gt;= 0 &amp;&amp; ny &lt; n)
+            if (dfs(b, nx, ny, k + 1)) return true;
+    &#125;
+    b[x][y] = tmp;                            // 回溯：恢复
+    return false;
+&#125;
+
+bool exist(vector&lt;vector&lt;char&gt;&gt;&amp; b, string w) &#123;
+    m = b.size(); n = b[0].size(); word = w;
+    for (int i = 0; i &lt; m; i++)
+        for (int j = 0; j &lt; n; j++)
+            if (dfs(b, i, j, 0)) return true;
+    return false;
+&#125;</code></pre>`}
+  py={`<pre><code># 单词搜索  O(mn·3^L)
+def exist(board, word):
+    m, n = len(board), len(board[0])
+    dx, dy = [0, 0, 1, -1], [1, -1, 0, 0]
+
+    def dfs(x, y, k):
+        if board[x][y] != word[k]: return False
+        if k == len(word) - 1: return True   # 全部匹配
+        tmp = board[x][y]; board[x][y] = '#'  # 原地标记已访问
+        for d in range(4):
+            nx, ny = x + dx[d], y + dy[d]
+            if 0 <= nx < m and 0 <= ny < n:
+                if dfs(nx, ny, k + 1): return True
+        board[x][y] = tmp                     # 回溯：恢复
+        return False
+
+    for i in range(m):
+        for j in range(n):
+            if dfs(i, j, 0): return True
+    return False</code></pre>`}
+        />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">回溯技巧速查</span><span slot="en">Backtracking Techniques Cheatsheet</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">技巧</span><span slot="en">Technique</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">要点</span><span slot="en">Key point</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">代表题</span><span slot="en">Representative</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">used[] 去重</td><td class="py-2 pr-4">布尔数组标记已选元素</td><td class="py-2 pr-4">全排列、组合总和</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">只往后选</td><td class="py-2 pr-4">start 参数保证下标递增，避免重复</td><td class="py-2 pr-4">子集、组合</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">原地标记</td><td class="py-2 pr-4">暂存格子值→改特殊值→回溯恢复</td><td class="py-2 pr-4">单词搜索、岛屿</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">剪枝</td><td class="py-2 pr-4">提前判断不可行分支直接跳过</td><td class="py-2 pr-4">N 皇后、数独</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>

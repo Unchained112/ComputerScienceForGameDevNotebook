@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
 ---
 <BaseLayout title="Stack & Queue · CS Notebook">
   <article class="space-y-6">
@@ -44,7 +45,8 @@ import Bilingual from '../../components/Bilingual.astro';
     <section class="grid lg:grid-cols-2 gap-4">
       <div class="glass p-5">
         <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">括号匹配（栈）</span><span slot="en">Bracket matching (stack)</span></Bilingual></h2>
-        <pre class="text-xs sm:text-sm bg-black/30 rounded-xl p-4 overflow-x-auto font-mono leading-relaxed"><code>bool isValid(string s) &#123;
+        <CodeTabs
+          cpp={`<pre><code>bool isValid(string s) &#123;
     stack&lt;char&gt; st;
     for (int i = 0; i &lt; s.size(); i++) &#123;
         char c = s[i];
@@ -58,11 +60,39 @@ import Bilingual from '../../components/Bilingual.astro';
         &#125;
     &#125;
     return st.empty();                           // 栈空才算成功
-&#125;</code></pre>
+&#125;</code></pre>`}
+          py={`<pre><code>def is_valid(s: str) -> bool:
+    st = []
+    pair = {'(': ')', '[': ']', '{': '}'}
+    for c in s:
+        if c in '([{':
+            st.append(c)
+        else:
+            if not st: return False        # 多余右括号
+            t = st.pop()
+            if pair[t] != c: return False  # 不匹配
+    return not st                          # 栈空才算成功</code></pre>`}
+        />
       </div>
       <div class="glass p-5">
         <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">滑动窗口最大值（单调队列）</span><span slot="en">Sliding window max (monotone deque)</span></Bilingual></h2>
-        <pre class="text-xs sm:text-sm bg-black/30 rounded-xl p-4 overflow-x-auto font-mono leading-relaxed"><code>from collections import deque
+        <CodeTabs
+          cpp={`<pre><code>#include &lt;deque&gt;
+vector&lt;int&gt; maxSlidingWindow(vector&lt;int&gt;&amp; nums, int k) &#123;
+    deque&lt;int&gt; dq;        // 存下标，对应值单调递减
+    vector&lt;int&gt; res;
+    for (int i = 0; i &lt; (int)nums.size(); i++) &#123;
+        while (!dq.empty() &amp;&amp; nums[dq.back()] &lt;= nums[i])
+            dq.pop_back();               // 维护单调性
+        dq.push_back(i);
+        if (dq.front() &lt;= i - k)         // 队首出窗
+            dq.pop_front();
+        if (i &gt;= k - 1)
+            res.push_back(nums[dq.front()]); // 队首即最大值
+    &#125;
+    return res;
+&#125;</code></pre>`}
+          py={`<pre><code>from collections import deque
 def max_sliding_window(nums, k):
     dq = deque()          # 存下标，对应值单调递减
     res = []
@@ -74,7 +104,8 @@ def max_sliding_window(nums, k):
             dq.popleft()
         if i &gt;= k - 1:
             res.append(nums[dq[0]])        # 队首即最大值
-    return res</code></pre>
+    return res</code></pre>`}
+        />
         <p class="text-xs text-ink-muted mt-2"><Bilingual><span slot="zh">单调双端队列把"窗口内求最值"做到 O(n)。游戏场景：阻塞队列做生产-消费、网络消息缓冲。</span><span slot="en">A monotone deque makes "max in window" O(n). In games: blocking queues for producer-consumer and network message buffering.</span></Bilingual></p>
       </div>
     </section>

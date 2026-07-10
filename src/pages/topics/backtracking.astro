@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
 ---
 <BaseLayout title="Backtracking · CS Notebook">
   <article class="space-y-6">
@@ -33,7 +34,8 @@ import Bilingual from '../../components/Bilingual.astro';
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">N 皇后：回溯 + 剪枝</span><span slot="en">N-Queens: Backtracking + Pruning</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">在 N×N 棋盘放 N 个皇后使其互不攻击（同行/同列/同对角线冲突）。逐列放置，用三个布尔数组记录已占用的<b>行、主对角线、副对角线</b>，O(1) 判断冲突——这就是剪枝，把朴素 O(N^N) 压到实际可接受范围。</span><span slot="en">Place N queens on an N×N board so none attack each other (same row/column/diagonal). Place column by column; three boolean arrays track occupied <b>rows, main diagonals, anti-diagonals</b> for O(1) conflict checks — this pruning compresses naive O(N^N) to something practical.</span></Bilingual></p>
-      <pre><code>int n;  bool col[20], diag1[40], diag2[40];
+      <CodeTabs
+  cpp={`<pre><code>int n;  bool col[20], diag1[40], diag2[40];
 int ans[20], cnt = 0;
 
 void solve(int r) &#123;            // 第 r 行放皇后
@@ -46,13 +48,36 @@ void solve(int r) &#123;            // 第 r 行放皇后
         solve(r + 1);                      // 递归
         col[c] = diag1[d1] = diag2[d2] = false; // 撤销（回溯）
     &#125;
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code>def solve_n_queens(n):
+    col = [False] * n
+    diag1 = [False] * (2 * n)   # 主对角线 r+c
+    diag2 = [False] * (2 * n)   # 副对角线 r-c+n
+    cnt = 0
+
+    def solve(r):               # 第 r 行放皇后
+        nonlocal cnt
+        if r == n:
+            cnt += 1            # 全部放完 → 记录一个解
+            return
+        for c in range(n):
+            d1, d2 = r + c, r - c + n
+            if col[c] or diag1[d1] or diag2[d2]:
+                continue        # 剪枝
+            col[c] = diag1[d1] = diag2[d2] = True
+            solve(r + 1)        # 递归
+            col[c] = diag1[d1] = diag2[d2] = False  # 撤销（回溯）
+
+    solve(0)
+    return cnt</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">子集 / 排列 / 组合</span><span slot="en">Subsets / Permutations / Combinations</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">回溯是枚举三大经典问题的统一框架，区别只在「选择集」与「剪枝条件」：<b>子集</b>每个元素选/不选；<b>排列</b>选未用的；<b>组合</b>选下标更大的（避免重复）。</span><span slot="en">Backtracking is a unified framework for three classic enumeration problems; the difference is only the "choice set" and "pruning": <b>subsets</b> take/skip each element; <b>permutations</b> pick unused ones; <b>combinations</b> pick only later indices (to avoid duplicates).</span></Bilingual></p>
-      <pre><code>vector&lt;int&gt; path; vector&lt;vector&lt;int&gt;&gt; res;
+      <CodeTabs
+  cpp={`<pre><code>vector&lt;int&gt; path; vector&lt;vector&lt;int&gt;&gt; res;
 
 // 子集：每个元素 选 / 不选
 void subsets(int i, int n, vector&lt;int&gt;&amp; a) &#123;
@@ -83,7 +108,38 @@ void comb(int start, int n, int k, vector&lt;int&gt;&amp; a) &#123;
         comb(i + 1, n, k, a);        // i+1 保证不回头
         path.pop_back();             // 回溯
     &#125;
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code>path = []
+res = []
+
+# 子集：每个元素 选 / 不选
+def subsets(i, n, a):
+    if i == n:
+        res.append(path[:]); return
+    subsets(i + 1, n, a)       # 不选 a[i]
+    path.append(a[i])          # 选 a[i]
+    subsets(i + 1, n, a)
+    path.pop()                 # 回溯
+
+# 排列：从「未使用」中选
+def perm(n, a, used):
+    if len(path) == n:
+        res.append(path[:]); return
+    for i in range(n):
+        if used[i]: continue
+        used[i] = True; path.append(a[i])
+        perm(n, a, used)
+        used[i] = False; path.pop()  # 回溯
+
+# 组合 C(n,k)：只往后选，避免重复
+def comb(start, n, k, a):
+    if len(path) == k:
+        res.append(path[:]); return
+    for i in range(start, n):
+        path.append(a[i])
+        comb(i + 1, n, k, a)   # i+1 保证不回头
+        path.pop()             # 回溯</code></pre>`}
+        />
       <div class="overflow-x-auto mt-3">
         <table class="w-full text-sm">
           <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">问题</span><span slot="en">Problem</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">解空间</span><span slot="en">Solution space</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">剪枝要点</span><span slot="en">Pruning key</span></Bilingual></th></tr></thead>

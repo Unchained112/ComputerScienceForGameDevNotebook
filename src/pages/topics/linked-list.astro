@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
 ---
 <BaseLayout title="Linked Lists · CS Notebook">
   <article class="space-y-6">
@@ -60,7 +61,8 @@ import Bilingual from '../../components/Bilingual.astro';
     <section class="grid lg:grid-cols-2 gap-4">
       <div class="glass p-5">
         <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">迭代反转</span><span slot="en">Iterative reverse</span></Bilingual></h2>
-        <pre class="text-xs sm:text-sm bg-black/30 rounded-xl p-4 overflow-x-auto font-mono leading-relaxed"><code>// 迭代反转单链表  O(n) / O(1)
+        <CodeTabs
+  cpp={`<pre><code>// 迭代反转单链表  O(n) / O(1)
 ListNode* reverse(ListNode* head) &#123;
     ListNode* prev = nullptr;
     ListNode* curr = head;
@@ -71,18 +73,42 @@ ListNode* reverse(ListNode* head) &#123;
         curr = next;                  // 4. curr 前移
     &#125;
     return prev;                      // 新头
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code># 迭代反转单链表  O(n) / O(1)
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val, self.next = val, next
+
+def reverse(head):
+    prev, curr = None, head
+    while curr:
+        nxt = curr.next       # 1. 暂存后继
+        curr.next = prev      # 2. 翻转指向
+        prev = curr           # 3. prev 前移
+        curr = nxt            # 4. curr 前移
+    return prev               # 新头</code></pre>`}
+        />
       </div>
       <div class="glass p-5">
         <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">递归反转</span><span slot="en">Recursive reverse</span></Bilingual></h2>
-        <pre class="text-xs sm:text-sm bg-black/30 rounded-xl p-4 overflow-x-auto font-mono leading-relaxed"><code>// 递归反转单链表  O(n) / O(n) 栈
+        <CodeTabs
+  cpp={`<pre><code>// 递归反转单链表  O(n) / O(n) 栈
 ListNode* reverse(ListNode* head) &#123;
     if (!head || !head-&gt;next) return head;
     ListNode* newHead = reverse(head-&gt;next);
     head-&gt;next-&gt;next = head;   // 后继指回自己
     head-&gt;next = nullptr;      // 断开旧方向
     return newHead;
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code># 递归反转单链表  O(n) / O(n) 栈
+def reverse(head):
+    if not head or not head.next:
+        return head
+    new_head = reverse(head.next)
+    head.next.next = head    # 后继指回自己
+    head.next = None         # 断开旧方向
+    return new_head</code></pre>`}
+        />
         <p class="text-xs text-ink-muted mt-2"><Bilingual><span slot="zh">递归版更简洁但栈深 O(n)，长链表易爆栈；生产环境多用迭代版。</span><span slot="en">Recursive is cleaner but uses O(n) stack — iterative is preferred in production.</span></Bilingual></p>
       </div>
     </section>

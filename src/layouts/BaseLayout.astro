@@ -11,7 +11,7 @@ const home = import.meta.env.BASE_URL.replace(/\/+$/, '');
 ---
 
 <!doctype html>
-<html lang="zh" data-lang="zh">
+<html lang="zh" data-lang="zh" data-codelang="cpp">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href={`${home}/favicon.svg`} />
@@ -33,6 +33,8 @@ const home = import.meta.env.BASE_URL.replace(/\/+$/, '');
           document.documentElement.setAttribute('data-lang', lang);
           var theme = localStorage.getItem('csnote-theme') || 'light';
           if (theme === 'dark') document.documentElement.classList.add('dark');
+          var codeLang = localStorage.getItem('csnote-codelang') || 'cpp';
+          document.documentElement.setAttribute('data-codelang', codeLang);
         } catch (e) {}
       })();
     </script>
@@ -69,5 +71,19 @@ const home = import.meta.env.BASE_URL.replace(/\/+$/, '');
         overflow-y: auto;
       }
     </style>
+    <script is:inline>
+      // 代码标签切换：点击 C++/Python 标签，全站联动 + 持久化偏好
+      (function () {
+        document.addEventListener('click', function (e) {
+          var tab = e.target.closest && e.target.closest('[data-code-tab]');
+          if (!tab) return;
+          var lang = tab.getAttribute('data-code-tab');
+          try {
+            localStorage.setItem('csnote-codelang', lang);
+            document.documentElement.setAttribute('data-codelang', lang);
+          } catch (err) {}
+        });
+      })();
+    </script>
   </body>
 </html>

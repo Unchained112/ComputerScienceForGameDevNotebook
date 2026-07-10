@@ -1,0 +1,124 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="DP Problems · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Problems / Dynamic Programming</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">动态规划题型</span><span slot="en">Dynamic Programming Problems</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">DP 题的核心是<b>定义状态</b>与<b>写出转移方程</b>。三道经典题从简到难：爬楼梯（一维线性 DP）、编辑距离（二维 DP）、买卖股票（状态机 DP）。每题给出 C++ 与 Python 双解。</span>
+          <span slot="en">The core of DP is <b>defining the state</b> and <b>writing the transition</b>. Three classics from easy to hard: Climbing Stairs (1D linear DP), Edit Distance (2D DP), Best Time to Buy and Sell Stock (state-machine DP). C++ and Python for each.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Climbing Stairs（爬楼梯）</span><span slot="en">Climbing Stairs</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：n 阶楼梯，每次可爬 1 或 2 步，有多少种爬法？<b>思路</b>：到第 i 阶的方法 = 第 i-1 阶（爬1步）+ 第 i-2 阶（爬2步），即 <code>dp[i] = dp[i-1] + dp[i-2]</code>——本质是斐波那契。空间可压缩为 O(1)：只保留前两个值滚动。时间 O(n)。</span><span slot="en"><b>Problem</b>: n stairs, each time climb 1 or 2 steps; how many ways to reach the top? <b>Approach</b>: ways to step i = step i-1 (1 step) + step i-2 (2 steps), i.e. <code>dp[i] = dp[i-1] + dp[i-2]</code> — essentially Fibonacci. Space compresses to O(1): keep only the last two values. Time O(n).</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 爬楼梯  O(n) 时间, O(1) 空间
+int climbStairs(int n) &#123;
+    if (n &lt;= 2) return n;
+    int prev2 = 1, prev1 = 2;
+    for (int i = 3; i &lt;= n; i++) &#123;
+        int cur = prev1 + prev2;   // dp[i] = dp[i-1] + dp[i-2]
+        prev2 = prev1;
+        prev1 = cur;
+    &#125;
+    return prev1;
+&#125;</code></pre>`}
+  py={`<pre><code># 爬楼梯  O(n) 时间, O(1) 空间
+def climb_stairs(n):
+    if n <= 2: return n
+    prev2, prev1 = 1, 2
+    for i in range(3, n + 1):
+        cur = prev1 + prev2     # dp[i] = dp[i-1] + dp[i-2]
+        prev2, prev1 = prev1, cur
+    return prev1</code></pre>`}
+        />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Edit Distance（编辑距离）</span><span slot="en">Edit Distance</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：将 word1 转换成 word2 所需的最少操作次数（插入/删除/替换一个字符）。<b>思路</b>：<code>dp[i][j]</code> = word1 前 i 字符变成 word2 前 j 字符的最少操作。字符相等则 <code>dp[i-1][j-1]</code>（无需操作），否则取 <code>min(删, 插, 替) + 1</code>。时间 O(nm)、空间 O(nm) 可滚动压缩到 O(min(n,m))。</span><span slot="en"><b>Problem</b>: Minimum operations (insert/delete/replace a char) to convert word1 to word2. <b>Approach</b>: <code>dp[i][j]</code> = min ops to turn word1[:i] into word2[:j]. If chars match, <code>dp[i-1][j-1]</code> (no op); else <code>min(delete, insert, replace) + 1</code>. Time O(nm), space O(nm) compressible to O(min(n,m)).</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 编辑距离  O(nm)
+int minDistance(string&amp; w1, string&amp; w2) &#123;
+    int n = w1.size(), m = w2.size();
+    vector&lt;vector&lt;int&gt;&gt; dp(n + 1, vector&lt;int&gt;(m + 1, 0));
+    for (int i = 0; i &lt;= n; i++) dp[i][0] = i;  // 删完
+    for (int j = 0; j &lt;= m; j++) dp[0][j] = j;  // 插完
+    for (int i = 1; i &lt;= n; i++)
+        for (int j = 1; j &lt;= m; j++)
+            if (w1[i-1] == w2[j-1])
+                dp[i][j] = dp[i-1][j-1];        // 字符相等，无操作
+            else
+                dp[i][j] = 1 + min(&#123;dp[i-1][j],    // 删 w1[i-1]
+                                    dp[i][j-1],    // 插 w2[j-1]
+                                    dp[i-1][j-1]&#125;); // 替换
+    return dp[n][m];
+&#125;</code></pre>`}
+  py={`<pre><code># 编辑距离  O(nm)
+def min_distance(w1, w2):
+    n, m = len(w1), len(w2)
+    dp = [[0] * (m + 1) for _ in range(n + 1)]
+    for i in range(n + 1): dp[i][0] = i  # 删完
+    for j in range(m + 1): dp[0][j] = j  # 插完
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+            if w1[i-1] == w2[j-1]:
+                dp[i][j] = dp[i-1][j-1]        # 字符相等，无操作
+            else:
+                dp[i][j] = 1 + min(dp[i-1][j],    # 删 w1[i-1]
+                                   dp[i][j-1],    # 插 w2[j-1]
+                                   dp[i-1][j-1])  # 替换
+    return dp[n][m]</code></pre>`}
+        />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Best Time to Buy and Sell Stock（买卖股票）</span><span slot="en">Best Time to Buy and Sell Stock</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：给定每日股价，只能买卖一次，求最大利润。<b>思路</b>：遍历价格，维护「截至当前的历史最低价」<code>minPrice</code>，每天的潜在利润 = <code>price - minPrice</code>，取最大值。本质是一维 DP：<code>dp[i] = max(dp[i-1], price[i] - minPrice)</code>，压缩为 O(1) 空间。时间 O(n)。</span><span slot="en"><b>Problem</b>: Given daily prices, buy and sell once for max profit. <b>Approach</b>: Track the running minimum price <code>minPrice</code>; each day's potential profit = <code>price - minPrice</code>; take the max. Essentially 1D DP: <code>dp[i] = max(dp[i-1], price[i] - minPrice)</code>, compressed to O(1) space. Time O(n).</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 买卖股票（一次交易） O(n)
+int maxProfit(vector&lt;int&gt;&amp; prices) &#123;
+    int minPrice = INT_MAX, ans = 0;
+    for (int p : prices) &#123;
+        minPrice = min(minPrice, p);     // 维护历史最低价
+        ans = max(ans, p - minPrice);    // 今天卖的最大利润
+    &#125;
+    return ans;
+&#125;</code></pre>`}
+  py={`<pre><code># 买卖股票（一次交易） O(n)
+def max_profit(prices):
+    min_price = float('inf')
+    ans = 0
+    for p in prices:
+        min_price = min(min_price, p)    # 维护历史最低价
+        ans = max(ans, p - min_price)    # 今天卖的最大利润
+    return ans</code></pre>`}
+        />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">DP 技巧速查</span><span slot="en">DP Techniques Cheatsheet</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">技巧</span><span slot="en">Technique</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">要点</span><span slot="en">Key point</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">代表题</span><span slot="en">Representative</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">滚动变量</td><td class="py-2 pr-4">一维 DP 只依赖前几项，用变量滚动</td><td class="py-2 pr-4">爬楼梯、打家劫舍</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">二维 DP</td><td class="py-2 pr-4">双序列 dp[i][j]，注意边界初始化</td><td class="py-2 pr-4">编辑距离、LCS</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">状态机 DP</td><td class="py-2 pr-4">定义「持有/不持有」等离散状态</td><td class="py-2 pr-4">买卖股票系列</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">空间压缩</td><td class="py-2 pr-4">滚动数组 / 一维倒序覆盖</td><td class="py-2 pr-4">0/1 背包、编辑距离</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>

@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
 ---
 <BaseLayout title="Searching · CS Notebook">
   <article class="space-y-6">
@@ -37,7 +38,8 @@ import Bilingual from '../../components/Bilingual.astro';
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">lower_bound / upper_bound</span><span slot="en">lower_bound / upper_bound</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">在有序区间中找<b>第一个 ≥ target</b>（lower_bound）与<b>第一个 &gt; target</b>（upper_bound）的位置。两者都用半开区间 <code>[lo, hi)</code>，循环不变量：答案一定落在 <code>[lo, hi)</code> 内。是 C++ STL 的基石。</span><span slot="en">Find the <b>first ≥ target</b> (lower_bound) and <b>first &gt; target</b> (upper_bound) in a sorted range. Both use a half-open range <code>[lo, hi)</code>; the loop invariant keeps the answer inside <code>[lo, hi)</code>. Foundation of the C++ STL.</span></Bilingual></p>
-      <pre><code>// 半开区间 [lo, hi)：第一个 &gt;= x 的位置
+      <CodeTabs
+  cpp={`<pre><code>// 半开区间 [lo, hi)：第一个 &gt;= x 的位置
 int lower_bound(int a[], int n, int x) &#123;
     int lo = 0, hi = n;          // 不变量：答案 ∈ [lo, hi)
     while (lo &lt; hi) &#123;
@@ -63,7 +65,34 @@ int upper_bound(int a[], int n, int x) &#123;
 int binary_search(int a[], int n, int x) &#123;
     int i = lower_bound(a, n, x);
     return (i &lt; n &amp;&amp; a[i] == x) ? i : -1;
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code>import bisect
+
+# 半开区间 [lo, hi)：第一个 >= x 的位置
+def lower_bound(a, x):
+    lo, hi = 0, len(a)         # 不变量：答案 ∈ [lo, hi)
+    while lo < hi:
+        mid = lo + (hi - lo) // 2
+        if a[mid] < x: lo = mid + 1
+        else: hi = mid          # a[mid] >= x，mid 是候选，收缩右界
+    return lo                   # lo == hi
+
+# 半开区间 [lo, hi)：第一个 > x 的位置
+def upper_bound(a, x):
+    lo, hi = 0, len(a)
+    while lo < hi:
+        mid = lo + (hi - lo) // 2
+        if a[mid] <= x: lo = mid + 1
+        else: hi = mid           # a[mid] > x，mid 是候选
+    return lo
+
+# 精确查找：命中返回下标，否则返回 -1
+def binary_search(a, x):
+    i = lower_bound(a, x)
+    return i if i < len(a) and a[i] == x else -1
+
+# 注：Python 标准库 bisect 已提供 bisect_left / bisect_right</code></pre>`}
+        />
       <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">用 <code>mid = lo + (hi-lo)/2</code> 而非 <code>(lo+hi)/2</code> 可避免整数溢出。等号方向决定收缩的是 <code>lo</code> 还是 <code>hi</code>，写错会死循环。</span><span slot="en">Use <code>mid = lo + (hi-lo)/2</code> (not <code>(lo+hi)/2</code>) to avoid integer overflow. The direction of the comparison decides whether <code>lo</code> or <code>hi</code> shrinks — get it wrong and you get an infinite loop.</span></Bilingual></p>
     </section>
 

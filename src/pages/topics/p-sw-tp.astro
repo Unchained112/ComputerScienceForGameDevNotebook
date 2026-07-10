@@ -1,0 +1,132 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Sliding Window & Two Pointers Problems · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Problems / Sliding Window & Two Pointers</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">滑动窗口与双指针题型</span><span slot="en">Sliding Window & Two Pointers Problems</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">滑动窗口和双指针是把 O(n²) 压成 O(n) 的利器。两道经典题：最小覆盖子串（变长滑动窗口 + 哈希计数）、三数之和（排序 + 固定一个 + 双指针）。每题给出 C++ 与 Python 双解。</span>
+          <span slot="en">Sliding window and two pointers compress O(n²) to O(n). Two classics: Minimum Window Substring (variable-length window + hash counting) and 3Sum (sort + fix one + two pointers). C++ and Python for each.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Minimum Window Substring（最小覆盖子串）</span><span slot="en">Minimum Window Substring</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：在 s 中找包含 t 所有字符的最短子串。<b>思路</b>：变长滑动窗口。用两个哈希表：<code>need</code>（t 的字符需求）和 <code>have</code>（当前窗口已满足的计数）。右指针扩展窗口，当窗口满足所有需求时左指针收缩以最小化。维护一个 <code>valid</code> 计数器记录已满足的字符种类数。时间 O(n)。</span><span slot="en"><b>Problem</b>: Find the shortest substring of s containing all characters of t. <b>Approach</b>: variable-length sliding window. Two hash maps: <code>need</code> (t's requirements) and <code>have</code> (current window counts). Right pointer expands; when all needs are met, left pointer shrinks to minimize. A <code>valid</code> counter tracks how many chars are satisfied. Time O(n).</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 最小覆盖子串  O(n)
+string minWindow(string s, string t) &#123;
+    unordered_map&lt;char,int&gt; need, have;
+    for (char c : t) need[c]++;
+    int valid = 0, lo = 0, minLen = INT_MAX, start = 0;
+    for (int hi = 0; hi &lt; s.size(); hi++) &#123;
+        char c = s[hi];
+        if (need.count(c)) &#123;
+            have[c]++;
+            if (have[c] == need[c]) valid++;  // 该字符刚好满足
+        &#125;
+        while (valid == need.size()) &#123;      // 全部满足 → 收缩
+            if (hi - lo + 1 &lt; minLen) &#123;
+                minLen = hi - lo + 1; start = lo;
+            &#125;
+            char d = s[lo++];
+            if (need.count(d)) &#123;
+                if (have[d] == need[d]) valid--;  // 即将不满足
+                have[d]--;
+            &#125;
+        &#125;
+    &#125;
+    return minLen == INT_MAX ? "" : s.substr(start, minLen);
+&#125;</code></pre>`}
+  py={`<pre><code># 最小覆盖子串  O(n)
+from collections import Counter
+def min_window(s, t):
+    need = Counter(t)
+    have = &#123;&#125;
+    valid = lo = 0
+    min_len, start = float('inf'), 0
+    for hi, c in enumerate(s):
+        if c in need:
+            have[c] = have.get(c, 0) + 1
+            if have[c] == need[c]: valid += 1  # 该字符刚好满足
+        while valid == len(need):               # 全部满足 → 收缩
+            if hi - lo + 1 < min_len:
+                min_len, start = hi - lo + 1, lo
+            d = s[lo]; lo += 1
+            if d in need:
+                if have[d] == need[d]: valid -= 1  # 即将不满足
+                have[d] -= 1
+    return "" if min_len == float('inf') else s[start:start + min_len]</code></pre>`}
+        />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">3Sum（三数之和）</span><span slot="en">3Sum</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：在数组中找所有和为 0 的不重复三元组。<b>思路</b>：先排序，固定第一个数 <code>a[i]</code>，再用左右双指针在 <code>[i+1, n-1]</code> 找两数之和等于 <code>-a[i]</code>。命中后跳过重复值避免重复三元组。时间 O(n²)。注意外层也要跳过重复的 <code>a[i]</code>。</span><span slot="en"><b>Problem</b>: Find all unique triplets summing to 0. <b>Approach</b>: sort, fix the first number <code>a[i]</code>, then two pointers on <code>[i+1, n-1]</code> to find pairs summing to <code>-a[i]</code>. Skip duplicates after a hit. Time O(n²). Skip duplicate <code>a[i]</code> in the outer loop too.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 三数之和  O(n²)
+vector&lt;vector&lt;int&gt;&gt; threeSum(vector&lt;int&gt;&amp; a) &#123;
+    vector&lt;vector&lt;int&gt;&gt; res;
+    sort(a.begin(), a.end());
+    int n = a.size();
+    for (int i = 0; i &lt; n - 2; i++) &#123;
+        if (i &gt; 0 &amp;&amp; a[i] == a[i-1]) continue;  // 跳过重复
+        int lo = i + 1, hi = n - 1;
+        while (lo &lt; hi) &#123;
+            int sum = a[i] + a[lo] + a[hi];
+            if (sum == 0) &#123;
+                res.push_back(&#123;a[i], a[lo], a[hi]&#125;);
+                while (lo &lt; hi &amp;&amp; a[lo] == a[lo+1]) lo++;  // 跳重复
+                while (lo &lt; hi &amp;&amp; a[hi] == a[hi-1]) hi--;
+                lo++; hi--;
+            &#125; else if (sum &lt; 0) lo++;
+            else hi--;
+        &#125;
+    &#125;
+    return res;
+&#125;</code></pre>`}
+  py={`<pre><code># 三数之和  O(n²)
+def three_sum(a):
+    a.sort()
+    res = []
+    n = len(a)
+    for i in range(n - 2):
+        if i > 0 and a[i] == a[i-1]: continue  # 跳过重复
+        lo, hi = i + 1, n - 1
+        while lo < hi:
+            s = a[i] + a[lo] + a[hi]
+            if s == 0:
+                res.append([a[i], a[lo], a[hi]])
+                while lo < hi and a[lo] == a[lo+1]: lo += 1  # 跳重复
+                while lo < hi and a[hi] == a[hi-1]: hi -= 1
+                lo += 1; hi -= 1
+            elif s < 0: lo += 1
+            else: hi -= 1
+    return res</code></pre>`}
+        />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">窗口与双指针技巧速查</span><span slot="en">Window & Pointer Techniques Cheatsheet</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">技巧</span><span slot="en">Technique</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">要点</span><span slot="en">Key point</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">代表题</span><span slot="en">Representative</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">变长窗口</td><td class="py-2 pr-4">右扩左缩，valid 计数判断满足</td><td class="py-2 pr-4">最小覆盖子串、无重复子串</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">排序+双指针</td><td class="py-2 pr-4">先排序去重，固定一个+两端收拢</td><td class="py-2 pr-4">三数之和、四数之和</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">跳过重复</td><td class="py-2 pr-4">命中后 while 跳过相同值</td><td class="py-2 pr-4">三数之和、去重排列</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">哈希计数</td><td class="py-2 pr-4">need/have 双表 + valid 计数器</td><td class="py-2 pr-4">最小覆盖子串、字母异位词</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>

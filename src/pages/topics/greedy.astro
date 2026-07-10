@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
 ---
 <BaseLayout title="Greedy · CS Notebook">
   <article class="space-y-6">
@@ -33,7 +34,8 @@ import Bilingual from '../../components/Bilingual.astro';
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">区间调度：最多不重叠区间</span><span slot="en">Interval Scheduling: Max Non-overlapping</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">给定若干区间，选最多互不重叠的区间数。<b>贪心策略：按结束时间升序排序，每步选结束最早且与已选不冲突的区间。</b>为什么不是按开始时间或长度？交换论证可证：任何最优解都能调整为「取最早结束的区间」而不变差。</span><span slot="en">Given a set of intervals, pick the maximum number of non-overlapping ones. <b>Greedy: sort by end time, each step pick the earliest-ending interval that doesn't overlap the last picked.</b> Why not by start time or length? An exchange argument shows any optimal solution can be transformed to include the earliest-ending interval without loss.</span></Bilingual></p>
-      <pre><code>// 区间 = [start, end)，按结束时间排序后贪心
+      <CodeTabs
+  cpp={`<pre><code>// 区间 = [start, end)，按结束时间排序后贪心
 int maxEvents(vector&lt;pair&lt;int,int&gt;&gt;&amp; a) &#123;
     sort(a.begin(), a.end(), [](auto&amp; x, auto&amp; y) &#123;
         return x.second &lt; y.second;     // 按结束时间升序
@@ -45,13 +47,24 @@ int maxEvents(vector&lt;pair&lt;int,int&gt;&gt;&amp; a) &#123;
         &#125;
     &#125;
     return cnt;
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code># 区间 = [start, end)，按结束时间排序后贪心
+def max_events(intervals):
+    intervals.sort(key=lambda x: x[1])  # 按结束时间升序
+    cnt, last_end = 0, -1
+    for s, e in intervals:
+        if s >= last_end:               # 与已选区间不冲突
+            cnt += 1
+            last_end = e                 # 贪心选择
+    return cnt</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">找零问题：贪心何时成立？</span><span slot="en">Coin Change: When Is Greedy Correct?</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">用最少硬币凑出面额 <code>v</code>。若币制为 <code>&#123;1,5,10,25&#125;</code>（美元），每次选最大可用硬币的贪心是<b>正确</b>的。但币制 <code>&#123;1,3,4&#125;</code> 凑 6：贪心选 4+1+1=3 枚，而最优是 3+3=2 枚——贪心<b>失败</b>。通用解法是动态规划。</span><span slot="en">Make value <code>v</code> with the fewest coins. For denominations <code>&#123;1,5,10,25&#125;</code> (USD), greedily taking the largest usable coin is <b>correct</b>. But for <code>&#123;1,3,4&#125;</code> making 6: greedy gives 4+1+1=3 coins while optimal is 3+3=2 — greedy <b>fails</b>. The general solution is dynamic programming.</span></Bilingual></p>
-      <pre><code>// 贪心：仅对「规范」币制正确
+      <CodeTabs
+  cpp={`<pre><code>// 贪心：仅对「规范」币制正确
 int coinChange_greedy(vector&lt;int&gt;&amp; c, int v) &#123;
     sort(c.rbegin(), c.rend());          // 降序
     int cnt = 0;
@@ -66,7 +79,26 @@ int coinChange_dp(vector&lt;int&gt;&amp; c, int v) &#123;
         for (int x : c)
             if (x &lt;= i) dp[i] = min(dp[i], dp[i - x] + 1);
     return dp[v] &gt;= 1e9 ? -1 : dp[v];
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code># 贪心：仅对「规范」币制正确
+def coin_change_greedy(coins, v):
+    coins.sort(reverse=True)         # 降序
+    cnt = 0
+    for x in coins:
+        cnt += v // x
+        v %= x
+    return cnt if v == 0 else -1
+
+# DP：通用正确解  O(n·v)
+def coin_change_dp(coins, v):
+    dp = [float('inf')] * (v + 1)
+    dp[0] = 0
+    for i in range(1, v + 1):
+        for x in coins:
+            if x <= i:
+                dp[i] = min(dp[i], dp[i - x] + 1)
+    return dp[v] if dp[v] < float('inf') else -1</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">

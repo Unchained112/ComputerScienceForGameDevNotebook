@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
 ---
 <BaseLayout title="Shortest Path · CS Notebook">
   <article class="space-y-6">
@@ -33,7 +34,8 @@ import Bilingual from '../../components/Bilingual.astro';
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Dijkstra：非负权单源最短路</span><span slot="en">Dijkstra: Non-negative Single-Source Shortest Path</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">维护 <code>dist[]</code> 数组（源到各点当前最短估计），用最小堆每次取出 <code>dist</code> 最小的未确定节点 u，<b>标记其为已确定</b>，再用 u 的边松弛邻居：<code>dist[v] = min(dist[v], dist[u]+w)</code>。每个节点只确定一次，<b>不能处理负权边</b>（已确定节点的 dist 不会被修正）。时间 O((V+E)logV)。</span><span slot="en">Maintain a <code>dist[]</code> array (current shortest estimates from the source); a min-heap repeatedly pops the unsettled node u with the smallest dist, <b>settles it</b>, then relaxes its neighbors: <code>dist[v] = min(dist[v], dist[u]+w)</code>. Each node is settled once; <b>cannot handle negative edges</b> (settled dists are never revised). Time O((V+E)logV).</span></Bilingual></p>
-      <pre><code>// Dijkstra（堆优化） O((V+E)logV)
+      <CodeTabs
+  cpp={`<pre><code>// Dijkstra（堆优化） O((V+E)logV)
 vector&lt;int&gt; dijkstra(int n, int s, vector&lt;vector&lt;pair&lt;int,int&gt;&gt;&gt;&amp; G) &#123;
     vector&lt;int&gt; dist(n, INT_MAX);
     priority_queue&lt;pair&lt;int,int&gt;, vector&lt;pair&lt;int,int&gt;&gt;, greater&lt;&gt;&gt; pq;
@@ -49,13 +51,30 @@ vector&lt;int&gt; dijkstra(int n, int s, vector&lt;vector&lt;pair&lt;int,int&gt;
         &#125;
     &#125;
     return dist;
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code>import heapq
+
+# Dijkstra（堆优化） O((V+E)logV)
+def dijkstra(n, s, G):
+    dist = [float('inf')] * n
+    dist[s] = 0
+    pq = [(0, s)]                 # (距离, 节点)
+    while pq:
+        d, u = heapq.heappop(pq)
+        if d > dist[u]: continue  # 过期记录，跳过
+        for v, w in G[u]:         # 松弛邻居
+            if dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                heapq.heappush(pq, (dist[v], v))
+    return dist</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">A* 算法：加入启发式引导</span><span slot="en">A* Algorithm: Guided by Heuristics</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">A* 是 Dijkstra 的「有方向版」：优先队列的键从 <code>g(u)</code>（已走距离）变为 <code>f(u) = g(u) + h(u)</code>，其中 <code>h(u)</code> 是 u 到终点的<b>启发式估计</b>（如曼哈顿距离/欧氏距离）。只要 <code>h</code> 是<b>可采纳的</b>（不高估真实距离），A* 保证最优且比 Dijkstra 扩展更少节点。网格地图寻路常用 A*。</span><span slot="en">A* is a "directional" Dijkstra: the priority-queue key changes from <code>g(u)</code> (distance so far) to <code>f(u) = g(u) + h(u)</code>, where <code>h(u)</code> is a <b>heuristic estimate</b> from u to the goal (e.g., Manhattan / Euclidean distance). As long as <code>h</code> is <b>admissible</b> (never overestimates), A* stays optimal while expanding fewer nodes than Dijkstra. The go-to for grid-map pathfinding.</span></Bilingual></p>
-      <pre><code>// A* 网格寻路  h = 曼哈顿距离
+      <CodeTabs
+  cpp={`<pre><code>// A* 网格寻路  h = 曼哈顿距离
 int astar(pair&lt;int,int&gt; S, pair&lt;int,int&gt; T) &#123;
     auto h = [&](int r, int c) &#123;
         return abs(r - T.first) + abs(c - T.second);
@@ -76,7 +95,26 @@ int astar(pair&lt;int,int&gt; S, pair&lt;int,int&gt; T) &#123;
         &#125;
     &#125;
     return -1;
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code>import heapq
+
+# A* 网格寻路  h = 曼哈顿距离
+def astar(S, T, ok, dirs):
+    def h(r, c):
+        return abs(r - T[0]) + abs(c - T[1])
+    pq = [(h(S[0], S[1]), 0, S[0], S[1])]  # (f=g+h, g, r, c)
+    vis = set()
+    while pq:
+        f, g, r, c = heapq.heappop(pq)
+        if (r, c) == T: return g      # 到达终点
+        if (r, c) in vis: continue
+        vis.add((r, c))
+        for dr, dc in dirs:            # 扩展四邻
+            nr, nc = r + dr, c + dc
+            if ok(nr, nc) and (nr, nc) not in vis:
+                heapq.heappush(pq, (g + 1 + h(nr, nc), g + 1, nr, nc))
+    return -1</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">

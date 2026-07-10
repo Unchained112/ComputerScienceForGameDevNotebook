@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
 ---
 <BaseLayout title="Tree & Graph Problems · CS Notebook">
   <article class="space-y-6">
@@ -20,7 +21,8 @@ import Bilingual from '../../components/Bilingual.astro';
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Binary Tree Level Order Traversal（二叉树层序遍历）</span><span slot="en">Binary Tree Level Order Traversal</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：自顶向下、逐层从左到右返回节点值。<b>思路</b>：BFS + 队列。关键技巧是<b>按层处理</b>——每轮先记录当前队列长度（即该层节点数），再依次出队这些节点并把子节点入队，从而精确分层。O(n)。</span><span slot="en"><b>Problem</b>: Return node values top-down, left-to-right, level by level. <b>Approach</b>: BFS + queue. The key trick is <b>level-by-level processing</b> — each round, first record the current queue size (= nodes on this level), then dequeue exactly that many nodes while enqueuing their children, giving precise level separation. O(n).</span></Bilingual></p>
-      <pre><code>struct TreeNode &#123; int val; TreeNode *left, *right; &#125;;
+      <CodeTabs
+  cpp={`<pre><code>struct TreeNode &#123; int val; TreeNode *left, *right; &#125;;
 
 // 层序遍历  O(n)
 vector&lt;vector&lt;int&gt;&gt; levelOrder(TreeNode* root) &#123;
@@ -40,13 +42,36 @@ vector&lt;vector&lt;int&gt;&gt; levelOrder(TreeNode* root) &#123;
         res.push_back(level);
     &#125;
     return res;
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code>from collections import deque
+
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+# 层序遍历  O(n)
+def level_order(root):
+    res = []
+    if not root: return res
+    q = deque([root])
+    while q:
+        sz = len(q)               # 当前层节点数
+        level = []
+        for _ in range(sz):
+            n = q.popleft()
+            level.append(n.val)
+            if n.left:  q.append(n.left)
+            if n.right: q.append(n.right)
+        res.append(level)
+    return res</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Binary Tree Right Side View（二叉树右视图）</span><span slot="en">Binary Tree Right Side View</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：从右侧看一棵二叉树，返回自顶向下能看到的节点值。<b>思路一</b>：层序遍历，每层最后一个节点即右视图。<b>思路二</b>：DFS 先访问右子树，记录每层第一个被访问的节点。两种方法都是 O(n)。DFS 空间更优 O(h)。</span><span slot="en"><b>Problem</b>: Viewing a binary tree from the right, return the visible node values top-down. <b>Approach 1</b>: level-order traversal; the last node of each level is the right-side view. <b>Approach 2</b>: DFS visiting the right subtree first; record the first node visited at each depth. Both O(n); DFS uses less space O(h).</span></Bilingual></p>
-      <pre><code>// 右视图 — DFS 先右后左  O(n)
+      <CodeTabs
+  cpp={`<pre><code>// 右视图 — DFS 先右后左  O(n)
 void dfs(TreeNode* p, int depth, vector&lt;int&gt;&amp; res) &#123;
     if (!p) return;
     if (depth == res.size())            // 该层第一次访问 = 最右
@@ -76,13 +101,41 @@ vector&lt;int&gt; rightSideViewBFS(TreeNode* root) &#123;
         &#125;
     &#125;
     return res;
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code># 右视图 — DFS 先右后左  O(n)
+def right_side_view(root):
+    res = []
+    def dfs(p, depth):
+        if not p: return
+        if depth == len(res):      # 该层第一次访问 = 最右
+            res.append(p.val)
+        dfs(p.right, depth + 1)    # 先右
+        dfs(p.left,  depth + 1)    # 后左
+    dfs(root, 0)
+    return res
+
+# 右视图 — BFS 取每层末尾
+from collections import deque
+def right_side_view_bfs(root):
+    res = []
+    if not root: return res
+    q = deque([root])
+    while q:
+        sz = len(q)
+        for i in range(sz):
+            n = q.popleft()
+            if i == sz - 1: res.append(n.val)  # 层末尾
+            if n.left:  q.append(n.left)
+            if n.right: q.append(n.right)
+    return res</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Course Schedule（拓扑排序 / 课程表）</span><span slot="en">Course Schedule (Topological Sort)</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：n 门课与先修关系 [a, b]（修 a 前需先修 b），判断能否修完所有课。<b>本质</b>：判断有向图是否有环；无环则可拓扑排序。<b>思路</b>：BFS 入度法（Kahn 算法）。计算各节点入度，入度为 0 的入队，逐个出队并将其后继入度减 1，减到 0 则入队。最终已出队节点数 == n 则无环可行。</span><span slot="en"><b>Problem</b>: n courses with prerequisites [a, b] (must take b before a); determine if all can be finished. <b>Essence</b>: detect whether the directed graph has a cycle; no cycle ⇒ a topological order exists. <b>Approach</b>: BFS in-degree method (Kahn's). Compute in-degrees; enqueue zero-in-degree nodes; dequeue each, decrement successors' in-degrees, enqueue any that reach zero. If the count of dequeued nodes == n, it's feasible (acyclic).</span></Bilingual></p>
-      <pre><code>// 拓扑排序（Kahn / BFS 入度法） O(V+E)
+      <CodeTabs
+  cpp={`<pre><code>// 拓扑排序（Kahn / BFS 入度法） O(V+E)
 bool canFinish(int n, vector&lt;vector&lt;int&gt;&gt;&amp; pre) &#123;
     vector&lt;vector&lt;int&gt;&gt; G(n);
     vector&lt;int&gt; indeg(n, 0);
@@ -101,7 +154,26 @@ bool canFinish(int n, vector&lt;vector&lt;int&gt;&gt;&amp; pre) &#123;
             if (--indeg[v] == 0) q.push(v);
     &#125;
     return cnt == n;                 // 全部排完 = 无环
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code>from collections import deque
+
+# 拓扑排序（Kahn / BFS 入度法） O(V+E)
+def can_finish(n, pre):
+    G = [[] for _ in range(n)]
+    indeg = [0] * n
+    for a, b in pre:
+        G[b].append(a)          # b → a
+        indeg[a] += 1           # a 的入度 +1
+    q = deque(i for i in range(n) if indeg[i] == 0)  # 入度 0 入队
+    cnt = 0
+    while q:
+        u = q.popleft()
+        cnt += 1                # 已拓扑排序的节点数
+        for v in G[u]:
+            indeg[v] -= 1
+            if indeg[v] == 0: q.append(v)
+    return cnt == n             # 全部排完 = 无环</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">

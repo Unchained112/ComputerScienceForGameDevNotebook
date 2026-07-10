@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Bilingual from '../../components/Bilingual.astro';
 import SortVisualizer from '../../components/viz/SortVisualizer.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
 ---
 <BaseLayout title="Sorting · CS Notebook">
   <article class="space-y-6">
@@ -23,7 +24,8 @@ import SortVisualizer from '../../components/viz/SortVisualizer.astro';
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">冒泡排序 O(n²)</span><span slot="en">Bubble Sort O(n²)</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">反复比较相邻元素并交换，每轮把最大值「冒泡」到末尾。加提前退出标志可对近乎有序数据接近 O(n)。稳定排序。</span><span slot="en">Repeatedly compare & swap neighbors; each pass bubbles the max to the end. An early-exit flag makes it ~O(n) on nearly-sorted data. Stable.</span></Bilingual></p>
-      <pre><code>void bubbleSort(int a[], int n) &#123;
+      <CodeTabs
+  cpp={`<pre><code>void bubbleSort(int a[], int n) &#123;
     for (int i = 0; i &lt; n - 1; i++) &#123;
         bool swapped = false;
         for (int j = 0; j &lt; n - 1 - i; j++) &#123;
@@ -34,13 +36,24 @@ import SortVisualizer from '../../components/viz/SortVisualizer.astro';
         &#125;
         if (!swapped) break;   // 已有序，提前退出
     &#125;
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code>def bubble_sort(a):
+    n = len(a)
+    for i in range(n - 1):
+        swapped = False
+        for j in range(n - 1 - i):
+            if a[j] > a[j + 1]:
+                a[j], a[j + 1] = a[j + 1], a[j]
+                swapped = True
+        if not swapped: break   # 已有序，提前退出</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">插入排序 O(n²)</span><span slot="en">Insertion Sort O(n²)</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">把每个新元素插入到前方已排序段的正确位置，类似整理扑克牌。小规模或近乎有序时极快，是快排/归并的底层小数组兜底。稳定排序。</span><span slot="en">Insert each element into its place in the sorted prefix — like sorting a hand of cards. Very fast on small / nearly-sorted input; used as the base case inside quick/merge. Stable.</span></Bilingual></p>
-      <pre><code>void insertionSort(int a[], int n) &#123;
+      <CodeTabs
+  cpp={`<pre><code>void insertionSort(int a[], int n) &#123;
     for (int i = 1; i &lt; n; i++) &#123;
         int key = a[i], j = i - 1;
         while (j &gt;= 0 &amp;&amp; a[j] &gt; key) &#123;
@@ -49,13 +62,22 @@ import SortVisualizer from '../../components/viz/SortVisualizer.astro';
         &#125;
         a[j + 1] = key;
     &#125;
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code>def insertion_sort(a):
+    for i in range(1, len(a)):
+        key, j = a[i], i - 1
+        while j >= 0 and a[j] > key:
+            a[j + 1] = a[j]
+            j -= 1
+        a[j + 1] = key</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">快速排序 平均 O(n log n)</span><span slot="en">Quick Sort avg O(n log n)</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">分治：选基准 pivot，将小于者划到左、大于者划到右，再递归两侧。原址排序、缓存友好，实际最快；但最坏 O(n²)（已有序 + 选端点为基准），可用随机化/三数取中规避。不稳定。</span><span slot="en">Divide & conquer: pick a pivot, partition smaller-left/larger-right, recurse. In-place and cache-friendly — fastest in practice; worst case O(n²) on sorted input (mitigate via random/median-of-three). Unstable.</span></Bilingual></p>
-      <pre><code>int partition(int a[], int lo, int hi) &#123;
+      <CodeTabs
+  cpp={`<pre><code>int partition(int a[], int lo, int hi) &#123;
     int pivot = a[hi];          // 取末位为基准
     int i = lo - 1;
     for (int j = lo; j &lt; hi; j++) &#123;
@@ -74,13 +96,30 @@ void quickSort(int a[], int lo, int hi) &#123;
         quickSort(a, lo, p - 1);
         quickSort(a, p + 1, hi);
     &#125;
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code>def partition(a, lo, hi):
+    pivot = a[hi]            # 取末位为基准
+    i = lo - 1
+    for j in range(lo, hi):
+        if a[j] <= pivot:
+            i += 1
+            a[i], a[j] = a[j], a[i]
+    a[i + 1], a[hi] = a[hi], a[i + 1]
+    return i + 1             # 基准最终位置
+
+def quick_sort(a, lo, hi):
+    if lo < hi:
+        p = partition(a, lo, hi)
+        quick_sort(a, lo, p - 1)
+        quick_sort(a, p + 1, hi)</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">归并排序 O(n log n)</span><span slot="en">Merge Sort O(n log n)</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">分治：递归对半切分，再将两个有序子段合并。时间稳定 O(n log n)、稳定排序，适合链表与外部排序；需 O(n) 额外空间。</span><span slot="en">Divide & conquer: recurse on halves, then merge two sorted runs. Guaranteed O(n log n), stable — good for lists and external sort; needs O(n) extra space.</span></Bilingual></p>
-      <pre><code>void merge(int a[], int lo, int mid, int hi) &#123;
+      <CodeTabs
+  cpp={`<pre><code>void merge(int a[], int lo, int mid, int hi) &#123;
     vector&lt;int&gt; L(a + lo, a + mid + 1), R(a + mid + 1, a + hi + 1);
     int i = 0, j = 0, k = lo;
     while (i &lt; L.size() &amp;&amp; j &lt; R.size())
@@ -95,7 +134,28 @@ void mergeSort(int a[], int lo, int hi) &#123;
     mergeSort(a, lo, mid);
     mergeSort(a, mid + 1, hi);
     merge(a, lo, mid, hi);
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code>def merge(a, lo, mid, hi):
+    L = a[lo:mid + 1]
+    R = a[mid + 1:hi + 1]
+    i = j = 0
+    k = lo
+    while i < len(L) and j < len(R):
+        if L[i] <= R[j]:
+            a[k] = L[i]; i += 1
+        else:
+            a[k] = R[j]; j += 1
+        k += 1
+    while i < len(L): a[k] = L[i]; i += 1; k += 1
+    while j < len(R): a[k] = R[j]; j += 1; k += 1
+
+def merge_sort(a, lo, hi):
+    if lo >= hi: return
+    mid = (lo + hi) // 2
+    merge_sort(a, lo, mid)
+    merge_sort(a, mid + 1, hi)
+    merge(a, lo, mid, hi)</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">

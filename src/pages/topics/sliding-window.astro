@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
 ---
 <BaseLayout title="Sliding Window · CS Notebook">
   <article class="space-y-6">
@@ -33,7 +34,8 @@ import Bilingual from '../../components/Bilingual.astro';
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">最长无重复子串</span><span slot="en">Longest Substring Without Repeating Characters</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">给定字符串 s，求不含重复字符的最长子串长度。<b>思路</b>：右指针 hi 逐个扩展，用哈希表记录字符最后出现位置；若 s[hi] 已在窗口内，左指针 lo 跳到 <code>max(lo, last[s[hi]]+1)</code>。每步更新答案 <code>max(hi-lo+1)</code>。时间 O(n)、空间 O(字符集)。</span><span slot="en">Given string s, find the length of the longest substring with no repeating characters. <b>Approach</b>: expand hi one by one; a hash map tracks each char's last position; if s[hi] is in the window, jump lo to <code>max(lo, last[s[hi]]+1)</code>. Update the answer <code>max(hi-lo+1)</code> each step. Time O(n), space O(alphabet).</span></Bilingual></p>
-      <pre><code>int lengthOfLongestSubstring(string s) &#123;
+      <CodeTabs
+  cpp={`<pre><code>int lengthOfLongestSubstring(string s) &#123;
     unordered_map&lt;char,int&gt; last;   // 字符 → 最后出现下标
     int lo = 0, ans = 0;
     for (int hi = 0; hi &lt; s.size(); hi++) &#123;
@@ -44,13 +46,24 @@ import Bilingual from '../../components/Bilingual.astro';
         ans = max(ans, hi - lo + 1);
     &#125;
     return ans;
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code>def length_of_longest_substring(s):
+    last = &#123;&#125;                    # 字符 → 最后出现下标
+    lo = ans = 0
+    for hi, c in enumerate(s):
+        if c in last and last[c] >= lo:
+            lo = last[c] + 1       # 跳过重复字符
+        last[c] = hi
+        ans = max(ans, hi - lo + 1)
+    return ans</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">定长窗口：大小为 K 的子数组最大和</span><span slot="en">Fixed Window: Max Sum of Subarray of Size K</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">窗口大小固定为 K 时更简单：先算前 K 个元素的和，之后每次右移一格，<b>减去离开的、加上进入的</b>，O(1) 滚动更新。无需左指针动态收缩。</span><span slot="en">With a fixed window of size K it's simpler: sum the first K elements, then slide right one step — <b>subtract the outgoing, add the incoming</b> — updating in O(1). No dynamic left-pointer contraction needed.</span></Bilingual></p>
-      <pre><code>int maxSumK(vector&lt;int&gt;&amp; a, int k) &#123;
+      <CodeTabs
+  cpp={`<pre><code>int maxSumK(vector&lt;int&gt;&amp; a, int k) &#123;
     int sum = 0;
     for (int i = 0; i &lt; k; i++) sum += a[i];  // 初始窗口
     int ans = sum;
@@ -59,7 +72,15 @@ import Bilingual from '../../components/Bilingual.astro';
         ans = max(ans, sum);
     &#125;
     return ans;
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code>def max_sum_k(a, k):
+    s = sum(a[:k])              # 初始窗口
+    ans = s
+    for i in range(k, len(a)):
+        s += a[i] - a[i - k]    # 滚动：+新 -旧
+        ans = max(ans, s)
+    return ans</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">

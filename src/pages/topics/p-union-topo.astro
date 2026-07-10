@@ -1,0 +1,138 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Union-Find & Topo Sort Problems · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Problems / Union-Find & Topo Sort</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">并查集与拓扑排序题型</span><span slot="en">Union-Find & Topological Sort Problems</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">并查集擅长<b>动态连通性</b>，拓扑排序处理<b>有向依赖</b>。两道经典题：省份数量（并查集合并连通分量）、课程表（拓扑排序判环）。每题给出 C++ 与 Python 双解。</span>
+          <span slot="en">Union-Find excels at <b>dynamic connectivity</b>; topological sort handles <b>directed dependencies</b>. Two classics: Number of Provinces (union-find to merge components) and Course Schedule (topo sort for cycle detection). C++ and Python for each.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Number of Provinces（省份数量）</span><span slot="en">Number of Provinces</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：n 个城市以邻接矩阵 isConnected 表示，isConnected[i][j]=1 表示 i 与 j 直连。省份 = 直接或间接相连的城市集合。求省份数量。<b>思路</b>：并查集。遍历上三角矩阵，相连的两个城市 union。最终统计根的数量（parent[i]==i）即为省份数。时间 O(n²·α(n))≈O(n²)。</span><span slot="en"><b>Problem</b>: n cities with adjacency matrix isConnected (1 = directly connected). A province = directly or indirectly connected cities. Count provinces. <b>Approach</b>: union-find. Iterate the upper triangle, union connected cities. Count roots (parent[i]==i) as provinces. Time O(n²·α(n))≈O(n²).</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 省份数量（并查集） O(n²)
+class UnionFind &#123;
+    vector&lt;int&gt; p, r;
+public:
+    UnionFind(int n) : p(n), r(n, 0) &#123; iota(p.begin(), p.end(), 0); &#125;
+    int find(int x) &#123; return p[x]==x ? x : p[x]=find(p[x]); &#125;
+    void unite(int a, int b) &#123;
+        int ra = find(a), rb = find(b);
+        if (ra == rb) return;
+        if (r[ra] &lt; r[rb]) p[ra] = rb;
+        else if (r[ra] &gt; r[rb]) p[rb] = ra;
+        else &#123; p[rb] = ra; r[ra]++; &#125;
+    &#125;
+&#125;;
+
+int findCircleNum(vector&lt;vector&lt;int&gt;&gt;&amp; C) &#123;
+    int n = C.size();
+    UnionFind uf(n);
+    for (int i = 0; i &lt; n; i++)
+        for (int j = i + 1; j &lt; n; j++)
+            if (C[i][j]) uf.unite(i, j);   // 相连则合并
+    int ans = 0;
+    for (int i = 0; i &lt; n; i++)
+        if (uf.find(i) == i) ans++;        // 根的数量 = 省份数
+    return ans;
+&#125;</code></pre>`}
+  py={`<pre><code># 省份数量（并查集） O(n²)
+class UnionFind:
+    def __init__(self, n):
+        self.p = list(range(n))
+        self.r = [0] * n
+    def find(self, x):
+        if self.p[x] != x:
+            self.p[x] = self.find(self.p[x])
+        return self.p[x]
+    def unite(self, a, b):
+        ra, rb = self.find(a), self.find(b)
+        if ra == rb: return
+        if self.r[ra] < self.r[rb]: self.p[ra] = rb
+        elif self.r[ra] > self.r[rb]: self.p[rb] = ra
+        else: self.p[rb] = ra; self.r[ra] += 1
+
+def find_circle_num(is_connected):
+    n = len(is_connected)
+    uf = UnionFind(n)
+    for i in range(n):
+        for j in range(i + 1, n):
+            if is_connected[i][j]:
+                uf.unite(i, j)             # 相连则合并
+    return sum(1 for i in range(n) if uf.find(i) == i)  # 根的数量 = 省份数</code></pre>`}
+        />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Course Schedule（课程表 / 拓扑排序）</span><span slot="en">Course Schedule (Topological Sort)</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：n 门课与先修关系 [a, b]（修 a 前需先修 b），判断能否修完所有课。<b>本质</b>：判断有向图是否有环。<b>思路</b>：BFS 入度法（Kahn 算法）。建图并计算入度，入度为 0 的节点入队，逐个出队并减小后继入度。最终已出队节点数 == n 则无环可行。时间 O(V+E)。</span><span slot="en"><b>Problem</b>: n courses with prerequisites [a, b] (take b before a); can all be finished? <b>Essence</b>: detect a cycle in the directed graph. <b>Approach</b>: BFS in-degree (Kahn's). Build the graph and in-degrees; enqueue zero-in-degree nodes; dequeue each, decrement successors. If dequeued count == n, it's feasible (acyclic). Time O(V+E).</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 课程表（拓扑排序 / Kahn） O(V+E)
+bool canFinish(int n, vector&lt;vector&lt;int&gt;&gt;&amp; pre) &#123;
+    vector&lt;vector&lt;int&gt;&gt; G(n);
+    vector&lt;int&gt; indeg(n, 0);
+    for (auto&amp; p : pre) &#123;
+        G[p[1]].push_back(p[0]);   // b → a
+        indeg[p[0]]++;
+    &#125;
+    queue&lt;int&gt; q;
+    for (int i = 0; i &lt; n; i++)
+        if (indeg[i] == 0) q.push(i);
+    int cnt = 0;
+    while (!q.empty()) &#123;
+        int u = q.front(); q.pop();
+        cnt++;
+        for (int v : G[u])
+            if (--indeg[v] == 0) q.push(v);
+    &#125;
+    return cnt == n;               // 全部排完 = 无环
+&#125;</code></pre>`}
+  py={`<pre><code># 课程表（拓扑排序 / Kahn） O(V+E)
+from collections import deque
+
+def can_finish(n, pre):
+    G = [[] for _ in range(n)]
+    indeg = [0] * n
+    for a, b in pre:
+        G[b].append(a)           # b → a
+        indeg[a] += 1
+    q = deque(i for i in range(n) if indeg[i] == 0)
+    cnt = 0
+    while q:
+        u = q.popleft()
+        cnt += 1
+        for v in G[u]:
+            indeg[v] -= 1
+            if indeg[v] == 0: q.append(v)
+    return cnt == n              # 全部排完 = 无环</code></pre>`}
+        />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">并查集与拓扑排序技巧速查</span><span slot="en">Union-Find & Topo Sort Cheatsheet</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">技巧</span><span slot="en">Technique</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">要点</span><span slot="en">Key point</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">代表题</span><span slot="en">Representative</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">并查集合并</td><td class="py-2 pr-4">路径压缩 + 按秩合并，近似 O(1)</td><td class="py-2 pr-4">省份数量、连通分量</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">统计根数</td><td class="py-2 pr-4">parent[i]==i 的节点数 = 连通分量数</td><td class="py-2 pr-4">省份数量、冗余连接</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">Kahn 入度法</td><td class="py-2 pr-4">入度 0 入队，出队减后继入度</td><td class="py-2 pr-4">课程表、任务调度</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">DFS 判环</td><td class="py-2 pr-4">三色标记法（0/1/2），遇灰节点有环</td><td class="py-2 pr-4">课程表、环检测</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>

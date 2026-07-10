@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
 ---
 <BaseLayout title="Linked List Problems · CS Notebook">
   <article class="space-y-6">
@@ -20,7 +21,8 @@ import Bilingual from '../../components/Bilingual.astro';
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Reverse Linked List（翻转链表）</span><span slot="en">Reverse Linked List</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：翻转单链表。<b>迭代思路</b>：用三个指针 <code>prev</code>、<code>curr</code>、<code>next</code>，每步把 <code>curr-&gt;next</code> 指向 <code>prev</code>，然后三者整体右移。<b>递归思路</b>：递归翻转 <code>head-&gt;next</code> 之后，令 <code>head-&gt;next-&gt;next = head</code> 回指自己，再断开 <code>head-&gt;next = nullptr</code>。</span><span slot="en"><b>Problem</b>: Reverse a singly linked list. <b>Iterative</b>: three pointers <code>prev</code>, <code>curr</code>, <code>next</code>; each step point <code>curr-&gt;next</code> to <code>prev</code>, then shift all three right. <b>Recursive</b>: recursively reverse after <code>head-&gt;next</code>, then set <code>head-&gt;next-&gt;next = head</code> to point back, and sever <code>head-&gt;next = nullptr</code>.</span></Bilingual></p>
-      <pre><code>struct Node &#123; int val; Node* next; &#125;;
+      <CodeTabs
+  cpp={`<pre><code>struct Node &#123; int val; Node* next; &#125;;
 
 // 迭代翻转  O(n)
 Node* reverse(Node* head) &#123;
@@ -41,13 +43,36 @@ Node* reverseRec(Node* head) &#123;
     head-&gt;next-&gt;next = head;   // 后继回指自己
     head-&gt;next = nullptr;       // 断开原方向
     return newHead;
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code>class Node:
+    def __init__(self, val=0, next=None):
+        self.val, self.next = val, next
+
+# 迭代翻转  O(n)
+def reverse(head):
+    prev, curr = None, head
+    while curr:
+        nxt = curr.next
+        curr.next = prev          # 反转指向
+        prev = curr               # 整体右移
+        curr = nxt
+    return prev                   # 新头
+
+# 递归翻转
+def reverse_rec(head):
+    if not head or not head.next: return head
+    new_head = reverse_rec(head.next)
+    head.next.next = head         # 后继回指自己
+    head.next = None              # 断开原方向
+    return new_head</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Linked List Cycle II（环入口节点）</span><span slot="en">Linked List Cycle II (Cycle Entry)</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：给定链表头，若有环返回环入口节点，无环返回 null。<b>思路</b>：Floyd 判圈法两阶段。① 快慢指针找相遇点；② 一指针回表头，两指针同速前进，再次相遇即环入口。<b>证明</b>：设环外 a 步、环长 b，相遇时 slow 走 x 步、fast 走 2x 步，fast 比 slow 多绕整数圈 <code>x = k·b</code>。从表头走 a 步、从相遇点走 a 步，因 <code>a + x = a + k·b</code>（恰整数圈），两指针必在入口相遇。</span><span slot="en"><b>Problem</b>: Given the head, if there's a cycle return the entry node, else null. <b>Approach</b>: Floyd's two phases. ① fast-slow pointers find the meeting point; ② one pointer returns to the head, both advance at the same speed — they meet again at the entry. <b>Proof</b>: with a nodes before the cycle and b in it, at the meeting slow traveled x and fast 2x, so fast did <code>x = k·b</code> extra laps. Walking a from both the head and the meeting point: <code>a + x = a + k·b</code> (whole laps), so they converge at the entry.</span></Bilingual></p>
-      <pre><code>// 环入口  O(n) 时间, O(1) 空间
+      <CodeTabs
+  cpp={`<pre><code>// 环入口  O(n) 时间, O(1) 空间
 Node* detectCycle(Node* head) &#123;
     Node *slow = head, *fast = head;
     // 阶段1：找相遇点
@@ -65,13 +90,30 @@ Node* detectCycle(Node* head) &#123;
         &#125;
     &#125;
     return nullptr;                     // 无环
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code># 环入口  O(n) 时间, O(1) 空间
+def detect_cycle(head):
+    slow = fast = head
+    # 阶段1：找相遇点
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+        if slow is fast:           # 相遇
+            # 阶段2：一个回表头，同速前进
+            slow = head
+            while slow is not fast:
+                slow = slow.next
+                fast = fast.next
+            return slow            # 环入口
+    return None                    # 无环</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Merge Two Sorted Lists（合并两个有序链表）</span><span slot="en">Merge Two Sorted Lists</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：合并两个升序链表为一个升序链表。<b>思路</b>：用<b>哑节点</b>简化头节点处理。比较两链表当前节点值，较小者接到结果末尾，对应指针前移，直到一方为空，再接上剩余部分。O(n+m) 一趟。</span><span slot="en"><b>Problem</b>: Merge two ascending lists into one. <b>Approach</b>: a <b>dummy node</b> simplifies head handling. Compare the current nodes of both lists, append the smaller to the result, advance that pointer; when one list is exhausted, splice on the remainder. O(n+m) one pass.</span></Bilingual></p>
-      <pre><code>// 合并有序链表  O(n+m)
+      <CodeTabs
+  cpp={`<pre><code>// 合并有序链表  O(n+m)
 Node* mergeTwoLists(Node* a, Node* b) &#123;
     Node dummy&#123;0, nullptr&#125;;           // 哑节点
     Node* tail = &amp;dummy;
@@ -85,7 +127,20 @@ Node* mergeTwoLists(Node* a, Node* b) &#123;
     &#125;
     tail-&gt;next = a ? a : b;             // 接上剩余
     return dummy.next;
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code># 合并有序链表  O(n+m)
+def merge_two_lists(a, b):
+    dummy = Node()              # 哑节点
+    tail = dummy
+    while a and b:
+        if a.val <= b.val:
+            tail.next = a; a = a.next
+        else:
+            tail.next = b; b = b.next
+        tail = tail.next
+    tail.next = a if a else b   # 接上剩余
+    return dummy.next</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">

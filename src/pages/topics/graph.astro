@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
 ---
 <BaseLayout title="Graph · CS Notebook">
   <article class="space-y-6">
@@ -55,7 +56,8 @@ import Bilingual from '../../components/Bilingual.astro';
 
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">邻接表 + BFS / DFS 代码</span><span slot="en">Adjacency List + BFS / DFS</span></Bilingual></h2>
-      <pre><code>vector&lt;vector&lt;int&gt;&gt; adj;     // 邻接表
+      <CodeTabs
+  cpp={`<pre><code>vector&lt;vector&lt;int&gt;&gt; adj;     // 邻接表
 
 void bfs(int start) &#123;
     vector&lt;bool&gt; vis(adj.size(), false);
@@ -72,7 +74,30 @@ void bfs(int start) &#123;
 void dfs(int u, vector&lt;bool&gt;&amp; vis) &#123;
     vis[u] = true; visit(u);
     for (int v : adj[u]) if (!vis[v]) dfs(v, vis);
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code>from collections import deque
+
+adj = []                          # 邻接表
+
+def bfs(start):
+    vis = [False] * len(adj)
+    q = deque([start])
+    vis[start] = True
+    while q:
+        u = q.popleft()
+        visit(u)
+        for v in adj[u]:
+            if not vis[v]:
+                vis[v] = True
+                q.append(v)
+
+def dfs(u, vis):
+    vis[u] = True
+    visit(u)
+    for v in adj[u]:
+        if not vis[v]:
+            dfs(v, vis)</code></pre>`}
+        />
       <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">BFS 借队列逐层扩展，无权图最短路；DFS 借递归/栈深入，适合连通性、拓扑、环检测。两者均为 O(V+E)。</span><span slot="en">BFS uses a queue for level expansion (shortest path in unweighted graphs); DFS uses recursion/stack for deep exploration (connectivity, topo sort, cycle detection). Both run in O(V+E).</span></Bilingual></p>
     </section>
   </article>

@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
 ---
 <BaseLayout title="Dynamic Programming · CS Notebook">
   <article class="space-y-6">
@@ -33,7 +34,8 @@ import Bilingual from '../../components/Bilingual.astro';
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">最长公共子序列（LCS）</span><span slot="en">Longest Common Subsequence (LCS)</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">给定两字符串 A、B，求最长的（不连续）公共子序列。<b>状态</b>：<code>dp[i][j]</code> = A 前 i 个与 B 前 j 个的 LCS 长度。<b>转移</b>：字符相等则取左上+1，否则取上/左较大值。时间 O(nm)、空间 O(nm)，可用滚动数组压到 O(min(n,m))。</span><span slot="en">Given strings A and B, find the longest (not necessarily contiguous) common subsequence. <b>State</b>: <code>dp[i][j]</code> = LCS length of A[..i] and B[..j]. <b>Transition</b>: if chars match, take up-left+1; else max of up/left. Time O(nm), space O(nm), reducible to O(min(n,m)) with a rolling array.</span></Bilingual></p>
-      <pre><code>// LCS  O(nm)
+      <CodeTabs
+  cpp={`<pre><code>// LCS  O(nm)
 int lcs(string&amp; A, string&amp; B) &#123;
     int n = A.size(), m = B.size();
     vector&lt;vector&lt;int&gt;&gt; dp(n + 1, vector&lt;int&gt;(m + 1, 0));
@@ -44,20 +46,41 @@ int lcs(string&amp; A, string&amp; B) &#123;
             else
                 dp[i][j] = max(dp[i-1][j], dp[i][j-1]); // 否则：上/左取大
     return dp[n][m];
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code># LCS  O(nm)
+def lcs(A, B):
+    n, m = len(A), len(B)
+    dp = [[0] * (m + 1) for _ in range(n + 1)]
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+            if A[i-1] == B[j-1]:
+                dp[i][j] = dp[i-1][j-1] + 1       # 字符相等：左上 + 1
+            else:
+                dp[i][j] = max(dp[i-1][j], dp[i][j-1])  # 否则：上/左取大
+    return dp[n][m]</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">0/1 背包：选或不选</span><span slot="en">0/1 Knapsack: Take or Skip</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">N 件物品各有重量 w[i] 和价值 v[i]，背包容量 W，每件<b>选或不选</b>（不可分割），求最大价值。<b>状态</b>：<code>dp[i][j]</code> = 前 i 件在容量 j 下的最大价值。<b>转移</b>：<code>dp[i][j] = max(dp[i-1][j], dp[i-1][j-w[i]] + v[i])</code>。空间可压缩为一维数组，<b>容量必须倒序遍历</b>以避免重复选取。</span><span slot="en">N items each with weight w[i] and value v[i], capacity W, each item <b>taken or skipped</b> (indivisible); maximize total value. <b>State</b>: <code>dp[i][j]</code> = max value from first i items under capacity j. <b>Transition</b>: <code>dp[i][j] = max(dp[i-1][j], dp[i-1][j-w[i]] + v[i])</code>. Space compresses to 1D — <b>iterate capacity in reverse</b> to avoid reusing an item.</span></Bilingual></p>
-      <pre><code>// 0/1 背包  O(nW)
+      <CodeTabs
+  cpp={`<pre><code>// 0/1 背包  O(nW)
 int knapsack(int n, int W, int w[], int v[]) &#123;
     vector&lt;int&gt; dp(W + 1, 0);
     for (int i = 0; i &lt; n; i++)
         for (int j = W; j &gt;= w[i]; j--)      // 倒序！避免重复选取
             dp[j] = max(dp[j], dp[j - w[i]] + v[i]);
     return dp[W];
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code># 0/1 背包  O(nW)
+def knapsack(n, W, w, v):
+    dp = [0] * (W + 1)
+    for i in range(n):
+        for j in range(W, w[i] - 1, -1):  # 倒序！避免重复选取
+            dp[j] = max(dp[j], dp[j - w[i]] + v[i])
+    return dp[W]</code></pre>`}
+        />
     </section>
 
     <section class="glass p-5">

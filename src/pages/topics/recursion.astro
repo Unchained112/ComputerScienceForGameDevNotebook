@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
 ---
 <BaseLayout title="Recursion · CS Notebook">
   <article class="space-y-6">
@@ -39,7 +40,8 @@ import Bilingual from '../../components/Bilingual.astro';
 
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">三要素：基线 · 递推 · 收敛</span><span slot="en">Three Pillars: Base · Recurrence · Convergence</span></Bilingual></h2>
-      <pre><code>// 阶乘：最简递归
+      <CodeTabs
+  cpp={`<pre><code>// 阶乘：最简递归
 int fact(int n) &#123;
     if (n &lt;= 1) return 1;       // 1. 基线条件：不再递归
     return n * fact(n - 1);       // 2. 递推：大问题 = 子问题 * 当前
@@ -57,21 +59,49 @@ int fib_memo(int n) &#123;
     if (n &lt; 2) return n;
     if (memo[n] != -1) return memo[n];   // 命中缓存，直接返回
     return memo[n] = fib_memo(n - 1) + fib_memo(n - 2);
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code># 阶乘：最简递归
+def fact(n):
+    if n <= 1: return 1        # 1. 基线条件：不再递归
+    return n * fact(n - 1)      # 2. 递推：大问题 = 子问题 * 当前
+                                # 3. 收敛：每层 n-1，必然触达基线
+
+# 斐波那契：朴素递归 O(2^n) —— 大量重复
+def fib(n):
+    if n < 2: return n          # 基线
+    return fib(n - 1) + fib(n - 2)  # 递推（但 fib(n-2) 会被算很多次）
+
+# 记忆化：O(n) —— 算过的存起来
+from functools import lru_cache
+
+@lru_cache(maxsize=None)
+def fib_memo(n):
+    if n < 2: return n
+    return fib_memo(n - 1) + fib_memo(n - 2)</code></pre>`}
+        />
       <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">写递归三问：①基线是什么？②如何用子问题的解构造当前解？③每步是否都向基线收敛（避免无穷递归 / 栈溢出）？</span><span slot="en">Three questions when writing recursion: ①What is the base case? ②How do I build the current answer from sub-answers? ③Does every step converge to the base (avoid infinite recursion / stack overflow)?</span></Bilingual></p>
     </section>
 
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">分治范式</span><span slot="en">Divide-and-Conquer Pattern</span></Bilingual></h2>
       <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">分治三步：<b>分</b>（切成规模相近的子问题）→ <b>治</b>（递归求解）→ <b>合</b>（合并子解）。复杂度由递推式 <code>T(n) = a·T(n/b) + f(n)</code> 决定，主定理给出渐近界。</span><span slot="en">Divide-and-conquer in three steps: <b>divide</b> (split into similar-size subproblems) → <b>conquer</b> (recurse) → <b>combine</b> (merge). Complexity follows the recurrence <code>T(n) = a·T(n/b) + f(n)</code>; the Master Theorem gives the asymptotic bound.</span></Bilingual></p>
-      <pre><code>// 归并排序：典型分治  T(n) = 2T(n/2) + O(n) = O(n log n)
+      <CodeTabs
+  cpp={`<pre><code>// 归并排序：典型分治  T(n) = 2T(n/2) + O(n) = O(n log n)
 void mergeSort(int a[], int lo, int hi) &#123;
     if (hi - lo &lt;= 1) return;          // 基线：≤1 元素天然有序
     int mid = (lo + hi) / 2;
     mergeSort(a, lo, mid);              // 分 + 治（左半）
     mergeSort(a, mid, hi);              // 分 + 治（右半）
     merge(a, lo, mid, hi);              // 合：线性归并两段有序数组
-&#125;</code></pre>
+&#125;</code></pre>`}
+  py={`<pre><code># 归并排序：典型分治  T(n) = 2T(n/2) + O(n) = O(n log n)
+def merge_sort(a, lo, hi):
+    if hi - lo <= 1: return      # 基线：≤1 元素天然有序
+    mid = (lo + hi) // 2
+    merge_sort(a, lo, mid)       # 分 + 治（左半）
+    merge_sort(a, mid, hi)       # 分 + 治（右半）
+    merge(a, lo, mid, hi)        # 合：线性归并两段有序数组</code></pre>`}
+        />
       <div class="overflow-x-auto mt-3">
         <table class="w-full text-sm">
           <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">算法</span><span slot="en">Algorithm</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">递推式</span><span slot="en">Recurrence</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">复杂度</span><span slot="en">Complexity</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">分 / 合</span><span slot="en">Divide / Combine</span></Bilingual></th></tr></thead>

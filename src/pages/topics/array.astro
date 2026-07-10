@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
 ---
 <BaseLayout title="Arrays & Dynamic Arrays · CS Notebook">
   <article class="space-y-6">
@@ -51,7 +52,8 @@ import Bilingual from '../../components/Bilingual.astro';
     <section class="grid lg:grid-cols-2 gap-4">
       <div class="glass p-5">
         <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">C++ std::vector push_back</span><span slot="en">C++ std::vector push_back</span></Bilingual></h2>
-        <pre class="text-xs sm:text-sm bg-black/30 rounded-xl p-4 overflow-x-auto font-mono leading-relaxed"><code>std::vector&lt;int&gt; v;
+        <CodeTabs
+  cpp={`<pre><code>std::vector&lt;int&gt; v;
 v.push_back(x);            // 摊还 O(1)
 // 容量不足时内部近似等价于：
 //   new_cap = max(1, cap * 2);     // 倍增策略
@@ -60,7 +62,17 @@ v.push_back(x);            // 摊还 O(1)
 //   delete[] old;                  // 释放旧块
 //   cap = new_cap;
 v[i];                      // O(1) 随机访问
-v.size(), v.capacity();    // 元素数 / 已分配容量</code></pre>
+v.size(), v.capacity();    // 元素数 / 已分配容量</code></pre>`}
+  py={`<pre><code>v = []                      # Python list 即动态数组
+v.append(x)                 # 摊还 O(1)，底层类似倍增扩容
+# 列表满时 CPython 内部近似：
+#   new_cap ≈ cap + cap // 8 + 3   # ~1.125x 增长
+#   new_arr = [None] * new_cap     # 分配新数组
+#   for i in range(size): new_arr[i] = old_arr[i]  # 拷贝
+#   old_arr = new_arr
+v[i]                        # O(1) 随机访问
+len(v)                      # 元素数；Python 不暴露 capacity</code></pre>`}
+        />
       </div>
       <div class="glass p-5">
         <h2 class="font-semibold mb-2"><Bilingual><span slot="zh">均摊 O(1) 是怎么来的</span><span slot="en">Why push_back is amortized O(1)</span></Bilingual></h2>
