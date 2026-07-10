@@ -1,0 +1,230 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Recursion · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Algorithms / Recursion & Divide-and-Conquer</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">递归与分治</span><span slot="en">Recursion & Divide-and-Conquer</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">递归是函数调用自身，把问题拆成<b>同型的更小子问题</b>，直至<b>基线条件</b>。分治 = 拆分 + 递归求解 + 合并。下方是 <code>fib(5)</code> 的调用树，深度优先求值：<b class="text-func-amber">黄=正在求值</b>、<b class="text-primary-indigo">蓝紫=已完成</b>、<b class="text-func-red">红=重复计算</b>（朴素递归的代价）。</span>
+          <span slot="en">Recursion is a function calling itself: break the problem into <b>smaller same-shape subproblems</b> down to a <b>base case</b>. Divide-and-conquer = split + recurse + merge. Below is the call tree of <code>fib(5)</code>, evaluated depth-first: <b class="text-func-amber">amber=evaluating</b>, <b class="text-primary-indigo">indigo=done</b>, <b class="text-func-red">red=redundant work</b> (the cost of naive recursion).</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5" data-viz="rectree">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <label class="flex items-center gap-2 text-sm text-ink-muted">
+          <span data-ui="mode" data-lang="zh">示例</span><span data-ui="mode" data-lang="en">Example</span>
+          <select id="r-mode" class="btn !py-1.5">
+            <option value="naive">fib(5) <Bilingual><span slot="zh">朴素</span><span slot="en">naive</span></Bilingual></option>
+            <option value="memo">fib(5) <Bilingual><span slot="zh">记忆化</span><span slot="en">memoized</span></Bilingual></option>
+          </select>
+        </label>
+        <button id="r-play" class="btn btn-primary">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+          <span data-ui="pause" data-lang="zh" class="hidden">暂停</span><span data-ui="pause" data-lang="en" class="hidden">Pause</span>
+        </button>
+        <button id="r-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+        <button id="r-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+        <span id="r-state" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="r-svg" viewBox="0 0 800 340" class="w-full h-80 viz-stage"></svg>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">三要素：基线 · 递推 · 收敛</span><span slot="en">Three Pillars: Base · Recurrence · Convergence</span></Bilingual></h2>
+      <pre><code>// 阶乘：最简递归
+int fact(int n) &#123;
+    if (n &lt;= 1) return 1;       // 1. 基线条件：不再递归
+    return n * fact(n - 1);       // 2. 递推：大问题 = 子问题 * 当前
+&#125;                              // 3. 收敛：每层 n-1，必然触达基线
+
+// 斐波那契：朴素递归 O(2^n) —— 大量重复
+int fib(int n) &#123;
+    if (n &lt; 2) return n;         // 基线
+    return fib(n - 1) + fib(n - 2); // 递推（但 fib(n-2) 会被算很多次）
+&#125;
+
+// 记忆化：O(n) —— 算过的存起来
+int memo[100];
+int fib_memo(int n) &#123;
+    if (n &lt; 2) return n;
+    if (memo[n] != -1) return memo[n];   // 命中缓存，直接返回
+    return memo[n] = fib_memo(n - 1) + fib_memo(n - 2);
+&#125;</code></pre>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">写递归三问：①基线是什么？②如何用子问题的解构造当前解？③每步是否都向基线收敛（避免无穷递归 / 栈溢出）？</span><span slot="en">Three questions when writing recursion: ①What is the base case? ②How do I build the current answer from sub-answers? ③Does every step converge to the base (avoid infinite recursion / stack overflow)?</span></Bilingual></p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">分治范式</span><span slot="en">Divide-and-Conquer Pattern</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">分治三步：<b>分</b>（切成规模相近的子问题）→ <b>治</b>（递归求解）→ <b>合</b>（合并子解）。复杂度由递推式 <code>T(n) = a·T(n/b) + f(n)</code> 决定，主定理给出渐近界。</span><span slot="en">Divide-and-conquer in three steps: <b>divide</b> (split into similar-size subproblems) → <b>conquer</b> (recurse) → <b>combine</b> (merge). Complexity follows the recurrence <code>T(n) = a·T(n/b) + f(n)</code>; the Master Theorem gives the asymptotic bound.</span></Bilingual></p>
+      <pre><code>// 归并排序：典型分治  T(n) = 2T(n/2) + O(n) = O(n log n)
+void mergeSort(int a[], int lo, int hi) &#123;
+    if (hi - lo &lt;= 1) return;          // 基线：≤1 元素天然有序
+    int mid = (lo + hi) / 2;
+    mergeSort(a, lo, mid);              // 分 + 治（左半）
+    mergeSort(a, mid, hi);              // 分 + 治（右半）
+    merge(a, lo, mid, hi);              // 合：线性归并两段有序数组
+&#125;</code></pre>
+      <div class="overflow-x-auto mt-3">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">算法</span><span slot="en">Algorithm</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">递推式</span><span slot="en">Recurrence</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">复杂度</span><span slot="en">Complexity</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">分 / 合</span><span slot="en">Divide / Combine</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">归并排序</td><td class="py-2 pr-4">2T(n/2)+O(n)</td><td class="py-2 pr-4 text-func-green">O(n log n)</td><td class="py-2 pr-4">对半切 / 线性归并</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">快速排序</td><td class="py-2 pr-4">T(k)+T(n-k)+O(n)</td><td class="py-2 pr-4">O(n log n)<span class="text-func-red">*</span></td><td class="py-2 pr-4">按基准划分 / 原址</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">二分查找</td><td class="py-2 pr-4">T(n/2)+O(1)</td><td class="py-2 pr-4 text-func-green">O(log n)</td><td class="py-2 pr-4">淘汰一半 / 无需合</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">Karatsuba</td><td class="py-2 pr-4">3T(n/2)+O(n)</td><td class="py-2 pr-4">O(n^1.585)</td><td class="py-2 pr-4">大数乘法 / 加减合</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-ink-muted mt-2"><span class="text-func-red">*</span><Bilingual><span slot="zh">快排最坏 O(n²)，平均 O(n log n)。</span><span slot="en">Quick sort worst case O(n²), average O(n log n).</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // fib(5) 调用树：节点 = fib(k)，k=5,4,3,2,1,0
+  interface TNode { k: number; x: number; y: number; parent: number; }
+  // 手工布局 fib(5) 的树
+  const NODES: TNode[] = [
+    { k: 5, x: 400, y: 30,  parent: -1 }, // 0
+    { k: 4, x: 230, y: 100, parent: 0 },  // 1
+    { k: 3, x: 570, y: 100, parent: 0 },  // 2
+    { k: 3, x: 130, y: 170, parent: 1 },  // 3
+    { k: 2, x: 330, y: 170, parent: 1 },  // 4
+    { k: 2, x: 510, y: 170, parent: 2 },  // 5
+    { k: 1, x: 640, y: 170, parent: 2 },  // 6
+    { k: 2, x:  70, y: 240, parent: 3 },  // 7
+    { k: 1, x: 190, y: 240, parent: 3 },  // 8
+    { k: 1, x: 290, y: 240, parent: 4 },  // 9
+    { k: 0, x: 370, y: 240, parent: 4 },  // 10
+    { k: 1, x: 470, y: 240, parent: 5 },  // 11
+    { k: 0, x: 550, y: 240, parent: 5 },  // 12
+  ];
+  const EDGES: [number, number][] = [];
+  for (let i = 1; i < NODES.length; i++) EDGES.push([NODES[i].parent, i]);
+
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('r-svg') as unknown as SVGSVGElement;
+  const sel = document.getElementById('r-mode') as HTMLSelectElement;
+  const stateEl = document.getElementById('r-state');
+
+  const COL_DEF = '#22D3EE', COL_CUR = '#FBBF24', COL_DONE = '#6366F1', COL_DUP = '#EF4444';
+
+  // DFS 求值顺序（朴素）：节点访问序
+  const ORDER_NAIVE = [0,1,3,7,8,3,4,9,10,4,1,0,2,5,11,12,5,6,2,0];
+  // 记忆化顺序：重复节点直接命中缓存（跳过其子树）
+  const ORDER_MEMO = [0,1,3,7,8,3,4,9,10,4,1,0,2,5,11,12,5,2,0];
+
+  interface Frame { node: number; state: 'enter' | 'done' | 'cached'; }
+  function buildFrames(mode: string): Frame[] {
+    const order = mode === 'memo' ? ORDER_MEMO : ORDER_NAIVE;
+    const memo = new Set<number>(); // 已求值（含缓存命中）
+    const frames: Frame[] = [];
+    for (let i = 0; i < order.length; i++) {
+      const n = order[i];
+      const next = order[i + 1];
+      // 判断是否是缓存命中：节点已在 memo 中且非首次出现
+      if (memo.has(n)) {
+        frames.push({ node: n, state: 'cached' });
+        continue;
+      }
+      frames.push({ node: n, state: 'enter' });
+      // 叶子或无未访问子节点 → 标记完成
+      const kids = EDGES.filter(e => e[0] === n).map(e => e[1]);
+      const allDone = kids.every(k => memo.has(k));
+      if (allDone) { frames.push({ node: n, state: 'done' }); memo.add(n); }
+    }
+    return frames;
+  }
+
+  function langText(key: string): string {
+    const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${lang}"]`);
+    return el ? el.textContent || '' : '';
+  }
+
+  function render(cur: Frame | null, done: Set<number>, cachedSet: Set<number>) {
+    svg.innerHTML = '';
+    // 边
+    for (const [a, b] of EDGES) {
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', String(NODES[a].x)); line.setAttribute('y1', String(NODES[a].y));
+      line.setAttribute('x2', String(NODES[b].x)); line.setAttribute('y2', String(NODES[b].y));
+      line.setAttribute('stroke', 'rgba(148,163,184,0.3)'); line.setAttribute('stroke-width', '2');
+      svg.appendChild(line);
+    }
+    // 节点
+    for (let i = 0; i < NODES.length; i++) {
+      const n = NODES[i];
+      let fill = COL_DEF;
+      if (cur && cur.node === i) fill = COL_CUR;
+      else if (done.has(i)) fill = COL_DONE;
+      else if (cachedSet.has(i)) fill = COL_DUP;
+      const c = document.createElementNS(SVGNS, 'circle');
+      c.setAttribute('cx', String(n.x)); c.setAttribute('cy', String(n.y)); c.setAttribute('r', '18');
+      c.setAttribute('fill', fill); c.setAttribute('stroke', '#0B1120'); c.setAttribute('stroke-width', '2');
+      svg.appendChild(c);
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(n.x)); t.setAttribute('y', String(n.y + 4));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '11');
+      t.setAttribute('fill', '#0B1120'); t.setAttribute('font-weight', '700');
+      t.textContent = `f${n.k}`; svg.appendChild(t);
+    }
+    if (stateEl && cur) {
+      const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+      if (cur.state === 'cached') stateEl.textContent = lang === 'en' ? `fib(${NODES[cur.node].k}) cache hit` : `fib(${NODES[cur.node].k}) 缓存命中`;
+      else if (cur.state === 'done') stateEl.textContent = lang === 'en' ? `fib(${NODES[cur.node].k}) = computed` : `fib(${NODES[cur.node].k}) = 已求值`;
+      else stateEl.textContent = lang === 'en' ? `call fib(${NODES[cur.node].k})` : `调用 fib(${NODES[cur.node].k})`;
+    }
+  }
+
+  let frames: Frame[] = [];
+  let idx = 0;
+  let timer: number | null = null;
+  let doneSet = new Set<number>();
+  let cachedSet = new Set<number>();
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('r-play');
+    if (b) b.innerHTML = langText('play');
+  }
+  function rebuild() {
+    stop();
+    frames = buildFrames(sel.value);
+    idx = 0; doneSet = new Set(); cachedSet = new Set();
+    render(null, doneSet, cachedSet);
+    if (stateEl) stateEl.textContent = '';
+  }
+  function advance(): boolean {
+    if (idx < frames.length) {
+      const f = frames[idx];
+      if (f.state === 'done') doneSet.add(f.node);
+      else if (f.state === 'cached') cachedSet.add(f.node);
+      render(f, doneSet, cachedSet);
+      idx++;
+      return true;
+    }
+    return false;
+  }
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('r-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 500);
+  }
+
+  document.getElementById('r-play')?.addEventListener('click', play);
+  document.getElementById('r-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('r-reset')?.addEventListener('click', rebuild);
+  sel?.addEventListener('change', rebuild);
+  document.addEventListener('langchange', () => { if (timer === null) { const b = document.getElementById('r-play'); if (b) b.innerHTML = langText('play'); } });
+  rebuild();
+</script>

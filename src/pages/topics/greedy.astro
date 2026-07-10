@@ -1,0 +1,199 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Greedy · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Algorithms / Greedy</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">贪心算法</span><span slot="en">Greedy Algorithms</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">贪心在每一步选<b>当前最优</b>的局部选择，期望得到全局最优。它简单高效，但<b>并非总正确</b>——需证明「贪心选择性质」与「最优子结构」。下方是<b>区间调度</b>：按结束时间排序，贪心选最早结束的不重叠区间。颜色：<b class="text-func-green">绿=选中</b>、<b class="text-func-amber">黄=考察中</b>、<b class="text-func-red">红=冲突淘汰</b>、灰=待选。</span>
+          <span slot="en">Greedy makes the <b>locally optimal</b> choice at each step, hoping to reach a global optimum. It's simple and fast, but <b>not always correct</b> — you must prove the "greedy-choice property" and "optimal substructure". Below is <b>interval scheduling</b>: sort by end time, greedily pick the earliest-ending non-overlapping interval. Colors: <b class="text-func-green">green=picked</b>, <b class="text-func-amber">amber=considering</b>, <b class="text-func-red">red=conflict</b>, gray=pending.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5" data-viz="greedy">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="gr-play" class="btn btn-primary">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+          <span data-ui="pause" data-lang="zh" class="hidden">暂停</span><span data-ui="pause" data-lang="en" class="hidden">Pause</span>
+        </button>
+        <button id="gr-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+        <button id="gr-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+        <span id="gr-state" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="gr-svg" viewBox="0 0 800 320" class="w-full h-80 viz-stage"></svg>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">区间调度：最多不重叠区间</span><span slot="en">Interval Scheduling: Max Non-overlapping</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">给定若干区间，选最多互不重叠的区间数。<b>贪心策略：按结束时间升序排序，每步选结束最早且与已选不冲突的区间。</b>为什么不是按开始时间或长度？交换论证可证：任何最优解都能调整为「取最早结束的区间」而不变差。</span><span slot="en">Given a set of intervals, pick the maximum number of non-overlapping ones. <b>Greedy: sort by end time, each step pick the earliest-ending interval that doesn't overlap the last picked.</b> Why not by start time or length? An exchange argument shows any optimal solution can be transformed to include the earliest-ending interval without loss.</span></Bilingual></p>
+      <pre><code>// 区间 = [start, end)，按结束时间排序后贪心
+int maxEvents(vector&lt;pair&lt;int,int&gt;&gt;&amp; a) &#123;
+    sort(a.begin(), a.end(), [](auto&amp; x, auto&amp; y) &#123;
+        return x.second &lt; y.second;     // 按结束时间升序
+    &#125;);
+    int cnt = 0, lastEnd = -1;
+    for (auto&amp; [s, e] : a) &#123;
+        if (s &gt;= lastEnd) &#123;            // 与已选区间不冲突
+            cnt++; lastEnd = e;          // 贪心选择
+        &#125;
+    &#125;
+    return cnt;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">找零问题：贪心何时成立？</span><span slot="en">Coin Change: When Is Greedy Correct?</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">用最少硬币凑出面额 <code>v</code>。若币制为 <code>&#123;1,5,10,25&#125;</code>（美元），每次选最大可用硬币的贪心是<b>正确</b>的。但币制 <code>&#123;1,3,4&#125;</code> 凑 6：贪心选 4+1+1=3 枚，而最优是 3+3=2 枚——贪心<b>失败</b>。通用解法是动态规划。</span><span slot="en">Make value <code>v</code> with the fewest coins. For denominations <code>&#123;1,5,10,25&#125;</code> (USD), greedily taking the largest usable coin is <b>correct</b>. But for <code>&#123;1,3,4&#125;</code> making 6: greedy gives 4+1+1=3 coins while optimal is 3+3=2 — greedy <b>fails</b>. The general solution is dynamic programming.</span></Bilingual></p>
+      <pre><code>// 贪心：仅对「规范」币制正确
+int coinChange_greedy(vector&lt;int&gt;&amp; c, int v) &#123;
+    sort(c.rbegin(), c.rend());          // 降序
+    int cnt = 0;
+    for (int x : c) &#123; cnt += v / x; v %= x; &#125;
+    return v == 0 ? cnt : -1;
+&#125;
+
+// DP：通用正确解  O(n·v)
+int coinChange_dp(vector&lt;int&gt;&amp; c, int v) &#123;
+    vector&lt;int&gt; dp(v + 1, 1e9); dp[0] = 0;
+    for (int i = 1; i &lt;= v; i++)
+        for (int x : c)
+            if (x &lt;= i) dp[i] = min(dp[i], dp[i - x] + 1);
+    return dp[v] &gt;= 1e9 ? -1 : dp[v];
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">贪心正确性：交换论证</span><span slot="en">Proving Greedy: Exchange Argument</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">证明贪心最优的常用套路：<b>假设存在一个最优解 O，它「第一步」与贪心选择 g 不同；把 O 中的对应选择替换为 g，证明仍是最优且不冲突</b>。反复交换，最终 O 被改造成贪心解，故贪心解最优。</span><span slot="en">A standard way to prove greedy optimal: <b>assume an optimal solution O whose first choice differs from the greedy pick g; swap that choice for g in O and show it stays optimal and feasible</b>. Repeat the exchange until O becomes the greedy solution — hence the greedy solution is optimal.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">问题</span><span slot="en">Problem</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">贪心策略</span><span slot="en">Strategy</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">正确？</span><span slot="en">Correct?</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">区间调度</td><td class="py-2 pr-4">按结束时间排序，选最早结束</td><td class="py-2 pr-4 text-func-green">✓</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">部分背包</td><td class="py-2 pr-4">按单位价值降序，能装就装</td><td class="py-2 pr-4 text-func-green">✓</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">Huffman 编码</td><td class="py-2 pr-4">合并频率最低的两棵树</td><td class="py-2 pr-4 text-func-green">✓</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">0/1 背包</td><td class="py-2 pr-4">按单位价值选（不可分割）</td><td class="py-2 pr-4 text-func-red">✗ → DP</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">找零（任意币制）</td><td class="py-2 pr-4">每次选最大可用硬币</td><td class="py-2 pr-4 text-func-red">✗ → DP</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 固定区间集 [start, end)
+  const INTS: [number, number][] = [
+    [1, 4], [3, 5], [0, 6], [5, 7], [3, 9], [5, 9],
+    [6, 10], [8, 11], [8, 12], [2, 14], [12, 16]
+  ];
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('gr-svg') as unknown as SVGSVGElement;
+  const stateEl = document.getElementById('gr-state');
+
+  const COL_DEF = '#22D3EE', COL_PICK = '#22C55E', COL_CUR = '#FBBF24', COL_DEAD = '#EF4444', COL_PENDING = '#475569';
+
+  // 按结束时间排序后的索引顺序
+  const sortedIdx = INTS.map((_, i) => i).sort((a, b) => INTS[a][1] - INTS[b][1] || INTS[a][0] - INTS[b][0]);
+
+  interface Frame { idx: number; action: 'pick' | 'skip'; }
+  function buildFrames(): Frame[] {
+    const frames: Frame[] = [];
+    let lastEnd = -1;
+    for (const i of sortedIdx) {
+      if (INTS[i][0] >= lastEnd) { frames.push({ idx: i, action: 'pick' }); lastEnd = INTS[i][1]; }
+      else frames.push({ idx: i, action: 'skip' });
+    }
+    return frames;
+  }
+
+  function langText(key: string): string {
+    const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${lang}"]`);
+    return el ? el.textContent || '' : '';
+  }
+
+  function render(cur: Frame | null, picked: Set<number>, skipped: Set<number>) {
+    svg.innerHTML = '';
+    const ROW_H = 24, START_Y = 30, X0 = 40, SCALE = 50;
+    // 时间轴
+    for (let t = 0; t <= 16; t += 2) {
+      const x = X0 + t * SCALE;
+      const tk = document.createElementNS(SVGNS, 'text');
+      tk.setAttribute('x', String(x)); tk.setAttribute('y', String(START_Y + INTS.length * ROW_H + 8));
+      tk.setAttribute('text-anchor', 'middle'); tk.setAttribute('font-size', '11'); tk.setAttribute('fill', '#94A3B8');
+      tk.textContent = String(t); svg.appendChild(tk);
+    }
+    const tickLine = document.createElementNS(SVGNS, 'line');
+    tickLine.setAttribute('x1', String(X0)); tickLine.setAttribute('y1', String(START_Y + INTS.length * ROW_H));
+    tickLine.setAttribute('x2', String(X0 + 16 * SCALE)); tickLine.setAttribute('y2', String(START_Y + INTS.length * ROW_H));
+    tickLine.setAttribute('stroke', 'rgba(148,163,184,0.3)'); svg.appendChild(tickLine);
+
+    for (let i = 0; i < INTS.length; i++) {
+      const [s, e] = INTS[i];
+      const y = START_Y + i * ROW_H;
+      let fill = COL_DEF;
+      if (picked.has(i)) fill = COL_PICK;
+      else if (skipped.has(i)) fill = COL_DEAD;
+      else if (cur && cur.idx === i) fill = COL_CUR;
+      const bar = document.createElementNS(SVGNS, 'rect');
+      bar.setAttribute('x', String(X0 + s * SCALE)); bar.setAttribute('y', String(y));
+      bar.setAttribute('width', String((e - s) * SCALE)); bar.setAttribute('height', String(ROW_H - 6));
+      bar.setAttribute('rx', '4'); bar.setAttribute('fill', fill); bar.setAttribute('opacity', '0.85');
+      svg.appendChild(bar);
+      const lbl = document.createElementNS(SVGNS, 'text');
+      lbl.setAttribute('x', String(X0 + s * SCALE - 4)); lbl.setAttribute('y', String(y + ROW_H / 2 + 2));
+      lbl.setAttribute('text-anchor', 'end'); lbl.setAttribute('font-size', '11'); lbl.setAttribute('fill', '#94A3B8');
+      lbl.textContent = `I${i}`; svg.appendChild(lbl);
+    }
+    if (stateEl && cur) {
+      const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+      const [s, e] = INTS[cur.idx];
+      if (cur.action === 'pick') stateEl.textContent = lang === 'en' ? `pick I${cur.idx} [${s},${e}) ✓` : `选中 I${cur.idx} [${s},${e}) ✓`;
+      else stateEl.textContent = lang === 'en' ? `skip I${cur.idx} [${s},${e}) — overlap` : `跳过 I${cur.idx} [${s},${e}) — 冲突`;
+    }
+  }
+
+  let frames: Frame[] = [];
+  let idx = 0;
+  let timer: number | null = null;
+  let picked = new Set<number>();
+  let skipped = new Set<number>();
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('gr-play');
+    if (b) b.innerHTML = langText('play');
+  }
+  function rebuild() {
+    stop(); frames = buildFrames(); idx = 0; picked = new Set(); skipped = new Set();
+    render(null, picked, skipped); if (stateEl) stateEl.textContent = '';
+  }
+  function advance(): boolean {
+    if (idx < frames.length) {
+      const f = frames[idx];
+      if (f.action === 'pick') picked.add(f.idx); else skipped.add(f.idx);
+      render(f, picked, skipped); idx++; return true;
+    }
+    return false;
+  }
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('gr-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 650);
+  }
+
+  document.getElementById('gr-play')?.addEventListener('click', play);
+  document.getElementById('gr-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('gr-reset')?.addEventListener('click', rebuild);
+  document.addEventListener('langchange', () => { if (timer === null) { const b = document.getElementById('gr-play'); if (b) b.innerHTML = langText('play'); } });
+  rebuild();
+</script>

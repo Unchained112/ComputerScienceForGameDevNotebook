@@ -1,0 +1,225 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Backtracking · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Algorithms / Backtracking</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">回溯</span><span slot="en">Backtracking</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">回溯是「试错」式的深度优先搜索：逐步构造解，遇到<b>死路就撤销上一步</b>（回溯）换别的分支。本质是在隐式解空间树上做 DFS + 剪枝。下方是 <b>4 皇后</b>：逐列放皇后，冲突即回退。颜色：<b class="text-func-green">绿=已放置</b>、<b class="text-func-amber">黄=尝试中</b>、<b class="text-func-red">红=冲突剪枝</b>。</span>
+          <span slot="en">Backtracking is trial-and-error DFS: build a solution step by step; on a <b>dead end, undo the last step</b> (backtrack) and try another branch. It's DFS over an implicit solution-space tree with pruning. Below is the <b>4-Queens</b> problem: place queens column by column, backtrack on conflict. Colors: <b class="text-func-green">green=placed</b>, <b class="text-func-amber">amber=trying</b>, <b class="text-func-red">red=pruned</b>.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5" data-viz="backtrack">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="bt-play" class="btn btn-primary">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+          <span data-ui="pause" data-lang="zh" class="hidden">暂停</span><span data-ui="pause" data-lang="en" class="hidden">Pause</span>
+        </button>
+        <button id="bt-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+        <button id="bt-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+        <span id="bt-state" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="bt-svg" viewBox="0 0 360 360" class="w-full h-80 viz-stage mx-auto" style="max-width:360px"></svg>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">N 皇后：回溯 + 剪枝</span><span slot="en">N-Queens: Backtracking + Pruning</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">在 N×N 棋盘放 N 个皇后使其互不攻击（同行/同列/同对角线冲突）。逐列放置，用三个布尔数组记录已占用的<b>行、主对角线、副对角线</b>，O(1) 判断冲突——这就是剪枝，把朴素 O(N^N) 压到实际可接受范围。</span><span slot="en">Place N queens on an N×N board so none attack each other (same row/column/diagonal). Place column by column; three boolean arrays track occupied <b>rows, main diagonals, anti-diagonals</b> for O(1) conflict checks — this pruning compresses naive O(N^N) to something practical.</span></Bilingual></p>
+      <pre><code>int n;  bool col[20], diag1[40], diag2[40];
+int ans[20], cnt = 0;
+
+void solve(int r) &#123;            // 第 r 行放皇后
+    if (r == n) &#123; cnt++; return; &#125;  // 全部放完 → 记录一个解
+    for (int c = 0; c &lt; n; c++) &#123;
+        int d1 = r + c, d2 = r - c + n;   // 对角线索引
+        if (col[c] || diag1[d1] || diag2[d2]) continue; // 剪枝
+        col[c] = diag1[d1] = diag2[d2] = true;
+        ans[r] = c;                        // 选择
+        solve(r + 1);                      // 递归
+        col[c] = diag1[d1] = diag2[d2] = false; // 撤销（回溯）
+    &#125;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">子集 / 排列 / 组合</span><span slot="en">Subsets / Permutations / Combinations</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">回溯是枚举三大经典问题的统一框架，区别只在「选择集」与「剪枝条件」：<b>子集</b>每个元素选/不选；<b>排列</b>选未用的；<b>组合</b>选下标更大的（避免重复）。</span><span slot="en">Backtracking is a unified framework for three classic enumeration problems; the difference is only the "choice set" and "pruning": <b>subsets</b> take/skip each element; <b>permutations</b> pick unused ones; <b>combinations</b> pick only later indices (to avoid duplicates).</span></Bilingual></p>
+      <pre><code>vector&lt;int&gt; path; vector&lt;vector&lt;int&gt;&gt; res;
+
+// 子集：每个元素 选 / 不选
+void subsets(int i, int n, vector&lt;int&gt;&amp; a) &#123;
+    if (i == n) &#123; res.push_back(path); return; &#125;
+    subsets(i + 1, n, a);            // 不选 a[i]
+    path.push_back(a[i]);            // 选 a[i]
+    subsets(i + 1, n, a);
+    path.pop_back();                 // 回溯
+&#125;
+
+// 排列：从「未使用」中选
+bool used[10];
+void perm(int n, vector&lt;int&gt;&amp; a) &#123;
+    if (path.size() == n) &#123; res.push_back(path); return; &#125;
+    for (int i = 0; i &lt; n; i++) &#123;
+        if (used[i]) continue;
+        used[i] = true; path.push_back(a[i]);
+        perm(n, a);
+        used[i] = false; path.pop_back();  // 回溯
+    &#125;
+&#125;
+
+// 组合 C(n,k)：只往后选，避免重复
+void comb(int start, int n, int k, vector&lt;int&gt;&amp; a) &#123;
+    if ((int)path.size() == k) &#123; res.push_back(path); return; &#125;
+    for (int i = start; i &lt; n; i++) &#123;
+        path.push_back(a[i]);
+        comb(i + 1, n, k, a);        // i+1 保证不回头
+        path.pop_back();             // 回溯
+    &#125;
+&#125;</code></pre>
+      <div class="overflow-x-auto mt-3">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">问题</span><span slot="en">Problem</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">解空间</span><span slot="en">Solution space</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">剪枝要点</span><span slot="en">Pruning key</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">子集</td><td class="py-2 pr-4">2^n 子集树</td><td class="py-2 pr-4">无（或目标和剪枝）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">排列</td><td class="py-2 pr-4">n! 排列树</td><td class="py-2 pr-4">used[] 去重</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">组合</td><td class="py-2 pr-4">C(n,k)</td><td class="py-2 pr-4">只选 i+1 起，避免重复</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">N 皇后</td><td class="py-2 pr-4">n^n</td><td class="py-2 pr-4">行/列/对角线 O(1) 判定</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 4 皇后回溯求解，预生成操作序列
+  const N = 4;
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('bt-svg') as unknown as SVGSVGElement;
+  const stateEl = document.getElementById('bt-state');
+
+  const COL_OK = '#22C55E', COL_TRY = '#FBBF24', COL_BAD = '#EF4444', COL_GRID = 'rgba(148,163,184,0.25)';
+  const CELL = 80;
+
+  type Action = 'place' | 'prune' | 'backtrack' | 'solution';
+  interface Frame { board: (number | null)[]; row: number; col: number; action: Action; }
+
+  function gen(): Frame[] {
+    const frames: Frame[] = [];
+    const col = new Array(N).fill(false), d1 = new Array(2 * N).fill(false), d2 = new Array(2 * N).fill(false);
+    const board: (number | null)[] = new Array(N).fill(null);
+
+    function solve(r: number) {
+      if (r === N) {
+        frames.push({ board: [...board], row: r, col: -1, action: 'solution' });
+        return;
+      }
+      for (let c = 0; c < N; c++) {
+        const i1 = r + c, i2 = r - c + N;
+        if (col[c] || d1[i1] || d2[i2]) {
+          board[r] = c;
+          frames.push({ board: [...board], row: r, col: c, action: 'prune' });
+          board[r] = null;
+          continue;
+        }
+        col[c] = d1[i1] = d2[i2] = true;
+        board[r] = c;
+        frames.push({ board: [...board], row: r, col: c, action: 'place' });
+        solve(r + 1);
+        board[r] = null;
+        col[c] = d1[i1] = d2[i2] = false;
+        frames.push({ board: [...board], row: r, col: c, action: 'backtrack' });
+      }
+    }
+    solve(0);
+    return frames;
+  }
+
+  function langText(key: string): string {
+    const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${lang}"]`);
+    return el ? el.textContent || '' : '';
+  }
+
+  function render(f: Frame | null) {
+    svg.innerHTML = '';
+    // 棋盘格
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        const rect = document.createElementNS(SVGNS, 'rect');
+        rect.setAttribute('x', String(c * CELL)); rect.setAttribute('y', String(r * CELL));
+        rect.setAttribute('width', String(CELL)); rect.setAttribute('height', String(CELL));
+        rect.setAttribute('fill', (r + c) % 2 === 0 ? 'rgba(34,211,238,0.04)' : 'rgba(34,211,238,0.10)');
+        rect.setAttribute('stroke', COL_GRID); svg.appendChild(rect);
+      }
+    }
+    // 放置的皇后
+    for (let r = 0; r < N; r++) {
+      const c = f?.board[r];
+      if (c === null || c === undefined) continue;
+      let fill = COL_OK;
+      if (f && f.action !== 'solution' && r === f.row && c === f.col) {
+        fill = f.action === 'prune' ? COL_BAD : COL_TRY;
+      }
+      const cx = c * CELL + CELL / 2, cy = r * CELL + CELL / 2;
+      const circ = document.createElementNS(SVGNS, 'circle');
+      circ.setAttribute('cx', String(cx)); circ.setAttribute('cy', String(cy));
+      circ.setAttribute('r', String(CELL * 0.32)); circ.setAttribute('fill', fill);
+      circ.setAttribute('stroke', '#0B1120'); circ.setAttribute('stroke-width', '2');
+      svg.appendChild(circ);
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(cx)); t.setAttribute('y', String(cy + 6));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '20');
+      t.setAttribute('fill', '#0B1120'); t.setAttribute('font-weight', '700');
+      t.textContent = '♛'; svg.appendChild(t);
+    }
+    if (stateEl && f) {
+      const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+      const map: Record<string, [string, string]> = {
+        place: [`place Q at row ${f.row}, col ${f.col}`, `在第 ${f.row} 行第 ${f.col} 列放皇后`],
+        prune: [`prune row ${f.row}, col ${f.col} (conflict)`, `剪枝 第 ${f.row} 行第 ${f.col} 列（冲突）`],
+        backtrack: [`backtrack row ${f.row}, col ${f.col}`, `回退 第 ${f.row} 行第 ${f.col} 列`],
+        solution: ['solution found!', '找到一个解！'],
+      };
+      const [en, zh] = map[f.action];
+      stateEl.textContent = lang === 'en' ? en : zh;
+    }
+  }
+
+  let frames: Frame[] = [];
+  let idx = 0;
+  let timer: number | null = null;
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('bt-play');
+    if (b) b.innerHTML = langText('play');
+  }
+  function rebuild() {
+    stop(); frames = gen(); idx = 0; render(null); if (stateEl) stateEl.textContent = '';
+  }
+  function advance(): boolean {
+    if (idx < frames.length) { render(frames[idx]); idx++; return true; }
+    return false;
+  }
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('bt-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 450);
+  }
+
+  document.getElementById('bt-play')?.addEventListener('click', play);
+  document.getElementById('bt-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('bt-reset')?.addEventListener('click', rebuild);
+  document.addEventListener('langchange', () => { if (timer === null) { const b = document.getElementById('bt-play'); if (b) b.innerHTML = langText('play'); } });
+  rebuild();
+</script>
