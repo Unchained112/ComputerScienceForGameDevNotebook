@@ -1,0 +1,107 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Linked List Problems · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Problems / Linked List</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">链表题型</span><span slot="en">Linked List Problems</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">链表题的核心是<b>指针操作</b>：翻转、合并、找中点、判环。关键技巧：<b>哑节点</b>统一头插/删除、<b>快慢指针</b>找中点与判环、<b>递归</b>处理子问题。注意画图理清指针走向，避免断链。</span>
+          <span slot="en">Linked-list problems are all about <b>pointer manipulation</b>: reversal, merging, finding the midpoint, cycle detection. Key tricks: a <b>dummy node</b> unifies head insertion/deletion, <b>fast-slow pointers</b> find midpoints and cycles, <b>recursion</b> handles subproblems. Draw the pointers to avoid breaking links.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Reverse Linked List（翻转链表）</span><span slot="en">Reverse Linked List</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：翻转单链表。<b>迭代思路</b>：用三个指针 <code>prev</code>、<code>curr</code>、<code>next</code>，每步把 <code>curr-&gt;next</code> 指向 <code>prev</code>，然后三者整体右移。<b>递归思路</b>：递归翻转 <code>head-&gt;next</code> 之后，令 <code>head-&gt;next-&gt;next = head</code> 回指自己，再断开 <code>head-&gt;next = nullptr</code>。</span><span slot="en"><b>Problem</b>: Reverse a singly linked list. <b>Iterative</b>: three pointers <code>prev</code>, <code>curr</code>, <code>next</code>; each step point <code>curr-&gt;next</code> to <code>prev</code>, then shift all three right. <b>Recursive</b>: recursively reverse after <code>head-&gt;next</code>, then set <code>head-&gt;next-&gt;next = head</code> to point back, and sever <code>head-&gt;next = nullptr</code>.</span></Bilingual></p>
+      <pre><code>struct Node &#123; int val; Node* next; &#125;;
+
+// 迭代翻转  O(n)
+Node* reverse(Node* head) &#123;
+    Node *prev = nullptr, *curr = head;
+    while (curr) &#123;
+        Node* next = curr-&gt;next;
+        curr-&gt;next = prev;     // 反转指向
+        prev = curr;            // 整体右移
+        curr = next;
+    &#125;
+    return prev;                // 新头
+&#125;
+
+// 递归翻转
+Node* reverseRec(Node* head) &#123;
+    if (!head || !head-&gt;next) return head;
+    Node* newHead = reverseRec(head-&gt;next);
+    head-&gt;next-&gt;next = head;   // 后继回指自己
+    head-&gt;next = nullptr;       // 断开原方向
+    return newHead;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Linked List Cycle II（环入口节点）</span><span slot="en">Linked List Cycle II (Cycle Entry)</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：给定链表头，若有环返回环入口节点，无环返回 null。<b>思路</b>：Floyd 判圈法两阶段。① 快慢指针找相遇点；② 一指针回表头，两指针同速前进，再次相遇即环入口。<b>证明</b>：设环外 a 步、环长 b，相遇时 slow 走 x 步、fast 走 2x 步，fast 比 slow 多绕整数圈 <code>x = k·b</code>。从表头走 a 步、从相遇点走 a 步，因 <code>a + x = a + k·b</code>（恰整数圈），两指针必在入口相遇。</span><span slot="en"><b>Problem</b>: Given the head, if there's a cycle return the entry node, else null. <b>Approach</b>: Floyd's two phases. ① fast-slow pointers find the meeting point; ② one pointer returns to the head, both advance at the same speed — they meet again at the entry. <b>Proof</b>: with a nodes before the cycle and b in it, at the meeting slow traveled x and fast 2x, so fast did <code>x = k·b</code> extra laps. Walking a from both the head and the meeting point: <code>a + x = a + k·b</code> (whole laps), so they converge at the entry.</span></Bilingual></p>
+      <pre><code>// 环入口  O(n) 时间, O(1) 空间
+Node* detectCycle(Node* head) &#123;
+    Node *slow = head, *fast = head;
+    // 阶段1：找相遇点
+    while (fast &amp;&amp; fast-&gt;next) &#123;
+        slow = slow-&gt;next;
+        fast = fast-&gt;next-&gt;next;
+        if (slow == fast) &#123;          // 相遇
+            // 阶段2：一个回表头，同速前进
+            slow = head;
+            while (slow != fast) &#123;
+                slow = slow-&gt;next;
+                fast = fast-&gt;next;
+            &#125;
+            return slow;               // 环入口
+        &#125;
+    &#125;
+    return nullptr;                     // 无环
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Merge Two Sorted Lists（合并两个有序链表）</span><span slot="en">Merge Two Sorted Lists</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：合并两个升序链表为一个升序链表。<b>思路</b>：用<b>哑节点</b>简化头节点处理。比较两链表当前节点值，较小者接到结果末尾，对应指针前移，直到一方为空，再接上剩余部分。O(n+m) 一趟。</span><span slot="en"><b>Problem</b>: Merge two ascending lists into one. <b>Approach</b>: a <b>dummy node</b> simplifies head handling. Compare the current nodes of both lists, append the smaller to the result, advance that pointer; when one list is exhausted, splice on the remainder. O(n+m) one pass.</span></Bilingual></p>
+      <pre><code>// 合并有序链表  O(n+m)
+Node* mergeTwoLists(Node* a, Node* b) &#123;
+    Node dummy&#123;0, nullptr&#125;;           // 哑节点
+    Node* tail = &amp;dummy;
+    while (a &amp;&amp; b) &#123;
+        if (a-&gt;val &lt;= b-&gt;val) &#123;
+            tail-&gt;next = a; a = a-&gt;next;
+        &#125; else &#123;
+            tail-&gt;next = b; b = b-&gt;next;
+        &#125;
+        tail = tail-&gt;next;
+    &#125;
+    tail-&gt;next = a ? a : b;             // 接上剩余
+    return dummy.next;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">链表技巧速查</span><span slot="en">Linked List Techniques Cheatsheet</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">技巧</span><span slot="en">Technique</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">要点</span><span slot="en">Key point</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">代表题</span><span slot="en">Representative</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">哑节点</td><td class="py-2 pr-4">统一头插/删除，避免特判</td><td class="py-2 pr-4">合并链表、删除节点</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">快慢指针</td><td class="py-2 pr-4">快=2×慢，找中点/判环</td><td class="py-2 pr-4">环检测、找中点、删倒数第N</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">三指针翻转</td><td class="py-2 pr-4">prev/curr/next 逐个反转</td><td class="py-2 pr-4">翻转链表、K个一组翻转</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">递归</td><td class="py-2 pr-4">先递归子问题再回溯连接</td><td class="py-2 pr-4">翻转、合并、回文判断</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">前驱指针</td><td class="py-2 pr-4">删除需知道前驱，哑节点兜底</td><td class="py-2 pr-4">删除节点、去重</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>

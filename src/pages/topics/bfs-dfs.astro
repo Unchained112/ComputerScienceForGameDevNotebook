@@ -1,0 +1,232 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="BFS & DFS · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Algorithms / BFS & DFS</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">广度优先与深度优先</span><span slot="en">Breadth-First & Depth-First Search</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">BFS 用<b>队列</b>逐层扩展，天然求无权图最短路；DFS 用<b>栈/递归</b>一路深入，适合连通性、拓扑、回溯。下方迷宫中可切换两种模式观察扩展顺序：BFS 呈波纹状层序、DFS 呈一条直线深入再回退。颜色：<b class="text-func-green">绿=已访问</b>、<b class="text-func-amber">黄=当前扩展</b>、<b class="text-func-red">红=目标</b>、灰=墙。</span>
+          <span slot="en">BFS uses a <b>queue</b> to expand level by level, naturally finding shortest paths in unweighted graphs; DFS uses a <b>stack/recursion</b> to plunge deep, suited for connectivity, topology, and backtracking. Toggle modes below to watch a maze expand: BFS ripples outward in layers, DFS dives in a line then backtracks. Colors: <b class="text-func-green">green=visited</b>, <b class="text-func-amber">amber=expanding</b>, <b class="text-func-red">red=goal</b>, gray=wall.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5" data-viz="bfs-dfs">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="bd-mode" class="btn btn-primary"><span data-ui="bfs" data-lang="zh">模式: BFS</span><span data-ui="bfs" data-lang="en">Mode: BFS</span><span data-ui="dfs" data-lang="zh" class="hidden">模式: DFS</span><span data-ui="dfs" data-lang="en" class="hidden">Mode: DFS</span></button>
+        <button id="bd-play" class="btn">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+          <span data-ui="pause" data-lang="zh" class="hidden">暂停</span><span data-ui="pause" data-lang="en" class="hidden">Pause</span>
+        </button>
+        <button id="bd-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+        <button id="bd-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+        <span id="bd-state" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="bd-svg" viewBox="0 0 440 360" class="w-full h-80 viz-stage mx-auto" style="max-width:440px"></svg>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">BFS：层序扩展求最短路</span><span slot="en">BFS: Level-Order Expansion for Shortest Path</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">从起点出发，把所有距离为 1 的节点入队，再是距离为 2 的……每出队一个节点就扩展其未访问邻居。<b>队列保证先到先访问，因此第一次到达目标时的步数就是最短步数</b>（无权图）。典型应用：迷宫最短路、社交网络度数、单词接龙。</span><span slot="en">Starting from the source, enqueue all nodes at distance 1, then distance 2, … Each dequeue expands unvisited neighbors. <b>The queue guarantees first-come-first-visited, so the first time the goal is reached the step count is the shortest</b> (unweighted graph). Classic uses: maze shortest path, social-network degrees, word ladder.</span></Bilingual></p>
+      <pre><code>// BFS 求无权图最短路  O(V+E)
+int bfs(vector&lt;vector&lt;int&gt;&gt;&amp; G, int s, int t) &#123;
+    int n = G.size();
+    vector&lt;int&gt; dist(n, -1);
+    queue&lt;int&gt; q;
+    dist[s] = 0; q.push(s);
+    while (!q.empty()) &#123;
+        int u = q.front(); q.pop();
+        if (u == t) return dist[t];   // 首次到达 = 最短
+        for (int v : G[u])
+            if (dist[v] &lt; 0) &#123;       // 未访问
+                dist[v] = dist[u] + 1;
+                q.push(v);
+            &#125;
+    &#125;
+    return -1;                         // 不可达
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">DFS：深入与回溯</span><span slot="en">DFS: Dive Deep & Backtrack</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">DFS 沿一条路走到底（无未访问邻居）再回溯，用递归或显式栈实现。<b>不保证最短路</b>，但空间只需 O(深度)。应用：连通分量、拓扑排序、环检测、回溯枚举、树的前/中/后序遍历。注意维护 <code>visited</code> 防止重复访问，并在回溯时按需撤销状态（回溯题）。</span><span slot="en">DFS follows one path to the end (no unvisited neighbor) then backtracks, via recursion or an explicit stack. <b>Not shortest-path</b>, but uses only O(depth) space. Uses: connected components, topological sort, cycle detection, backtracking enumeration, tree pre/in/post-order traversal. Maintain <code>visited</code> to avoid revisiting, and undo state on backtrack when needed.</span></Bilingual></p>
+      <pre><code>// DFS 递归模板  O(V+E)
+bool vis[100];
+void dfs(vector&lt;vector&lt;int&gt;&gt;&amp; G, int u) &#123;
+    vis[u] = true;                    // 标记访问
+    for (int v : G[u])
+        if (!vis[v])
+            dfs(G, v);                // 递归深入
+&#125;
+
+// 二叉树三种 DFS 遍历
+void preorder(Node* p) &#123;       // 根 → 左 → 右
+    if (!p) return;
+    visit(p);
+    preorder(p-&gt;left);
+    preorder(p-&gt;right);
+&#125;
+void inorder(Node* p) &#123;        // 左 → 根 → 右（BST 得有序序列）
+    if (!p) return;
+    inorder(p-&gt;left);
+    visit(p);
+    inorder(p-&gt;right);
+&#125;
+void postorder(Node* p) &#123;      // 左 → 右 → 根（子树先处理完）
+    if (!p) return;
+    postorder(p-&gt;left);
+    postorder(p-&gt;right);
+    visit(p);
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">BFS vs DFS 对照</span><span slot="en">BFS vs DFS Comparison</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">维度</span><span slot="en">Aspect</span></Bilingual></th><th class="py-2 pr-4">BFS</th><th class="py-2 pr-4">DFS</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">数据结构</td><td class="py-2 pr-4">队列 (FIFO)</td><td class="py-2 pr-4">栈 / 递归 (LIFO)</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">扩展顺序</td><td class="py-2 pr-4">层序（近 → 远）</td><td class="py-2 pr-4">一条路走到底再回溯</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">最短路（无权）</td><td class="py-2 pr-4 text-func-green">✓ 天然保证</td><td class="py-2 pr-4 text-func-red">✗ 不保证</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">空间</td><td class="py-2 pr-4">O(宽度) — 可能很大</td><td class="py-2 pr-4">O(深度) — 通常更省</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">典型应用</td><td class="py-2 pr-4">最短路、层序遍历、最浅节点</td><td class="py-2 pr-4">连通性、拓扑、环检测、回溯</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">时间</td><td class="py-2 pr-4">O(V+E)</td><td class="py-2 pr-4">O(V+E)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 迷宫 BFS/DFS 可视化
+  // 0=通路 1=墙  S=起点  T=终点
+  const MAZE = [
+    [0,0,0,0,1,0,0,0,0,0,0],
+    [1,1,0,1,1,0,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0,0,1,0],
+    [0,1,1,1,1,1,1,1,0,1,0],
+    [0,0,0,0,0,0,0,0,0,0,0],
+  ];
+  const ROWS = MAZE.length, COLS = MAZE[0].length;
+  const START: [number, number] = [0, 0];
+  const GOAL: [number, number] = [4, 10];
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('bd-svg') as unknown as SVGSVGElement;
+  const stateEl = document.getElementById('bd-state');
+
+  const CELL = 32, X0 = 0, Y0 = 0;
+  const COL_WALL = '#1E293B', COL_PATH = 'rgba(34,211,238,0.04)', COL_VIS = '#22C55E', COL_CUR = '#FBBF24', COL_GOAL = '#EF4444', COL_START = '#22D3EE', COL_GRID = 'rgba(148,163,184,0.15)';
+
+  type Mode = 'bfs' | 'dfs';
+  let mode: Mode = 'bfs';
+
+  interface Frame { visited: Set<number>; current: [number, number] | null; done: boolean; }
+  function key(r: number, c: number) { return r * COLS + c; }
+
+  function buildFrames(m: Mode): Frame[] {
+    const frames: Frame[] = [];
+    const visited = new Set<number>();
+    const queue: [number, number][] = [START];
+    visited.add(key(...START));
+    const dirs = [[0,1],[1,0],[0,-1],[-1,0]];
+    while (queue.length > 0) {
+      const [r, c] = m === 'bfs' ? queue.shift()! : queue.pop()!;
+      frames.push({ visited: new Set(visited), current: [r, c], done: r === GOAL[0] && c === GOAL[1] });
+      if (r === GOAL[0] && c === GOAL[1]) break;
+      for (const [dr, dc] of dirs) {
+        const nr = r + dr, nc = c + dc;
+        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
+        if (MAZE[nr][nc] === 1) continue;
+        if (visited.has(key(nr, nc))) continue;
+        visited.add(key(nr, nc));
+        queue.push([nr, nc]);
+      }
+    }
+    return frames;
+  }
+
+  function langText(key: string): string {
+    const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${lang}"]`);
+    return el ? el.textContent || '' : '';
+  }
+
+  let curFrame: Frame | null = null;
+
+  function render(f: Frame | null) {
+    curFrame = f;
+    svg.innerHTML = '';
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const x = X0 + c * CELL, y = Y0 + r * CELL;
+        let fill = MAZE[r][c] === 1 ? COL_WALL : COL_PATH;
+        if (f && f.visited.has(key(r, c)) && !(r === START[0] && c === START[1])) fill = COL_VIS;
+        if (f && f.current && f.current[0] === r && f.current[1] === c) fill = COL_CUR;
+        if (r === START[0] && c === START[1]) fill = COL_START;
+        if (r === GOAL[0] && c === GOAL[1]) fill = COL_GOAL;
+        const rect = document.createElementNS(SVGNS, 'rect');
+        rect.setAttribute('x', String(x)); rect.setAttribute('y', String(y));
+        rect.setAttribute('width', String(CELL)); rect.setAttribute('height', String(CELL));
+        rect.setAttribute('fill', fill); rect.setAttribute('stroke', COL_GRID); svg.appendChild(rect);
+      }
+    }
+    if (stateEl && f) {
+      const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+      if (f.current) {
+        const [r, c] = f.current;
+        if (f.done) stateEl.textContent = lang === 'en' ? `${mode.toUpperCase()} reached goal at (${r},${c})` : `${mode.toUpperCase()} 到达终点 (${r},${c})`;
+        else stateEl.textContent = lang === 'en' ? `${mode.toUpperCase()} visiting (${r},${c}), visited=${f.visited.size}` : `${mode.toUpperCase()} 访问 (${r},${c}), 已访问=${f.visited.size}`;
+      }
+    }
+  }
+
+  let frames: Frame[] = [];
+  let idx = 0;
+  let timer: number | null = null;
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('bd-play');
+    if (b) b.innerHTML = langText('play');
+  }
+  function rebuild() {
+    stop(); frames = buildFrames(mode); idx = 0; render(null); if (stateEl) stateEl.textContent = '';
+  }
+  function advance(): boolean {
+    if (idx < frames.length) { render(frames[idx]); idx++; return true; }
+    return false;
+  }
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('bd-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 120);
+  }
+  function toggleMode() {
+    mode = mode === 'bfs' ? 'dfs' : 'bfs';
+    const b = document.getElementById('bd-mode');
+    if (b) {
+      b.innerHTML = langText(mode);
+    }
+    rebuild();
+  }
+
+  document.getElementById('bd-mode')?.addEventListener('click', toggleMode);
+  document.getElementById('bd-play')?.addEventListener('click', play);
+  document.getElementById('bd-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('bd-reset')?.addEventListener('click', rebuild);
+  document.addEventListener('langchange', () => {
+    if (timer === null) { const b = document.getElementById('bd-play'); if (b) b.innerHTML = langText('play'); }
+    const mb = document.getElementById('bd-mode'); if (mb) mb.innerHTML = langText(mode);
+    if (curFrame) render(curFrame);
+  });
+  rebuild();
+</script>

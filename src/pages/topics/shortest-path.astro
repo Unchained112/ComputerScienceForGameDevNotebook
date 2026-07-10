@@ -1,0 +1,250 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Shortest Path · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Algorithms / Shortest Path</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">最短路径</span><span slot="en">Shortest Path</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">最短路径求图中两节点间权值和最小的路径。<b>Dijkstra</b> 适合非负权单源最短路，用优先队列逐步「锁定」距源最近的节点并松弛其邻居。下方动画展示 Dijkstra 的松弛过程。颜色：<b class="text-func-green">绿=已确定最短路</b>、<b class="text-func-amber">黄=松弛中</b>、<b class="text-primary-cyan">青=未访问</b>、<b class="text-func-red">红=当前源</b>。</span>
+          <span slot="en">Shortest path finds the minimum-weight path between two nodes. <b>Dijkstra</b> handles non-negative single-source shortest paths, using a priority queue to "lock in" the nearest node and relax its neighbors. The animation below shows Dijkstra's relaxation. Colors: <b class="text-func-green">green=settled</b>, <b class="text-func-amber">amber=relaxing</b>, <b class="text-primary-cyan">cyan=unvisited</b>, <b class="text-func-red">red=source</b>.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5" data-viz="shortest-path">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="sp-play" class="btn btn-primary">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+          <span data-ui="pause" data-lang="zh" class="hidden">暂停</span><span data-ui="pause" data-lang="en" class="hidden">Pause</span>
+        </button>
+        <button id="sp-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+        <button id="sp-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+        <span id="sp-state" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="sp-svg" viewBox="0 0 800 400" class="w-full h-96 viz-stage"></svg>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Dijkstra：非负权单源最短路</span><span slot="en">Dijkstra: Non-negative Single-Source Shortest Path</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">维护 <code>dist[]</code> 数组（源到各点当前最短估计），用最小堆每次取出 <code>dist</code> 最小的未确定节点 u，<b>标记其为已确定</b>，再用 u 的边松弛邻居：<code>dist[v] = min(dist[v], dist[u]+w)</code>。每个节点只确定一次，<b>不能处理负权边</b>（已确定节点的 dist 不会被修正）。时间 O((V+E)logV)。</span><span slot="en">Maintain a <code>dist[]</code> array (current shortest estimates from the source); a min-heap repeatedly pops the unsettled node u with the smallest dist, <b>settles it</b>, then relaxes its neighbors: <code>dist[v] = min(dist[v], dist[u]+w)</code>. Each node is settled once; <b>cannot handle negative edges</b> (settled dists are never revised). Time O((V+E)logV).</span></Bilingual></p>
+      <pre><code>// Dijkstra（堆优化） O((V+E)logV)
+vector&lt;int&gt; dijkstra(int n, int s, vector&lt;vector&lt;pair&lt;int,int&gt;&gt;&gt;&amp; G) &#123;
+    vector&lt;int&gt; dist(n, INT_MAX);
+    priority_queue&lt;pair&lt;int,int&gt;, vector&lt;pair&lt;int,int&gt;&gt;, greater&lt;&gt;&gt; pq;
+    dist[s] = 0; pq.push(&#123;0, s&#125;);       // (距离, 节点)
+    while (!pq.empty()) &#123;
+        auto [d, u] = pq.top(); pq.pop();
+        if (d &gt; dist[u]) continue;      // 过期记录，跳过
+        for (auto [v, w] : G[u]) &#123;      // 松弛邻居
+            if (dist[u] + w &lt; dist[v]) &#123;
+                dist[v] = dist[u] + w;
+                pq.push(&#123;dist[v], v&#125;);
+            &#125;
+        &#125;
+    &#125;
+    return dist;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">A* 算法：加入启发式引导</span><span slot="en">A* Algorithm: Guided by Heuristics</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">A* 是 Dijkstra 的「有方向版」：优先队列的键从 <code>g(u)</code>（已走距离）变为 <code>f(u) = g(u) + h(u)</code>，其中 <code>h(u)</code> 是 u 到终点的<b>启发式估计</b>（如曼哈顿距离/欧氏距离）。只要 <code>h</code> 是<b>可采纳的</b>（不高估真实距离），A* 保证最优且比 Dijkstra 扩展更少节点。网格地图寻路常用 A*。</span><span slot="en">A* is a "directional" Dijkstra: the priority-queue key changes from <code>g(u)</code> (distance so far) to <code>f(u) = g(u) + h(u)</code>, where <code>h(u)</code> is a <b>heuristic estimate</b> from u to the goal (e.g., Manhattan / Euclidean distance). As long as <code>h</code> is <b>admissible</b> (never overestimates), A* stays optimal while expanding fewer nodes than Dijkstra. The go-to for grid-map pathfinding.</span></Bilingual></p>
+      <pre><code>// A* 网格寻路  h = 曼哈顿距离
+int astar(pair&lt;int,int&gt; S, pair&lt;int,int&gt; T) &#123;
+    auto h = [&](int r, int c) &#123;
+        return abs(r - T.first) + abs(c - T.second);
+    &#125;;
+    priority_queue&lt;tuple&lt;int,int,int,int&gt;, vector&lt;...&gt;, greater&lt;&gt;&gt; pq;
+    // 元素: (f=g+h, g, r, c)
+    pq.push(&#123;h(S.first, S.second), 0, S.first, S.second&#125;);
+    set&lt;pair&lt;int,int&gt;&gt; vis;
+    while (!pq.empty()) &#123;
+        auto [f, g, r, c] = pq.top(); pq.pop();
+        if (make_pair(r, c) == T) return g;     // 到达终点
+        if (vis.count(&#123;r, c&#125;)) continue;
+        vis.insert(&#123;r, c&#125;);
+        for (auto [dr, dc] : dirs) &#123;           // 扩展四邻
+            int nr = r + dr, nc = c + dc;
+            if (ok(nr, nc) &amp;&amp; !vis.count(&#123;nr, nc&#125;))
+                pq.push(&#123;g + 1 + h(nr, nc), g + 1, nr, nc&#125;);
+        &#125;
+    &#125;
+    return -1;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">最短路算法选型</span><span slot="en">Shortest-Path Algorithm Selection</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">算法</span><span slot="en">Algorithm</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">适用场景</span><span slot="en">Use case</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">时间</span><span slot="en">Time</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">负权</span><span slot="en">Neg edge</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">BFS</td><td class="py-2 pr-4">无权图单源最短路</td><td class="py-2 pr-4">O(V+E)</td><td class="py-2 pr-4 text-func-red">✗</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">Dijkstra</td><td class="py-2 pr-4">非负权单源最短路</td><td class="py-2 pr-4">O((V+E)logV)</td><td class="py-2 pr-4 text-func-red">✗</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">Bellman-Ford</td><td class="py-2 pr-4">含负权单源、判负环</td><td class="py-2 pr-4">O(VE)</td><td class="py-2 pr-4 text-func-green">✓</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">SPFA</td><td class="py-2 pr-4">Bellman-Ford 队列优化</td><td class="py-2 pr-4">平均 O(kE)</td><td class="py-2 pr-4 text-func-green">✓</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">Floyd-Warshall</td><td class="py-2 pr-4">全源最短路（稠密图）</td><td class="py-2 pr-4">O(V³)</td><td class="py-2 pr-4 text-func-green">✓（无负环）</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">A*</td><td class="py-2 pr-4">单目标启发式寻路</td><td class="py-2 pr-4">依赖 h</td><td class="py-2 pr-4 text-func-red">✗</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // Dijkstra 松弛动画
+  // 节点位置 + 边（邻接表）
+  const NODES: [number, number][] = [
+    [80, 200],   // 0 S
+    [220, 80],   // 1
+    [220, 320],  // 2
+    [400, 140],  // 3
+    [400, 280],  // 4
+    [580, 200],  // 5 T
+    [400, 40],   // 6
+  ];
+  const EDGES: [number, number, number][] = [
+    [0, 1, 4], [0, 2, 2],
+    [1, 3, 5], [1, 6, 3],
+    [2, 4, 6], [2, 3, 1],
+    [3, 5, 7], [4, 5, 3], [6, 5, 8],
+  ];
+  const SRC = 0, DST = 5;
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('sp-svg') as unknown as SVGSVGElement;
+  const stateEl = document.getElementById('sp-state');
+
+  const COL_UNVIS = '#22D3EE', COL_SETTLED = '#22C55E', COL_RELAX = '#FBBF24', COL_SRC = '#EF4444', COL_EDGE_DEF = 'rgba(148,163,184,0.3)', COL_EDGE_RELAX = '#FBBF24', COL_EDGE_PATH = '#22C55E', COL_TXT = '#0B1120', COL_LBL = '#94A3B8';
+
+  // 邻接表
+  const ADJ: [number, number][][] = NODES.map(() => []);
+  for (const [u, v, w] of EDGES) { ADJ[u].push([v, w]); ADJ[v].push([u, w]); }
+
+  interface Frame { settled: Set<number>; dist: number[]; current: number | null; relaxing: [number, number] | null; done: boolean; }
+  function buildFrames(): Frame[] {
+    const frames: Frame[] = [];
+    const dist = NODES.map(() => Infinity);
+    const settled = new Set<number>();
+    dist[SRC] = 0;
+    // 简化 Dijkstra：每轮找最小未确定
+    while (settled.size < NODES.length) {
+      let u = -1, best = Infinity;
+      for (let i = 0; i < NODES.length; i++) {
+        if (!settled.has(i) && dist[i] < best) { best = dist[i]; u = i; }
+      }
+      if (u === -1) break;
+      settled.add(u);
+      frames.push({ settled: new Set(settled), dist: [...dist], current: u, relaxing: null, done: u === DST });
+      // 松弛邻居
+      for (const [v, w] of ADJ[u]) {
+        if (settled.has(v)) continue;
+        if (dist[u] + w < dist[v]) {
+          dist[v] = dist[u] + w;
+          frames.push({ settled: new Set(settled), dist: [...dist], current: u, relaxing: [u, v], done: false });
+        }
+      }
+      if (u === DST) break;
+    }
+    return frames;
+  }
+
+  function langText(key: string): string {
+    const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${lang}"]`);
+    return el ? el.textContent || '' : '';
+  }
+
+  let curFrame: Frame | null = null;
+
+  function render(f: Frame | null) {
+    curFrame = f;
+    svg.innerHTML = '';
+    // 边
+    for (const [u, v, w] of EDGES) {
+      let stroke = COL_EDGE_DEF;
+      if (f && f.relaxing && ((f.relaxing[0] === u && f.relaxing[1] === v) || (f.relaxing[0] === v && f.relaxing[1] === u))) stroke = COL_EDGE_RELAX;
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', String(NODES[u][0])); line.setAttribute('y1', String(NODES[u][1]));
+      line.setAttribute('x2', String(NODES[v][0])); line.setAttribute('y2', String(NODES[v][1]));
+      line.setAttribute('stroke', stroke); line.setAttribute('stroke-width', '2'); svg.appendChild(line);
+      // 权重
+      const mx = (NODES[u][0] + NODES[v][0]) / 2, my = (NODES[u][1] + NODES[v][1]) / 2;
+      const wt = document.createElementNS(SVGNS, 'text');
+      wt.setAttribute('x', String(mx)); wt.setAttribute('y', String(my - 6));
+      wt.setAttribute('text-anchor', 'middle'); wt.setAttribute('font-size', '12'); wt.setAttribute('fill', COL_LBL);
+      wt.textContent = String(w); svg.appendChild(wt);
+    }
+    // 节点
+    for (let i = 0; i < NODES.length; i++) {
+      const [x, y] = NODES[i];
+      let fill = COL_UNVIS;
+      if (f && f.settled.has(i)) fill = COL_SETTLED;
+      if (i === SRC) fill = COL_SRC;
+      if (f && f.current === i && i !== SRC) fill = COL_RELAX;
+      const circ = document.createElementNS(SVGNS, 'circle');
+      circ.setAttribute('cx', String(x)); circ.setAttribute('cy', String(y));
+      circ.setAttribute('r', '20'); circ.setAttribute('fill', fill); circ.setAttribute('stroke', '#0B1120'); circ.setAttribute('stroke-width', '2');
+      svg.appendChild(circ);
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(x)); t.setAttribute('y', String(y + 5));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '14'); t.setAttribute('fill', COL_TXT);
+      t.setAttribute('font-weight', '700'); t.textContent = String(i); svg.appendChild(t);
+      // dist 标签
+      if (f) {
+        const dt = document.createElementNS(SVGNS, 'text');
+        dt.setAttribute('x', String(x)); dt.setAttribute('y', String(y - 28));
+        dt.setAttribute('text-anchor', 'middle'); dt.setAttribute('font-size', '11'); dt.setAttribute('fill', COL_LBL);
+        dt.setAttribute('font-family', 'monospace');
+        dt.textContent = f.dist[i] === Infinity ? '∞' : String(f.dist[i]);
+        svg.appendChild(dt);
+      }
+    }
+    if (stateEl && f) {
+      const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+      if (f.done) {
+        stateEl.textContent = lang === 'en' ? `settled node ${f.current}, dist[${DST}]=${f.dist[DST]}` : `确定节点 ${f.current}，dist[${DST}]=${f.dist[DST]}`;
+      } else if (f.relaxing) {
+        const [u, v] = f.relaxing;
+        stateEl.textContent = lang === 'en' ? `relax edge ${u}→${v}, dist[${v}]=${f.dist[v]}` : `松弛边 ${u}→${v}，dist[${v}]=${f.dist[v]}`;
+      } else if (f.current !== null) {
+        stateEl.textContent = lang === 'en' ? `settle node ${f.current}, dist=${f.dist[f.current]}` : `确定节点 ${f.current}，dist=${f.dist[f.current]}`;
+      }
+    }
+  }
+
+  let frames: Frame[] = [];
+  let idx = 0;
+  let timer: number | null = null;
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('sp-play');
+    if (b) b.innerHTML = langText('play');
+  }
+  function rebuild() {
+    stop(); frames = buildFrames(); idx = 0; render(null); if (stateEl) stateEl.textContent = '';
+  }
+  function advance(): boolean {
+    if (idx < frames.length) { render(frames[idx]); idx++; return true; }
+    return false;
+  }
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('sp-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 500);
+  }
+
+  document.getElementById('sp-play')?.addEventListener('click', play);
+  document.getElementById('sp-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('sp-reset')?.addEventListener('click', rebuild);
+  document.addEventListener('langchange', () => { if (timer === null) { const b = document.getElementById('sp-play'); if (b) b.innerHTML = langText('play'); } if (curFrame) render(curFrame); });
+  rebuild();
+</script>

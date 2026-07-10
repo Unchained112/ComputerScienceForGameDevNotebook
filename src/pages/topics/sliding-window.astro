@@ -1,0 +1,203 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Sliding Window · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Algorithms / Sliding Window</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">滑动窗口</span><span slot="en">Sliding Window</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">滑动窗口用两个指针 <code>lo</code>/<code>hi</code> 维护一段<b>连续子区间</b>，右指针扩张、左指针收缩，把嵌套循环压成 O(n)。适用于「最长/最短的满足条件的子串/子数组」。下方是最长无重复子串：遇重复字符时左指针收缩至重复字符之后。颜色：<b class="text-func-green">绿=窗口内</b>、<b class="text-func-amber">黄=右指针扩展</b>、<b class="text-func-red">红=重复触发收缩</b>。</span>
+          <span slot="en">Sliding window uses two pointers <code>lo</code>/<code>hi</code> to maintain a <b>contiguous subarray</b>: the right pointer expands, the left contracts, compressing nested loops to O(n). Suited for "longest/shortest substring satisfying a condition". Below is Longest Substring Without Repeating Characters: on a duplicate, the left pointer jumps past it. Colors: <b class="text-func-green">green=in window</b>, <b class="text-func-amber">amber=right expanding</b>, <b class="text-func-red">red=duplicate triggers shrink</b>.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5" data-viz="sliding-window">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="sw-play" class="btn btn-primary">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+          <span data-ui="pause" data-lang="zh" class="hidden">暂停</span><span data-ui="pause" data-lang="en" class="hidden">Pause</span>
+        </button>
+        <button id="sw-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+        <button id="sw-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+        <span id="sw-state" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="sw-svg" viewBox="0 0 800 300" class="w-full h-80 viz-stage"></svg>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">最长无重复子串</span><span slot="en">Longest Substring Without Repeating Characters</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">给定字符串 s，求不含重复字符的最长子串长度。<b>思路</b>：右指针 hi 逐个扩展，用哈希表记录字符最后出现位置；若 s[hi] 已在窗口内，左指针 lo 跳到 <code>max(lo, last[s[hi]]+1)</code>。每步更新答案 <code>max(hi-lo+1)</code>。时间 O(n)、空间 O(字符集)。</span><span slot="en">Given string s, find the length of the longest substring with no repeating characters. <b>Approach</b>: expand hi one by one; a hash map tracks each char's last position; if s[hi] is in the window, jump lo to <code>max(lo, last[s[hi]]+1)</code>. Update the answer <code>max(hi-lo+1)</code> each step. Time O(n), space O(alphabet).</span></Bilingual></p>
+      <pre><code>int lengthOfLongestSubstring(string s) &#123;
+    unordered_map&lt;char,int&gt; last;   // 字符 → 最后出现下标
+    int lo = 0, ans = 0;
+    for (int hi = 0; hi &lt; s.size(); hi++) &#123;
+        char c = s[hi];
+        if (last.count(c) &amp;&amp; last[c] &gt;= lo)
+            lo = last[c] + 1;       // 跳过重复字符
+        last[c] = hi;
+        ans = max(ans, hi - lo + 1);
+    &#125;
+    return ans;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">定长窗口：大小为 K 的子数组最大和</span><span slot="en">Fixed Window: Max Sum of Subarray of Size K</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">窗口大小固定为 K 时更简单：先算前 K 个元素的和，之后每次右移一格，<b>减去离开的、加上进入的</b>，O(1) 滚动更新。无需左指针动态收缩。</span><span slot="en">With a fixed window of size K it's simpler: sum the first K elements, then slide right one step — <b>subtract the outgoing, add the incoming</b> — updating in O(1). No dynamic left-pointer contraction needed.</span></Bilingual></p>
+      <pre><code>int maxSumK(vector&lt;int&gt;&amp; a, int k) &#123;
+    int sum = 0;
+    for (int i = 0; i &lt; k; i++) sum += a[i];  // 初始窗口
+    int ans = sum;
+    for (int i = k; i &lt; a.size(); i++) &#123;
+        sum += a[i] - a[i - k];               // 滚动：+新 -旧
+        ans = max(ans, sum);
+    &#125;
+    return ans;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">滑动窗口 vs 双指针 vs 前缀和</span><span slot="en">Sliding Window vs Two Pointers vs Prefix Sum</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">技巧</span><span slot="en">Technique</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">适用场景</span><span slot="en">Use case</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">复杂度</span><span slot="en">Complexity</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">定长滑动窗口</td><td class="py-2 pr-4">固定大小 K 的子数组最值/均值</td><td class="py-2 pr-4">O(n)</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">变长滑动窗口</td><td class="py-2 pr-4">满足条件的最长/最短子串</td><td class="py-2 pr-4">O(n)</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">双指针（相向）</td><td class="py-2 pr-4">有序数组两数之和</td><td class="py-2 pr-4">O(n)</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">双指针（快慢）</td><td class="py-2 pr-4">链表环检测、去重</td><td class="py-2 pr-4">O(n)</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">前缀和</td><td class="py-2 pr-4">任意区间和、子数组和等于 K</td><td class="py-2 pr-4">O(n)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 最长无重复子串 滑动窗口动画
+  const S = "abcabcbb";
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('sw-svg') as unknown as SVGSVGElement;
+  const stateEl = document.getElementById('sw-state');
+
+  const COL_DEF = '#475569', COL_IN = '#22C55E', COL_CUR = '#FBBF24', COL_DUP = '#EF4444', COL_TXT = '#CBD5E1', COL_LBL = '#94A3B8';
+  const CELL = 60, X0 = 80, Y0 = 80;
+
+  interface Frame { lo: number; hi: number; action: 'expand' | 'shrink'; best: number; }
+  function buildFrames(): Frame[] {
+    const frames: Frame[] = [];
+    const last: Record<string, number> = {};
+    let lo = 0, best = 0;
+    for (let hi = 0; hi < S.length; hi++) {
+      const c = S[hi];
+      if (c in last && last[c] >= lo) {
+        lo = last[c] + 1;
+        frames.push({ lo, hi, action: 'shrink', best });
+      } else {
+        frames.push({ lo, hi, action: 'expand', best });
+      }
+      last[c] = hi;
+      best = Math.max(best, hi - lo + 1);
+      frames[frames.length - 1].best = best;
+    }
+    return frames;
+  }
+
+  function langText(key: string): string {
+    const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${lang}"]`);
+    return el ? el.textContent || '' : '';
+  }
+
+  let curFrame: Frame | null = null;
+
+  function render(f: Frame | null) {
+    curFrame = f;
+    svg.innerHTML = '';
+    // 字符条
+    for (let i = 0; i < S.length; i++) {
+      const x = X0 + i * CELL;
+      let fill = COL_DEF;
+      if (f && i >= f.lo && i <= f.hi) fill = COL_IN;
+      if (f && i === f.hi) fill = f.action === 'shrink' ? COL_DUP : COL_CUR;
+      const rect = document.createElementNS(SVGNS, 'rect');
+      rect.setAttribute('x', String(x)); rect.setAttribute('y', String(Y0));
+      rect.setAttribute('width', String(CELL - 6)); rect.setAttribute('height', String(CELL - 6));
+      rect.setAttribute('rx', '6'); rect.setAttribute('fill', fill); rect.setAttribute('opacity', '0.85');
+      svg.appendChild(rect);
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(x + (CELL-6)/2)); t.setAttribute('y', String(Y0 + (CELL-6)/2 + 6));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '22'); t.setAttribute('fill', '#0B1120');
+      t.setAttribute('font-weight', '700'); t.textContent = S[i]; svg.appendChild(t);
+      // 下标
+      const idx = document.createElementNS(SVGNS, 'text');
+      idx.setAttribute('x', String(x + (CELL-6)/2)); idx.setAttribute('y', String(Y0 + CELL + 6));
+      idx.setAttribute('text-anchor', 'middle'); idx.setAttribute('font-size', '11'); idx.setAttribute('fill', COL_LBL);
+      idx.textContent = String(i); svg.appendChild(idx);
+    }
+    // 指针标签
+    if (f) {
+      const loT = document.createElementNS(SVGNS, 'text');
+      loT.setAttribute('x', String(X0 + f.lo * CELL + (CELL-6)/2)); loT.setAttribute('y', String(Y0 - 18));
+      loT.setAttribute('text-anchor', 'middle'); loT.setAttribute('font-size', '13'); loT.setAttribute('fill', COL_LBL);
+      loT.setAttribute('font-weight', '700'); loT.textContent = 'lo'; svg.appendChild(loT);
+      // lo 箭头
+      const loA = document.createElementNS(SVGNS, 'polygon');
+      loA.setAttribute('points', `${X0 + f.lo * CELL + (CELL-6)/2 - 5},${Y0 - 8} ${X0 + f.lo * CELL + (CELL-6)/2 + 5},${Y0 - 8} ${X0 + f.lo * CELL + (CELL-6)/2},${Y0 - 2}`);
+      loA.setAttribute('fill', COL_LBL); svg.appendChild(loA);
+
+      const hiT = document.createElementNS(SVGNS, 'text');
+      hiT.setAttribute('x', String(X0 + f.hi * CELL + (CELL-6)/2)); hiT.setAttribute('y', String(Y0 + CELL + 30));
+      hiT.setAttribute('text-anchor', 'middle'); hiT.setAttribute('font-size', '13'); hiT.setAttribute('fill', COL_LBL);
+      hiT.setAttribute('font-weight', '700'); hiT.textContent = 'hi'; svg.appendChild(hiT);
+      const hiA = document.createElementNS(SVGNS, 'polygon');
+      hiA.setAttribute('points', `${X0 + f.hi * CELL + (CELL-6)/2 - 5},${Y0 + CELL + 18} ${X0 + f.hi * CELL + (CELL-6)/2 + 5},${Y0 + CELL + 18} ${X0 + f.hi * CELL + (CELL-6)/2},${Y0 + CELL + 12}`);
+      hiA.setAttribute('fill', COL_LBL); svg.appendChild(hiA);
+    }
+    if (stateEl && f) {
+      const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+      const wlen = f.hi - f.lo + 1;
+      if (f.action === 'shrink') {
+        stateEl.textContent = lang === 'en' ? `dup '${S[f.hi]}' → lo=${f.lo}, window=[${f.lo},${f.hi}] len=${wlen}, best=${f.best}` : `重复 '${S[f.hi]}' → lo=${f.lo}, 窗口=[${f.lo},${f.hi}] 长=${wlen}, 最优=${f.best}`;
+      } else {
+        stateEl.textContent = lang === 'en' ? `expand hi=${f.hi}, window=[${f.lo},${f.hi}] len=${wlen}, best=${f.best}` : `扩展 hi=${f.hi}, 窗口=[${f.lo},${f.hi}] 长=${wlen}, 最优=${f.best}`;
+      }
+    }
+  }
+
+  let frames: Frame[] = [];
+  let idx = 0;
+  let timer: number | null = null;
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('sw-play');
+    if (b) b.innerHTML = langText('play');
+  }
+  function rebuild() {
+    stop(); frames = buildFrames(); idx = 0; render(null); if (stateEl) stateEl.textContent = '';
+  }
+  function advance(): boolean {
+    if (idx < frames.length) { render(frames[idx]); idx++; return true; }
+    return false;
+  }
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('sw-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 500);
+  }
+
+  document.getElementById('sw-play')?.addEventListener('click', play);
+  document.getElementById('sw-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('sw-reset')?.addEventListener('click', rebuild);
+  document.addEventListener('langchange', () => { if (timer === null) { const b = document.getElementById('sw-play'); if (b) b.innerHTML = langText('play'); } if (curFrame) render(curFrame); });
+  rebuild();
+</script>

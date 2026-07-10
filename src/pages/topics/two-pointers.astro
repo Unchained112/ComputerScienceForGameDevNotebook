@@ -1,0 +1,210 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Two Pointers · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Algorithms / Two Pointers</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">双指针</span><span slot="en">Two Pointers</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">双指针用两个游标在数据上协同移动，把 O(n²) 暴力压成 O(n)。常见两类：<b>相向双指针</b>（有序数组两端向中间收拢）与<b>快慢双指针</b>（同向不同速，用于环检测/去重）。下方是有序数组两数之和：左端 + 右端，和小则左移、和大则右移。颜色：<b class="text-func-amber">黄=当前指针</b>、<b class="text-func-green">绿=命中</b>、<b class="text-func-red">红=跳过</b>。</span>
+          <span slot="en">Two pointers move two cursors in coordination, compressing O(n²) brute force to O(n). Two common forms: <b>opposing pointers</b> (both ends of a sorted array closing in) and <b>fast-slow pointers</b> (same direction, different speeds — cycle detection / dedup). Below is two-sum on a sorted array: left + right; if the sum is too small move left, too large move right. Colors: <b class="text-func-amber">amber=active</b>, <b class="text-func-green">green=match</b>, <b class="text-func-red">red=skip</b>.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5" data-viz="two-pointers">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="tp-play" class="btn btn-primary">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+          <span data-ui="pause" data-lang="zh" class="hidden">暂停</span><span data-ui="pause" data-lang="en" class="hidden">Pause</span>
+        </button>
+        <button id="tp-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+        <button id="tp-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+        <span id="tp-state" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="tp-svg" viewBox="0 0 800 300" class="w-full h-80 viz-stage"></svg>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">有序数组两数之和</span><span slot="en">Two Sum II (Sorted Array)</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">给定<b>升序</b>数组与目标值 target，找两个数之和等于 target。左指针 lo=0、右指针 hi=n-1：若 <code>a[lo]+a[hi] &lt; target</code> 则 lo++（需要更大）；<code>&gt; target</code> 则 hi--（需要更小）；相等即返回。利用有序性，O(n) 一步到位。</span><span slot="en">Given an <b>ascending</b> array and a target, find two numbers summing to target. lo=0, hi=n-1: if <code>a[lo]+a[hi] &lt; target</code>, lo++ (need larger); if <code>&gt; target</code>, hi-- (need smaller); equal → return. Leverages sortedness for an O(n) one-pass solution.</span></Bilingual></p>
+      <pre><code>vector&lt;int&gt; twoSumSorted(vector&lt;int&gt;&amp; a, int target) &#123;
+    int lo = 0, hi = a.size() - 1;
+    while (lo &lt; hi) &#123;
+        int sum = a[lo] + a[hi];
+        if (sum == target) return &#123;lo, hi&#125;;
+        else if (sum &lt; target) lo++;   // 和太小，左指针右移
+        else hi--;                      // 和太大，右指针左移
+    &#125;
+    return &#123;&#125;;                        // 无解
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">快慢指针：链表环检测（Floyd 判圈）</span><span slot="en">Fast-Slow Pointers: Linked List Cycle (Floyd's Algorithm)</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">快指针每次走 2 步、慢指针每次走 1 步。若有环，快指针必然在环内追上慢指针（相遇）；无环则快指针先到末尾。找环入口：相遇后，让一个指针回到表头，两指针同速前进，再次相遇点即入口。<b>数学</b>：相遇时 slow 走了 x 步，fast 走了 2x 步；设环外 a、环长 b，则 <code>2x - x = x = k·b</code>（快比慢多绕整数圈），故从表头再走 a 步恰好与从相遇点走 a 步在入口相遇。</span><span slot="en">The fast pointer moves 2 steps, the slow pointer 1. If there's a cycle, fast eventually catches slow inside it; otherwise fast reaches the end first. To find the cycle entry: after meeting, move one pointer back to the head, then advance both at the same speed — they meet again at the entry. <b>Math</b>: at the meeting slow traveled x, fast traveled 2x; with a nodes before the cycle and b nodes in it, <code>2x - x = x = k·b</code>, so walking a more steps from both the head and the meeting point converges at the entry.</span></Bilingual></p>
+      <pre><code>struct Node &#123; int val; Node* next; &#125;;
+
+// 判断是否有环
+bool hasCycle(Node* head) &#123;
+    Node *slow = head, *fast = head;
+    while (fast &amp;&amp; fast-&gt;next) &#123;
+        slow = slow-&gt;next;           // 慢：1 步
+        fast = fast-&gt;next-&gt;next;      // 快：2 步
+        if (slow == fast) return true; // 相遇 → 有环
+    &#125;
+    return false;
+&#125;
+
+// 找环入口
+Node* cycleEntry(Node* head) &#123;
+    Node *slow = head, *fast = head;
+    while (fast &amp;&amp; fast-&gt;next) &#123;
+        slow = slow-&gt;next; fast = fast-&gt;next-&gt;next;
+        if (slow == fast) &#123;          // 相遇
+            slow = head;               // 一个指针回表头
+            while (slow != fast) &#123;    // 同速前进
+                slow = slow-&gt;next;
+                fast = fast-&gt;next;
+            &#125;
+            return slow;              // 再次相遇 = 环入口
+        &#125;
+    &#125;
+    return nullptr;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">双指针模式速查</span><span slot="en">Two-Pointer Patterns Cheatsheet</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">模式</span><span slot="en">Pattern</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">指针方向</span><span slot="en">Direction</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">典型题目</span><span slot="en">Classic problems</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">相向双指针</td><td class="py-2 pr-4">两端 → 中间</td><td class="py-2 pr-4">有序两数之和、盛水容器、三数之和</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">快慢双指针</td><td class="py-2 pr-4">同向，快=2×慢</td><td class="py-2 pr-4">链表环检测、找中点、删除倒数第 N</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">同向双指针</td><td class="py-2 pr-4">同向，快慢同速</td><td class="py-2 pr-4">原地去重、移除元素、移动零</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">滑动窗口</td><td class="py-2 pr-4">同向，窗口收缩</td><td class="py-2 pr-4">最长无重复子串、最小覆盖子串</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 有序数组两数之和 相向双指针动画
+  const ARR = [2, 5, 8, 12, 16, 21, 25, 30, 38, 42];
+  const TARGET = 37;
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('tp-svg') as unknown as SVGSVGElement;
+  const stateEl = document.getElementById('tp-state');
+
+  const COL_DEF = '#475569', COL_CUR = '#FBBF24', COL_SKIP = '#EF4444', COL_HIT = '#22C55E', COL_TXT = '#0B1120', COL_LBL = '#94A3B8';
+  const CELL = 64, X0 = 50, Y0 = 80;
+
+  interface Frame { lo: number; hi: number; action: 'move-lo' | 'move-hi' | 'hit'; }
+  function buildFrames(): Frame[] {
+    const frames: Frame[] = [];
+    let lo = 0, hi = ARR.length - 1;
+    while (lo < hi) {
+      const sum = ARR[lo] + ARR[hi];
+      if (sum === TARGET) { frames.push({ lo, hi, action: 'hit' }); break; }
+      else if (sum < TARGET) { frames.push({ lo, hi, action: 'move-lo' }); lo++; }
+      else { frames.push({ lo, hi, action: 'move-hi' }); hi--; }
+    }
+    return frames;
+  }
+
+  function langText(key: string): string {
+    const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${lang}"]`);
+    return el ? el.textContent || '' : '';
+  }
+
+  let curFrame: Frame | null = null;
+
+  function render(f: Frame | null) {
+    curFrame = f;
+    svg.innerHTML = '';
+    for (let i = 0; i < ARR.length; i++) {
+      const x = X0 + i * CELL;
+      let fill = COL_DEF;
+      if (f) {
+        if (f.action === 'hit' && (i === f.lo || i === f.hi)) fill = COL_HIT;
+        else if (i === f.lo || i === f.hi) fill = COL_CUR;
+      }
+      const rect = document.createElementNS(SVGNS, 'rect');
+      rect.setAttribute('x', String(x)); rect.setAttribute('y', String(Y0));
+      rect.setAttribute('width', String(CELL - 6)); rect.setAttribute('height', String(CELL - 6));
+      rect.setAttribute('rx', '6'); rect.setAttribute('fill', fill); rect.setAttribute('opacity', '0.85');
+      svg.appendChild(rect);
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(x + (CELL-6)/2)); t.setAttribute('y', String(Y0 + (CELL-6)/2 + 6));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '18'); t.setAttribute('fill', COL_TXT);
+      t.setAttribute('font-weight', '700'); t.textContent = String(ARR[i]); svg.appendChild(t);
+    }
+    // 指针箭头
+    if (f) {
+      const loA = document.createElementNS(SVGNS, 'polygon');
+      loA.setAttribute('points', `${X0 + f.lo * CELL + (CELL-6)/2 - 6},${Y0 - 8} ${X0 + f.lo * CELL + (CELL-6)/2 + 6},${Y0 - 8} ${X0 + f.lo * CELL + (CELL-6)/2},${Y0}`);
+      loA.setAttribute('fill', COL_LBL); svg.appendChild(loA);
+      const loT = document.createElementNS(SVGNS, 'text');
+      loT.setAttribute('x', String(X0 + f.lo * CELL + (CELL-6)/2)); loT.setAttribute('y', String(Y0 - 14));
+      loT.setAttribute('text-anchor', 'middle'); loT.setAttribute('font-size', '13'); loT.setAttribute('fill', COL_LBL);
+      loT.setAttribute('font-weight', '700'); loT.textContent = 'lo'; svg.appendChild(loT);
+
+      const hiA = document.createElementNS(SVGNS, 'polygon');
+      hiA.setAttribute('points', `${X0 + f.hi * CELL + (CELL-6)/2 - 6},${Y0 + CELL + 4} ${X0 + f.hi * CELL + (CELL-6)/2 + 6},${Y0 + CELL + 4} ${X0 + f.hi * CELL + (CELL-6)/2},${Y0 + CELL - 4}`);
+      hiA.setAttribute('fill', COL_LBL); svg.appendChild(hiA);
+      const hiT = document.createElementNS(SVGNS, 'text');
+      hiT.setAttribute('x', String(X0 + f.hi * CELL + (CELL-6)/2)); hiT.setAttribute('y', String(Y0 + CELL + 22));
+      hiT.setAttribute('text-anchor', 'middle'); hiT.setAttribute('font-size', '13'); hiT.setAttribute('fill', COL_LBL);
+      hiT.setAttribute('font-weight', '700'); hiT.textContent = 'hi'; svg.appendChild(hiT);
+    }
+    if (stateEl && f) {
+      const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+      const sum = ARR[f.lo] + ARR[f.hi];
+      if (f.action === 'hit') {
+        stateEl.textContent = lang === 'en' ? `✓ ${ARR[f.lo]} + ${ARR[f.hi]} = ${sum} = ${TARGET}` : `✓ ${ARR[f.lo]} + ${ARR[f.hi]} = ${sum} = ${TARGET}`;
+      } else if (f.action === 'move-lo') {
+        stateEl.textContent = lang === 'en' ? `${ARR[f.lo]} + ${ARR[f.hi]} = ${sum} < ${TARGET}, move lo →` : `${ARR[f.lo]} + ${ARR[f.hi]} = ${sum} < ${TARGET}，lo 右移 →`;
+      } else {
+        stateEl.textContent = lang === 'en' ? `${ARR[f.lo]} + ${ARR[f.hi]} = ${sum} > ${TARGET}, move hi ←` : `${ARR[f.lo]} + ${ARR[f.hi]} = ${sum} > ${TARGET}，hi 左移 ←`;
+      }
+    }
+  }
+
+  let frames: Frame[] = [];
+  let idx = 0;
+  let timer: number | null = null;
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('tp-play');
+    if (b) b.innerHTML = langText('play');
+  }
+  function rebuild() {
+    stop(); frames = buildFrames(); idx = 0; render(null); if (stateEl) stateEl.textContent = '';
+  }
+  function advance(): boolean {
+    if (idx < frames.length) { render(frames[idx]); idx++; return true; }
+    return false;
+  }
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('tp-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 600);
+  }
+
+  document.getElementById('tp-play')?.addEventListener('click', play);
+  document.getElementById('tp-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('tp-reset')?.addEventListener('click', rebuild);
+  document.addEventListener('langchange', () => { if (timer === null) { const b = document.getElementById('tp-play'); if (b) b.innerHTML = langText('play'); } if (curFrame) render(curFrame); });
+  rebuild();
+</script>

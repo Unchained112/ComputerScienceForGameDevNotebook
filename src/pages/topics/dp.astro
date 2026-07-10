@@ -1,0 +1,219 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Dynamic Programming · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Algorithms / Dynamic Programming</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">动态规划</span><span slot="en">Dynamic Programming</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">动态规划把问题拆成<b>重叠子问题</b>，用表格记录子问题解、避免重复计算。核心三步：定义状态 → 写出转移方程 → 确定计算顺序与边界。下方是 <b>LCS（最长公共子序列）</b>填表动画：每格依赖<b>上、左、左上</b>。颜色：<b class="text-func-amber">黄=当前格</b>、<b class="text-primary-purple">紫=依赖格</b>、<b class="text-func-green">绿=最终路径</b>。</span>
+          <span slot="en">Dynamic Programming breaks a problem into <b>overlapping subproblems</b> and tabulates their solutions to avoid recomputation. Three steps: define state → write transition → order & base cases. Below is the <b>LCS (Longest Common Subsequence)</b> table-filling animation: each cell depends on <b>up, left, up-left</b>. Colors: <b class="text-func-amber">amber=current cell</b>, <b class="text-primary-purple">purple=dependencies</b>, <b class="text-func-green">green=final path</b>.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5" data-viz="dp">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="dp-play" class="btn btn-primary">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+          <span data-ui="pause" data-lang="zh" class="hidden">暂停</span><span data-ui="pause" data-lang="en" class="hidden">Pause</span>
+        </button>
+        <button id="dp-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+        <button id="dp-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+        <span id="dp-state" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="dp-svg" viewBox="0 0 800 400" class="w-full h-96 viz-stage"></svg>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">最长公共子序列（LCS）</span><span slot="en">Longest Common Subsequence (LCS)</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">给定两字符串 A、B，求最长的（不连续）公共子序列。<b>状态</b>：<code>dp[i][j]</code> = A 前 i 个与 B 前 j 个的 LCS 长度。<b>转移</b>：字符相等则取左上+1，否则取上/左较大值。时间 O(nm)、空间 O(nm)，可用滚动数组压到 O(min(n,m))。</span><span slot="en">Given strings A and B, find the longest (not necessarily contiguous) common subsequence. <b>State</b>: <code>dp[i][j]</code> = LCS length of A[..i] and B[..j]. <b>Transition</b>: if chars match, take up-left+1; else max of up/left. Time O(nm), space O(nm), reducible to O(min(n,m)) with a rolling array.</span></Bilingual></p>
+      <pre><code>// LCS  O(nm)
+int lcs(string&amp; A, string&amp; B) &#123;
+    int n = A.size(), m = B.size();
+    vector&lt;vector&lt;int&gt;&gt; dp(n + 1, vector&lt;int&gt;(m + 1, 0));
+    for (int i = 1; i &lt;= n; i++)
+        for (int j = 1; j &lt;= m; j++)
+            if (A[i-1] == B[j-1])
+                dp[i][j] = dp[i-1][j-1] + 1;       // 字符相等：左上 + 1
+            else
+                dp[i][j] = max(dp[i-1][j], dp[i][j-1]); // 否则：上/左取大
+    return dp[n][m];
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">0/1 背包：选或不选</span><span slot="en">0/1 Knapsack: Take or Skip</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">N 件物品各有重量 w[i] 和价值 v[i]，背包容量 W，每件<b>选或不选</b>（不可分割），求最大价值。<b>状态</b>：<code>dp[i][j]</code> = 前 i 件在容量 j 下的最大价值。<b>转移</b>：<code>dp[i][j] = max(dp[i-1][j], dp[i-1][j-w[i]] + v[i])</code>。空间可压缩为一维数组，<b>容量必须倒序遍历</b>以避免重复选取。</span><span slot="en">N items each with weight w[i] and value v[i], capacity W, each item <b>taken or skipped</b> (indivisible); maximize total value. <b>State</b>: <code>dp[i][j]</code> = max value from first i items under capacity j. <b>Transition</b>: <code>dp[i][j] = max(dp[i-1][j], dp[i-1][j-w[i]] + v[i])</code>. Space compresses to 1D — <b>iterate capacity in reverse</b> to avoid reusing an item.</span></Bilingual></p>
+      <pre><code>// 0/1 背包  O(nW)
+int knapsack(int n, int W, int w[], int v[]) &#123;
+    vector&lt;int&gt; dp(W + 1, 0);
+    for (int i = 0; i &lt; n; i++)
+        for (int j = W; j &gt;= w[i]; j--)      // 倒序！避免重复选取
+            dp[j] = max(dp[j], dp[j - w[i]] + v[i]);
+    return dp[W];
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">空间优化与状态设计要点</span><span slot="en">Space Optimization & State Design</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">技巧</span><span slot="en">Technique</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">说明</span><span slot="en">Description</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">典型场景</span><span slot="en">Use case</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">滚动数组</td><td class="py-2 pr-4">dp[i] 只依赖 dp[i-1]，保留两行滚动</td><td class="py-2 pr-4">LCS、编辑距离</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">一维压缩</td><td class="py-2 pr-4">倒序遍历容量，原地覆盖</td><td class="py-2 pr-4">0/1 背包</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">记忆化搜索</td><td class="py-2 pr-4">自顶向下递归 + 缓存，状态自然剪枝</td><td class="py-2 pr-4">树形/区间 DP</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">状态压缩</td><td class="py-2 pr-4">用位掩码表示子集，dp[mask]</td><td class="py-2 pr-4">TSP、棋盘覆盖</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">分段/区间 DP</td><td class="py-2 pr-4">dp[l][r] 表示区间 [l,r] 的最优</td><td class="py-2 pr-4">石子合并、矩阵链乘</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // LCS 填表动画
+  const A = "ABCBDA", B = "BDCABA";
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('dp-svg') as unknown as SVGSVGElement;
+  const stateEl = document.getElementById('dp-state');
+
+  const COL_CELL = 'rgba(34,211,238,0.06)', COL_GRID = 'rgba(148,163,184,0.2)';
+  const COL_CUR = '#FBBF24', COL_DEP = '#A78BFA', COL_PATH = '#22C55E', COL_TXT = '#CBD5E1', COL_HDR = '#22D3EE';
+
+  const n = A.length, m = B.length;
+  const CELL = 44, X0 = 60, Y0 = 50;
+
+  // 预计算 dp 表
+  const dp: number[][] = [];
+  for (let i = 0; i <= n; i++) dp.push(new Array(m + 1).fill(0));
+  for (let i = 1; i <= n; i++)
+    for (let j = 1; j <= m; j++)
+      if (A[i-1] === B[j-1]) dp[i][j] = dp[i-1][j-1] + 1;
+      else dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+
+  type Action = 'fill' | 'match' | 'done';
+  interface Frame { i: number; j: number; action: Action; }
+  const pathCells = new Set<string>();
+
+  function buildFrames(): Frame[] {
+    const frames: Frame[] = [];
+    for (let i = 1; i <= n; i++) {
+      for (let j = 1; j <= m; j++) {
+        frames.push({ i, j, action: A[i-1] === B[j-1] ? 'match' : 'fill' });
+      }
+    }
+    // 回溯路径
+    let i = n, j = m;
+    const trace: [number, number][] = [];
+    while (i > 0 && j > 0) {
+      if (A[i-1] === B[j-1]) { trace.push([i, j]); i--; j--; }
+      else if (dp[i-1][j] >= dp[i][j-1]) i--;
+      else j--;
+    }
+    // 路径帧：逐个点亮
+    for (const [pi, pj] of trace) {
+      pathCells.add(`${pi},${pj}`);
+    }
+    frames.push({ i: n, j: m, action: 'done' });
+    return frames;
+  }
+
+  function langText(key: string): string {
+    const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${lang}"]`);
+    return el ? el.textContent || '' : '';
+  }
+
+  let curFrame: Frame | null = null;
+
+  function render(f: Frame | null) {
+    curFrame = f;
+    svg.innerHTML = '';
+    // 行列头
+    for (let j = 0; j <= m; j++) {
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(X0 + j * CELL + CELL/2)); t.setAttribute('y', String(Y0 - 12));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '14'); t.setAttribute('fill', COL_HDR);
+      t.setAttribute('font-weight', '700');
+      t.textContent = j === 0 ? '' : B[j-1]; svg.appendChild(t);
+    }
+    for (let i = 0; i <= n; i++) {
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(X0 - 14)); t.setAttribute('y', String(Y0 + i * CELL + CELL/2 + 5));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '14'); t.setAttribute('fill', COL_HDR);
+      t.setAttribute('font-weight', '700');
+      t.textContent = i === 0 ? '' : A[i-1]; svg.appendChild(t);
+    }
+    // 单元格
+    for (let i = 0; i <= n; i++) {
+      for (let j = 0; j <= m; j++) {
+        const x = X0 + j * CELL, y = Y0 + i * CELL;
+        let fill = COL_CELL;
+        if (f && f.action === 'done' && pathCells.has(`${i},${j}`)) fill = COL_PATH;
+        else if (f && i === f.i && j === f.j) fill = COL_CUR;
+        else if (f && (i === f.i - 1 && j === f.j || i === f.i && j === f.j - 1 || i === f.i - 1 && j === f.j - 1)) fill = COL_DEP;
+        const rect = document.createElementNS(SVGNS, 'rect');
+        rect.setAttribute('x', String(x)); rect.setAttribute('y', String(y));
+        rect.setAttribute('width', String(CELL)); rect.setAttribute('height', String(CELL));
+        rect.setAttribute('fill', fill); rect.setAttribute('stroke', COL_GRID); svg.appendChild(rect);
+        if (i > 0 && j > 0) {
+          const txt = document.createElementNS(SVGNS, 'text');
+          txt.setAttribute('x', String(x + CELL/2)); txt.setAttribute('y', String(y + CELL/2 + 5));
+          txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '13'); txt.setAttribute('fill', COL_TXT);
+          txt.setAttribute('font-family', 'monospace');
+          // 如果当前格已填过（i<f.i 或 i==f.i 且 j<=f.j），显示值
+          const filled = f === null ? false : (i < f.i || (i === f.i && j <= f.j)) || (f.action === 'done');
+          txt.textContent = filled ? String(dp[i][j]) : '';
+          svg.appendChild(txt);
+        }
+      }
+    }
+    if (stateEl && f) {
+      const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+      if (f.action === 'done') {
+        stateEl.textContent = lang === 'en' ? `LCS length = ${dp[n][m]}` : `LCS 长度 = ${dp[n][m]}`;
+      } else if (f.action === 'match') {
+        stateEl.textContent = lang === 'en' ? `A[${f.i-1}]='${A[f.i-1]}' == B[${f.j-1}]='${B[f.j-1]}' → dp[${f.i}][${f.j}] = ${dp[f.i][f.j]}` : `A[${f.i-1}]='${A[f.i-1]}' == B[${f.j-1}]='${B[f.j-1]}' → dp[${f.i}][${f.j}] = ${dp[f.i][f.j]}`;
+      } else {
+        stateEl.textContent = lang === 'en' ? `dp[${f.i}][${f.j}] = max(dp[${f.i-1}][${f.j}], dp[${f.i}][${f.j-1}]) = ${dp[f.i][f.j]}` : `dp[${f.i}][${f.j}] = max(dp[${f.i-1}][${f.j}], dp[${f.i}][${f.j-1}]) = ${dp[f.i][f.j]}`;
+      }
+    }
+  }
+
+  let frames: Frame[] = [];
+  let idx = 0;
+  let timer: number | null = null;
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('dp-play');
+    if (b) b.innerHTML = langText('play');
+  }
+  function rebuild() {
+    stop(); frames = buildFrames(); idx = 0; render(null); if (stateEl) stateEl.textContent = '';
+  }
+  function advance(): boolean {
+    if (idx < frames.length) { render(frames[idx]); idx++; return true; }
+    return false;
+  }
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('dp-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 200);
+  }
+
+  document.getElementById('dp-play')?.addEventListener('click', play);
+  document.getElementById('dp-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('dp-reset')?.addEventListener('click', rebuild);
+  document.addEventListener('langchange', () => { if (timer === null) { const b = document.getElementById('dp-play'); if (b) b.innerHTML = langText('play'); } if (curFrame) render(curFrame); });
+  rebuild();
+</script>

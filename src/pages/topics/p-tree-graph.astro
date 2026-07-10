@@ -1,0 +1,123 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Tree & Graph Problems · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Problems / Tree & Graph</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">树与图遍历题型</span><span slot="en">Tree & Graph Traversal Problems</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">树与图的遍历是核心基本功。<b>树</b>天然递归（前/中/后序 + 层序）；<b>图</b>需处理访问标记与多连通分量。下面三题覆盖：BFS 层序、DFS 右视图、拓扑排序（BFS 入度法）。</span>
+          <span slot="en">Tree and graph traversal is a core fundamental. <b>Trees</b> are naturally recursive (pre/in/post-order + level-order); <b>graphs</b> require visited marks and handling multiple components. The three problems below cover: BFS level-order, DFS right-side view, and topological sort (BFS in-degree method).</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Binary Tree Level Order Traversal（二叉树层序遍历）</span><span slot="en">Binary Tree Level Order Traversal</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：自顶向下、逐层从左到右返回节点值。<b>思路</b>：BFS + 队列。关键技巧是<b>按层处理</b>——每轮先记录当前队列长度（即该层节点数），再依次出队这些节点并把子节点入队，从而精确分层。O(n)。</span><span slot="en"><b>Problem</b>: Return node values top-down, left-to-right, level by level. <b>Approach</b>: BFS + queue. The key trick is <b>level-by-level processing</b> — each round, first record the current queue size (= nodes on this level), then dequeue exactly that many nodes while enqueuing their children, giving precise level separation. O(n).</span></Bilingual></p>
+      <pre><code>struct TreeNode &#123; int val; TreeNode *left, *right; &#125;;
+
+// 层序遍历  O(n)
+vector&lt;vector&lt;int&gt;&gt; levelOrder(TreeNode* root) &#123;
+    vector&lt;vector&lt;int&gt;&gt; res;
+    if (!root) return res;
+    queue&lt;TreeNode*&gt; q;
+    q.push(root);
+    while (!q.empty()) &#123;
+        int sz = q.size();              // 当前层节点数
+        vector&lt;int&gt; level;
+        for (int i = 0; i &lt; sz; i++) &#123;
+            TreeNode* n = q.front(); q.pop();
+            level.push_back(n-&gt;val);
+            if (n-&gt;left)  q.push(n-&gt;left);
+            if (n-&gt;right) q.push(n-&gt;right);
+        &#125;
+        res.push_back(level);
+    &#125;
+    return res;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Binary Tree Right Side View（二叉树右视图）</span><span slot="en">Binary Tree Right Side View</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：从右侧看一棵二叉树，返回自顶向下能看到的节点值。<b>思路一</b>：层序遍历，每层最后一个节点即右视图。<b>思路二</b>：DFS 先访问右子树，记录每层第一个被访问的节点。两种方法都是 O(n)。DFS 空间更优 O(h)。</span><span slot="en"><b>Problem</b>: Viewing a binary tree from the right, return the visible node values top-down. <b>Approach 1</b>: level-order traversal; the last node of each level is the right-side view. <b>Approach 2</b>: DFS visiting the right subtree first; record the first node visited at each depth. Both O(n); DFS uses less space O(h).</span></Bilingual></p>
+      <pre><code>// 右视图 — DFS 先右后左  O(n)
+void dfs(TreeNode* p, int depth, vector&lt;int&gt;&amp; res) &#123;
+    if (!p) return;
+    if (depth == res.size())            // 该层第一次访问 = 最右
+        res.push_back(p-&gt;val);
+    dfs(p-&gt;right, depth + 1, res);      // 先右
+    dfs(p-&gt;left,  depth + 1, res);      // 后左
+&#125;
+
+vector&lt;int&gt; rightSideView(TreeNode* root) &#123;
+    vector&lt;int&gt; res;
+    dfs(root, 0, res);
+    return res;
+&#125;
+
+// 右视图 — BFS 取每层末尾
+vector&lt;int&gt; rightSideViewBFS(TreeNode* root) &#123;
+    vector&lt;int&gt; res;
+    if (!root) return res;
+    queue&lt;TreeNode*&gt; q; q.push(root);
+    while (!q.empty()) &#123;
+        int sz = q.size();
+        for (int i = 0; i &lt; sz; i++) &#123;
+            TreeNode* n = q.front(); q.pop();
+            if (i == sz - 1) res.push_back(n-&gt;val);  // 层末尾
+            if (n-&gt;left)  q.push(n-&gt;left);
+            if (n-&gt;right) q.push(n-&gt;right);
+        &#125;
+    &#125;
+    return res;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Course Schedule（拓扑排序 / 课程表）</span><span slot="en">Course Schedule (Topological Sort)</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>题意</b>：n 门课与先修关系 [a, b]（修 a 前需先修 b），判断能否修完所有课。<b>本质</b>：判断有向图是否有环；无环则可拓扑排序。<b>思路</b>：BFS 入度法（Kahn 算法）。计算各节点入度，入度为 0 的入队，逐个出队并将其后继入度减 1，减到 0 则入队。最终已出队节点数 == n 则无环可行。</span><span slot="en"><b>Problem</b>: n courses with prerequisites [a, b] (must take b before a); determine if all can be finished. <b>Essence</b>: detect whether the directed graph has a cycle; no cycle ⇒ a topological order exists. <b>Approach</b>: BFS in-degree method (Kahn's). Compute in-degrees; enqueue zero-in-degree nodes; dequeue each, decrement successors' in-degrees, enqueue any that reach zero. If the count of dequeued nodes == n, it's feasible (acyclic).</span></Bilingual></p>
+      <pre><code>// 拓扑排序（Kahn / BFS 入度法） O(V+E)
+bool canFinish(int n, vector&lt;vector&lt;int&gt;&gt;&amp; pre) &#123;
+    vector&lt;vector&lt;int&gt;&gt; G(n);
+    vector&lt;int&gt; indeg(n, 0);
+    for (auto&amp; p : pre) &#123;
+        G[p[1]].push_back(p[0]);   // b → a
+        indeg[p[0]]++;             // a 的入度 +1
+    &#125;
+    queue&lt;int&gt; q;
+    for (int i = 0; i &lt; n; i++)
+        if (indeg[i] == 0) q.push(i);  // 入度 0 入队
+    int cnt = 0;
+    while (!q.empty()) &#123;
+        int u = q.front(); q.pop();
+        cnt++;                       // 已拓扑排序的节点数
+        for (int v : G[u])
+            if (--indeg[v] == 0) q.push(v);
+    &#125;
+    return cnt == n;                 // 全部排完 = 无环
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">树与图遍历技巧速查</span><span slot="en">Tree & Graph Traversal Cheatsheet</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">技巧</span><span slot="en">Technique</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">要点</span><span slot="en">Key point</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">代表题</span><span slot="en">Representative</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">BFS 分层</td><td class="py-2 pr-4">记录队列长度，按层出队</td><td class="py-2 pr-4">层序遍历、右视图、最短路</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">DFS + 深度</td><td class="py-2 pr-4">传递 depth，按需记录首访</td><td class="py-2 pr-4">右视图、路径总和、最大深度</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">拓扑排序（Kahn）</td><td class="py-2 pr-4">入度 0 入队，出队减后继入度</td><td class="py-2 pr-4">课程表、任务调度</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">DFS 拓扑</td><td class="py-2 pr-4">后序逆序即拓扑序</td><td class="py-2 pr-4">课程表、拓扑排序</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">访问标记</td><td class="py-2 pr-4">图需 vis[]，注意多连通分量</td><td class="py-2 pr-4">连通分量、岛屿数量</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
