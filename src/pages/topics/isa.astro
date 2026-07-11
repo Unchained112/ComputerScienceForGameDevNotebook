@@ -1,0 +1,127 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="ISA & Assembly · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Architecture / ISA & Assembly</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">指令集与汇编基础</span><span slot="en">ISA & Assembly Basics</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh"><b>指令集架构（ISA）</b>是软硬件之间的契约——CPU 能理解的全部指令集合。汇编语言是 ISA 的人类可读形式，每条汇编指令通常对应一条机器指令。两大阵营：<b>CISC</b>（复杂指令集，代表 x86）与 <b>RISC</b>（精简指令集，代表 ARM/RISC-V）。</span>
+          <span slot="en">The <b>Instruction Set Architecture (ISA)</b> is the contract between hardware and software — the full set of instructions a CPU understands. Assembly is the human-readable form of the ISA; each assembly instruction typically maps to one machine instruction. Two camps: <b>CISC</b> (Complex, e.g., x86) vs <b>RISC</b> (Reduced, e.g., ARM/RISC-V).</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">CISC vs RISC</span><span slot="en">CISC vs RISC</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>CISC</b>（以 x86 为代表）指令长度可变、功能复杂，一条指令可完成访存+运算（如 <code>ADD [mem], RAX</code>），编译简单但硬件解码复杂。<b>RISC</b>（以 ARM、RISC-V 为代表）指令定长、功能单一，只有 Load/Store 访存（Load-Store 架构），运算指令只操作寄存器，硬件简单易流水线化。移动端几乎全用 RISC（ARM），桌面/服务器仍以 CISC（x86）为主。</span><span slot="en"><b>CISC</b> (x86) has variable-length, feature-rich instructions — one instruction can do memory access + compute (e.g., <code>ADD [mem], RAX</code>); simpler to compile for but complex to decode in hardware. <b>RISC</b> (ARM, RISC-V) has fixed-length, single-function instructions; only Load/Store access memory (Load-Store architecture), compute operates on registers only — simpler hardware, easier to pipeline. Mobile is almost all RISC (ARM); desktop/server remain CISC (x86).</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">特性</span><span slot="en">Feature</span></Bilingual></th><th class="py-2 pr-4">CISC (x86)</th><th class="py-2 pr-4">RISC (ARM/RISC-V)</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">指令长度</td><td class="py-2 pr-4">可变 (1-15 字节)</td><td class="py-2 pr-4">定长 (4 字节)</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">指令数量</td><td class="py-2 pr-4">~1000+</td><td class="py-2 pr-4">~50-200</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">访存指令</td><td class="py-2 pr-4">任意指令可访存</td><td class="py-2 pr-4">仅 Load/Store</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">寄存器数</td><td class="py-2 pr-4">16 (x86-64)</td><td class="py-2 pr-4">31 (ARM64/RISC-V)</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">解码复杂度</td><td class="py-2 pr-4 text-func-red">高（需微码翻译）</td><td class="py-2 pr-4 text-func-green">低（直接执行）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">流水线效率</td><td class="py-2 pr-4 text-func-amber">中</td><td class="py-2 pr-4 text-func-green">高</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">典型应用</td><td class="py-2 pr-4">PC、服务器</td><td class="py-2 pr-4">手机、IoT、Mac</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">一条 ADD 指令的生命周期</span><span slot="en">Lifecycle of an ADD Instruction</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">以 ARM 的 <code>ADD R0, R1, R2</code>（R0 = R1 + R2）为例，追踪它从内存到执行完毕的全过程：<br>
+      <b class="text-func-amber">① 取指 (IF)</b>：PC 指向该指令地址，CPU 从 L1I Cache 取出 4 字节机器码到 IR<br>
+      <b class="text-primary-cyan">② 译码 (ID)</b>：控制单元拆解操作码 (ADD) + 操作数 (R1, R2)，从寄存器堆读取 R1、R2 的当前值<br>
+      <b class="text-primary-purple">③ 执行 (EX)</b>：ALU 接收 R1、R2 的值，执行整数加法，结果暂存于 ALU 输出寄存器<br>
+      <b class="text-func-green">④ 访存 (MEM)</b>：ADD 不需要访存，此阶段空转 (NOP)<br>
+      <b class="text-blue-400">⑤ 写回 (WB)</b>：将 ALU 结果写入 R0 寄存器<br>
+      PC 自增 4（指向下一条指令），完成一个指令周期。</span><span slot="en">Tracing ARM's <code>ADD R0, R1, R2</code> (R0 = R1 + R2) from memory to completion:<br>
+      <b class="text-func-amber">① Fetch (IF)</b>: PC points to the instruction address; CPU fetches 4 bytes of machine code from L1I Cache into IR<br>
+      <b class="text-primary-cyan">② Decode (ID)</b>: Control unit parses opcode (ADD) + operands (R1, R2), reads R1 and R2 values from the register file<br>
+      <b class="text-primary-purple">③ Execute (EX)</b>: ALU receives R1 and R2 values, performs integer addition, result held in ALU output register<br>
+      <b class="text-func-green">④ Memory (MEM)</b>: ADD doesn't access memory; this stage is a NOP<br>
+      <b class="text-blue-400">⑤ Writeback (WB)</b>: ALU result is written back to register R0<br>
+      PC increments by 4 (next instruction); one instruction cycle complete.</span></Bilingual></p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">x86 vs ARM 汇编对比</span><span slot="en">x86 vs ARM Assembly</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">同一段"计算 a + b 并存入结果"的逻辑，在两种 ISA 下的汇编写法截然不同。x86 允许内存操作数，ARM 严格 Load-Store 分离。</span><span slot="en">The same "compute a + b and store the result" logic looks very different in the two ISAs. x86 allows memory operands; ARM strictly separates Load/Store from compute.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// ===== x86-64 汇编（AT&T 语法 → Intel 语法）=====
+// 计算: result = a + b   (a, b, result 在内存中)
+
+    ; --- x86-64: 可直接对内存操作数做运算 ---
+    mov  eax, [a]        ; 把 a 加载到 eax
+    add  eax, [b]        ; eax += b  (直接加内存值)
+    mov  [result], eax   ; 存回结果
+
+; x86 特点: 一条 add 就能访存+运算，指令少但解码复杂
+; 寄存器少 (16个)，编译器需精心分配
+
+// ===== ARM64 (AArch64) 汇编 =====
+// 计算: result = a + b
+
+    ldr  x0, [a]         ; Load: x0 = *a  (必须先加载到寄存器)
+    ldr  x1, [b]         ; Load: x1 = *b
+    add  x0, x0, x1      ; x0 = x0 + x1  (只操作寄存器)
+    str  x0, [result]    ; Store: *result = x0
+
+; ARM 特点: Load/Store 与运算分离，指令多但每条简单
+; 寄存器多 (31个)，减少访存次数</code></pre>`}
+  py={`<pre><code># Python 模拟两种 ISA 的语义差异
+# x86 风格: 允许内存操作数参与运算
+class x86_CPU:
+    def __init__(self):
+        self.mem = {}    # 内存
+        self.regs = [0] * 16  # 16 个通用寄存器
+
+    def add_mem(self, dst_addr, src_addr):
+        # add [dst], [src] — 直接对内存做加法
+        self.mem[dst_addr] += self.mem[src_addr]
+
+# ARM 风格: 严格的 Load-Store 架构
+class ARM_CPU:
+    def __init__(self):
+        self.mem = {}
+        self.regs = [0] * 31  # 31 个通用寄存器
+
+    def add(self, rd, rn, rm):
+        # add rd, rn, rm — 只能寄存器+寄存器
+        self.regs[rd] = self.regs[rn] + self.regs[rm]
+
+    def compute_a_plus_b(self, a_addr, b_addr, result_addr):
+        self.regs[0] = self.mem[a_addr]      # ldr x0, [a]
+        self.regs[1] = self.mem[b_addr]      # ldr x1, [b]
+        self.add(0, 0, 1)                     # add x0, x0, x1
+        self.mem[result_addr] = self.regs[0]  # str x0, [result]</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">指令格式：机器码的组成</span><span slot="en">Instruction Format</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">一条机器指令由若干字段组成：<b>操作码 (Opcode)</b> 指定做什么操作，<b>操作数 (Operand)</b> 指定操作对象（寄存器号/立即数/内存地址）。<br><br>
+          ARM64 的加法指令 <code>ADD X0, X1, X2</code> 编码为 32 位：<br>
+          <code class="text-func-amber">[31:24]</code> 条件/操作码 | <code class="text-primary-cyan">[23:21]</code> 类型 | <code class="text-primary-purple">[20:16]</code> Rm (源2) | <code class="text-func-green">[15:10]</code> 附加 | <code class="text-blue-400">[9:5]</code> Rn (源1) | <code class="text-func-amber">[4:0]</code> Rd (目的)<br><br>
+          RISC-V 则更简洁，基本指令只有 R/I/S/B/U/J 六种格式，均为 32 位定长，这正是其设计哲学："简单至上"。</span>
+          <span slot="en">A machine instruction consists of several fields: the <b>opcode</b> specifies the operation, and <b>operands</b> specify the targets (register numbers / immediates / memory addresses).<br><br>
+          ARM64's <code>ADD X0, X1, X2</code> encodes as 32 bits:<br>
+          <code class="text-func-amber">[31:24]</code> condition/opcode | <code class="text-primary-cyan">[23:21]</code> type | <code class="text-primary-purple">[20:16]</code> Rm (src2) | <code class="text-func-green">[15:10]</code> extra | <code class="text-blue-400">[9:5]</code> Rn (src1) | <code class="text-func-amber">[4:0]</code> Rd (dest)<br><br>
+          RISC-V is even simpler: only 6 base formats (R/I/S/B/U/J), all fixed 32-bit — embodying its "simplicity first" philosophy.</span>
+        </Bilingual>
+      </p>
+    </section>
+  </article>
+</BaseLayout>

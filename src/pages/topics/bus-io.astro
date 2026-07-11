@@ -1,0 +1,156 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Bus & I/O · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Architecture / Bus & I/O</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">总线与 I/O</span><span slot="en">Bus & I/O</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">CPU 需要与内存和外部设备通信，这依赖<b>总线</b>（Bus）和<b> I/O 控制方式</b>。当多个设备争用总线时需<b>仲裁</b>；当 I/O 设备需要 CPU 关注时，可发<b>中断</b>打断当前执行，或用 <b>DMA</b> 直接搬运数据、绕过 CPU。</span>
+          <span slot="en">The CPU communicates with memory and external devices via the <b>bus</b> and <b>I/O control mechanisms</b>. When multiple devices compete for the bus, <b>arbitration</b> is needed; when an I/O device needs CPU attention, it can raise an <b>interrupt</b>, or use <b>DMA</b> to transfer data directly, bypassing the CPU.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">总线类型与仲裁</span><span slot="en">Bus Types & Arbitration</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">系统总线按功能分为三类：<br>
+      • <b class="text-func-amber">数据总线</b>：双向，传数据。宽度（如 64 位）决定单次传输量<br>
+      • <b class="text-primary-cyan">地址总线</b>：单向（CPU→外设），传地址。宽度决定寻址空间（如 32 位 → 4GB）<br>
+      • <b class="text-func-green">控制总线</b>：传控制信号（读/写/中断/时钟/复位）<br><br>
+      当多个主设备（CPU、DMA 控制器、其他总线主）同时请求总线时，需<b>仲裁</b>：<b>集中仲裁</b>（菊花链/计数器/独立请求）或<b>分布仲裁</b>（自举/并行竞争）。</span><span slot="en">The system bus has three functional types:<br>
+      • <b class="text-func-amber">Data bus</b>: bidirectional, carries data. Width (e.g., 64-bit) determines transfer size<br>
+      • <b class="text-primary-cyan">Address bus</b>: unidirectional (CPU→devices), carries addresses. Width determines addressable space (e.g., 32-bit → 4GB)<br>
+      • <b class="text-func-green">Control bus</b>: carries control signals (read/write/interrupt/clock/reset)<br><br>
+      When multiple masters (CPU, DMA controller, other bus masters) request the bus simultaneously, <b>arbitration</b> is needed: <b>centralized</b> (daisy-chain/counter/independent request) or <b>distributed</b> (self-selection/parallel contention).</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">仲裁方式</span><span slot="en">Scheme</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">原理</span><span slot="en">Principle</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">优缺点</span><span slot="en">Pros / Cons</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">菊花链</td><td class="py-2 pr-4">按物理串联顺序传递授权</td><td class="py-2 pr-4 text-func-green">简单 / <span class="text-func-red">不公平（近端优先）</span></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">计数器轮询</td><td class="py-2 pr-4">总线控制器轮询各设备</td><td class="py-2 pr-4 text-func-green">公平 / <span class="text-func-red">轮询开销</span></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">独立请求</td><td class="py-2 pr-4">每个设备独立请求/授权线</td><td class="py-2 pr-4 text-func-green">快速灵活 / <span class="text-func-red">线数多</span></td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">分布仲裁</td><td class="py-2 pr-4">各设备自行竞争（无中心）</td><td class="py-2 pr-4 text-func-green">无单点故障 / <span class="text-func-red">逻辑复杂</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">中断 vs DMA：两种 I/O 数据传输方式</span><span slot="en">Interrupt vs DMA: Two I/O Data Transfer Modes</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>程序查询 (Polling)</b>：CPU 反复读设备状态寄存器，效率最低。<br><br>
+      <b>中断驱动 (Interrupt-driven)</b>：CPU 发出 I/O 请求后继续执行其他任务；设备就绪后发中断信号，CPU 保存现场→执行中断服务程序 (ISR)→恢复现场。<b>每次传输一个字节/字都中断一次</b>，高频传输时中断开销大。<br><br>
+      <b>DMA (直接内存访问)</b>：DMA 控制器接管总线，直接在设备与内存之间搬运数据块，CPU 仅在传输<b>开始和结束</b>时介入。适合大批量数据（如磁盘读写、GPU 纹理上传）。</span><span slot="en"><b>Polling</b>: CPU repeatedly reads the device status register — lowest efficiency.<br><br>
+      <b>Interrupt-driven</b>: CPU issues an I/O request and continues other work; the device raises an interrupt when ready, CPU saves context → runs ISR → restores. <b>Each byte/word transfer interrupts once</b> — high overhead at high frequencies.<br><br>
+      <b>DMA (Direct Memory Access)</b>: the DMA controller takes over the bus, transferring data blocks directly between device and memory; the CPU is involved only at <b>start and end</b>. Ideal for bulk transfers (disk I/O, GPU texture upload).</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// ===== 中断驱动 I/O（伪代码）=====
+// 每收到一个字节就中断一次 CPU
+volatile uint8_t* uart_data = (uint8_t*)0x4000_2000;
+volatile uint8_t* uart_status = (uint8_t*)0x4000_2001;
+
+// 中断服务程序 (ISR)
+void UART_ISR() __irq &#123;
+    if (*uart_status &amp; 0x01) &#123;       // 数据就绪
+        uint8_t byte = *uart_data;   // 读取一个字节
+        buffer.push_back(byte);       // 存入缓冲区
+    &#125;
+    // 一次只传一个字节，高频时中断开销大
+&#125;
+
+// ===== DMA 传输（伪代码）=====
+// CPU 只管发起和等待完成，数据搬运由 DMA 控制器完成
+struct DMA_Controller &#123;
+    volatile uint32_t* src;
+    volatile uint32_t* dst;
+    volatile uint32_t* count;
+    volatile uint32_t* ctrl;
+&#125;;
+DMA_Controller* dma = (DMA_Controller*)0x4000_3000;
+
+void dma_transfer(uint32_t src, uint32_t dst, uint32_t len) &#123;
+    *dma->src = src;         // 源地址
+    *dma->dst = dst;         // 目标地址
+    *dma->count = len;       // 传输长度
+    *dma->ctrl = 0x01;       // 启动 DMA
+    // CPU 可去做其他事，DMA 完成后发一次中断通知
+&#125;</code></pre>`}
+  py={`<pre><code># ===== 中断驱动 I/O（模拟）=====
+# 每收到一个字节就中断一次 CPU
+class InterruptIO:
+    def __init__(self):
+        self.buffer = []
+
+    def isr(self, byte):
+        """中断服务程序：每次只处理一个字节"""
+        self.buffer.append(byte)
+        # 高频传输时中断开销大
+
+# ===== DMA 传输（模拟）=====
+# CPU 只管发起和等待完成
+class DMAController:
+    def __init__(self):
+        self.done = False
+
+    def transfer(self, src, dst, length):
+        """DMA 直接搬运数据块"""
+        self.done = False
+        # DMA 控制器在后台搬运，CPU 可去做其他事
+        dst[:length] = src[:length]
+        self.done = True
+        # 完成后只中断一次通知 CPU
+
+# 对比：
+# 传输 1KB 数据
+# 中断方式: 1024 次中断 + 1024 次 CPU 干预
+# DMA 方式: 1 次 CPU 发起 + 1 次完成中断</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">中断 vs DMA 对比</span><span slot="en">Interrupt vs DMA Comparison</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">特性</span><span slot="en">Feature</span></Bilingual></th><th class="py-2 pr-4">程序查询</th><th class="py-2 pr-4">中断驱动</th><th class="py-2 pr-4">DMA</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">CPU 参与</td><td class="py-2 pr-4 text-func-red">全程</td><td class="py-2 pr-4 text-func-amber">每字节</td><td class="py-2 pr-4 text-func-green">仅首尾</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">数据搬运者</td><td class="py-2 pr-4">CPU</td><td class="py-2 pr-4">CPU</td><td class="py-2 pr-4">DMA 控制器</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">中断次数</td><td class="py-2 pr-4">0</td><td class="py-2 pr-4 text-func-red">N（每字节）</td><td class="py-2 pr-4 text-func-green">1（整块完成）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">传输速率</td><td class="py-2 pr-4 text-func-red">低</td><td class="py-2 pr-4 text-func-amber">中</td><td class="py-2 pr-4 text-func-green">高</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">CPU 利用率</td><td class="py-2 pr-4 text-func-red">最低</td><td class="py-2 pr-4 text-func-amber">中</td><td class="py-2 pr-4 text-func-green">最高</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">硬件成本</td><td class="py-2 pr-4 text-func-green">最低</td><td class="py-2 pr-4 text-func-amber">中</td><td class="py-2 pr-4 text-func-red">较高</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">适用场景</td><td class="py-2 pr-4">简单低速设备</td><td class="py-2 pr-4">键盘、鼠标</td><td class="py-2 pr-4">磁盘、网卡、GPU</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">中断处理流程</span><span slot="en">Interrupt Handling Flow</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">CPU 收到中断信号后的处理流程：<br>
+          ① <b class="text-func-amber">响应</b>：CPU 在当前指令执行完毕后检查中断请求，若允许中断则响应<br>
+          ② <b class="text-primary-cyan">保存现场</b>：将 PC、FLAGS 等关键寄存器压入栈（由硬件自动完成）<br>
+          ③ <b class="text-primary-purple">查中断向量表</b>：根据中断号从中断向量表 (IVT) 查到 ISR 入口地址<br>
+          ④ <b class="text-func-green">执行 ISR</b>：跳转到 ISR 执行 I/O 操作<br>
+          ⑤ <b class="text-blue-400">恢复现场</b>：从栈恢复 PC、FLAGS，执行 IRET 返回被中断的程序<br>
+          中断可嵌套（高优先级中断可打断低优先级 ISR），也可被屏蔽（CLI 指令关中断）。</span>
+          <span slot="en">CPU handling flow after receiving an interrupt signal:<br>
+          ① <b class="text-func-amber">Respond</b>: after the current instruction completes, CPU checks interrupt requests; if enabled, it responds<br>
+          ② <b class="text-primary-cyan">Save context</b>: push PC, FLAGS, etc. onto the stack (done automatically by hardware)<br>
+          ③ <b class="text-primary-purple">Lookup IVT</b>: use the interrupt number to find the ISR entry address in the Interrupt Vector Table<br>
+          ④ <b class="text-func-green">Execute ISR</b>: jump to ISR, perform I/O operations<br>
+          ⑤ <b class="text-blue-400">Restore context</b>: pop PC, FLAGS from stack, execute IRET to return<br>
+          Interrupts can be nested (higher-priority interrupts can preempt lower-priority ISRs) or masked (CLI instruction disables interrupts).</span>
+        </Bilingual>
+      </p>
+    </section>
+  </article>
+</BaseLayout>

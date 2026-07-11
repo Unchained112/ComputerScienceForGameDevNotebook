@@ -1,0 +1,198 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Computer Architecture · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Architecture / Overview</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">计算机结构概览</span><span slot="en">Computer Architecture Overview</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">计算机由<b>五大部件</b>构成：输入设备、输出设备、存储器、运算器（ALU）、控制器。控制器与运算器合称 CPU，通过<b>总线</b>（Bus）与存储器和 I/O 交换数据。点击下方各部件查看数据流向。</span>
+          <span slot="en">A computer consists of <b>five major components</b>: input, output, memory, arithmetic logic unit (ALU), and control unit. The control unit + ALU form the CPU, which exchanges data with memory and I/O over the <b>bus</b>. Click each component below to see the data flow.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5" data-viz="computer-architecture">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="ca-input" class="btn"><span data-ui="input" data-lang="zh">输入设备</span><span data-ui="input" data-lang="en">Input</span></button>
+        <button id="ca-cpu" class="btn btn-primary"><span data-ui="cpu" data-lang="zh">CPU</span><span data-ui="cpu" data-lang="en">CPU</span></button>
+        <button id="ca-memory" class="btn"><span data-ui="memory" data-lang="zh">存储器</span><span data-ui="memory" data-lang="en">Memory</span></button>
+        <button id="ca-output" class="btn"><span data-ui="output" data-lang="zh">输出设备</span><span data-ui="output" data-lang="en">Output</span></button>
+        <button id="ca-bus" class="btn"><span data-ui="bus" data-lang="zh">总线</span><span data-ui="bus" data-lang="en">Bus</span></button>
+        <span id="ca-state" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="ca-svg" viewBox="0 0 800 400" class="w-full h-96 viz-stage"></svg>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">五大部件职责</span><span slot="en">Five Components</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">部件</span><span slot="en">Component</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">职责</span><span slot="en">Role</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">示例</span><span slot="en">Example</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">输入设备</td><td class="py-2 pr-4">将外部信息转为二进制数据送入计算机</td><td class="py-2 pr-4">键盘、鼠标、手柄</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">输出设备</td><td class="py-2 pr-4">将计算结果转为人类可感知的形式</td><td class="py-2 pr-4">显示器、音响、打印机</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">存储器</td><td class="py-2 pr-4">存放程序（指令）与数据</td><td class="py-2 pr-4">内存 RAM、硬盘、Cache</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">运算器 ALU</td><td class="py-2 pr-4">执行算术与逻辑运算</td><td class="py-2 pr-4">加减乘除、与或非</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">控制器 CU</td><td class="py-2 pr-4">取指、译码、协调各部件按时序工作</td><td class="py-2 pr-4">指令寄存器、PC</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">总线：三大部件的通信通道</span><span slot="en">Bus: The Communication Channel</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">总线是连接 CPU、存储器与 I/O 的共享通路，按功能分三类：<b class="text-func-amber">数据总线</b>（传数据）、<b class="text-primary-cyan">地址总线</b>（传地址，决定寻址空间）、<b class="text-func-green">控制总线</b>（传读/写/中断等信号）。总线宽度直接影响带宽——例如 64 位数据总线一次可传 8 字节。</span>
+          <span slot="en">The bus is the shared pathway connecting CPU, memory, and I/O. It has three functional types: <b class="text-func-amber">data bus</b> (carries data), <b class="text-primary-cyan">address bus</b> (carries addresses, determines addressable space), and <b class="text-func-green">control bus</b> (carries read/write/interrupt signals). Bus width directly affects bandwidth — a 64-bit data bus transfers 8 bytes per cycle.</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">冯·诺依曼与哈佛架构</span><span slot="en">Von Neumann vs Harvard</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">冯·诺依曼架构将<b>指令与数据共用同一存储器和总线</b>，结构简单但存在"冯·诺依曼瓶颈"（CPU 与内存间的带宽限制）。哈佛架构将<b>指令与数据分离</b>到独立存储与总线，可并行取指与取数，但硬件更复杂。现代 CPU 多采用<b>改进哈佛架构</b>——统一主存但 L1 Cache 分指令/数据。</span><span slot="en">The <b>Von Neumann</b> architecture shares a single memory and bus for both instructions and data — simple but suffers the "von Neumann bottleneck" (bandwidth between CPU and memory). The <b>Harvard</b> architecture separates instructions and data into independent stores/buses, allowing parallel fetch — but is more complex. Modern CPUs use a <b>modified Harvard</b> design: unified main memory but split L1 instruction/data caches.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">特性</span><span slot="en">Feature</span></Bilingual></th><th class="py-2 pr-4">冯·诺依曼</th><th class="py-2 pr-4">哈佛</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">指令/数据存储</td><td class="py-2 pr-4">共享</td><td class="py-2 pr-4">分离</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">总线</td><td class="py-2 pr-4">单一总线</td><td class="py-2 pr-4">独立总线</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">取指与取数</td><td class="py-2 pr-4 text-func-red">串行（瓶颈）</td><td class="py-2 pr-4 text-func-green">并行</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">硬件成本</td><td class="py-2 pr-4 text-func-green">低</td><td class="py-2 pr-4 text-func-amber">较高</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 五大部件关系图 —— 点击高亮部件并显示数据流
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('ca-svg') as unknown as SVGSVGElement;
+  const stateEl = document.getElementById('ca-state');
+
+  // 部件定义：id → [x, y, w, h, label_zh, label_en, color]
+  type CompId = 'input' | 'cpu' | 'memory' | 'output' | 'bus';
+  const COMPS: Record<CompId, { x: number; y: number; w: number; h: number; zh: string; en: string; color: string }> = {
+    input:  { x: 50,  y: 60,  w: 130, h: 60, zh: '输入设备', en: 'Input',  color: '#22D3EE' },
+    cpu:    { x: 320, y: 30,  w: 160, h: 120, zh: 'CPU', en: 'CPU', color: '#A78BFA' },
+    memory: { x: 320, y: 220, w: 160, h: 70, zh: '存储器', en: 'Memory', color: '#22C55E' },
+    output: { x: 620, y: 60,  w: 130, h: 60, zh: '输出设备', en: 'Output', color: '#FBBF24' },
+    bus:    { x: 50,  y: 180, w: 700, h: 24, zh: '总线', en: 'Bus',    color: '#F472B6' },
+  };
+  const COMP_IDS = Object.keys(COMPS) as CompId[];
+
+  // 数据流定义：每条流 = [from, to, label_zh, label_en]
+  const FLOWS: Record<CompId, [CompId, string, string][]> = {
+    input:  [['bus', '输入→总线', 'Input → Bus'], ['cpu', '输入→CPU（中断）', 'Input → CPU (IRQ)']],
+    cpu:    [['memory', 'CPU↔存储器（取指/读写）', 'CPU ↔ Memory'], ['bus', 'CPU→总线（控制）', 'CPU → Bus (ctrl)']],
+    memory: [['cpu', '存储器↔CPU', 'Memory ↔ CPU'], ['bus', '存储器↔总线', 'Memory ↔ Bus']],
+    output: [['bus', '总线→输出', 'Bus → Output'], ['cpu', 'CPU→输出（直接）', 'CPU → Output']],
+    bus:    [['cpu', '总线↔CPU', 'Bus ↔ CPU'], ['memory', '总线↔存储器', 'Bus ↔ Memory'], ['input', '总线↔输入', 'Bus ↔ Input'], ['output', '总线↔输出', 'Bus ↔ Output']],
+  };
+
+  const COL_BG = 'rgba(34,211,238,0.05)', COL_BORDER = 'rgba(148,163,184,0.3)', COL_TXT = '#CBD5E1', COL_LBL = '#94A3B8', COL_EDGE = 'rgba(148,163,184,0.2)', COL_FLOW = '#FBBF24';
+
+  let active: CompId = 'cpu';
+
+  function center(c: { x: number; y: number; w: number; h: number }) { return { cx: c.x + c.w / 2, cy: c.y + c.h / 2 }; }
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  function render() {
+    svg.innerHTML = '';
+    // 先画流（在部件下方）
+    if (active) {
+      const flows = FLOWS[active] || [];
+      for (const [target, , ] of flows) {
+        const a = center(COMPS[active]), b = center(COMPS[target]);
+        const line = document.createElementNS(SVGNS, 'line');
+        line.setAttribute('x1', String(a.cx)); line.setAttribute('y1', String(a.cy));
+        line.setAttribute('x2', String(b.cx)); line.setAttribute('y2', String(b.cy));
+        line.setAttribute('stroke', COL_FLOW); line.setAttribute('stroke-width', '2.5');
+        line.setAttribute('stroke-dasharray', '8 4'); line.setAttribute('opacity', '0.8');
+        svg.appendChild(line);
+        // 箭头
+        const ang = Math.atan2(b.cy - a.cy, b.cx - a.cx);
+        const ax = b.cx - 22 * Math.cos(ang), ay = b.cy - 22 * Math.sin(ang);
+        const arrow = document.createElementNS(SVGNS, 'polygon');
+        const pts = [
+          [ax + 8 * Math.cos(ang), ay + 8 * Math.sin(ang)],
+          [ax - 6 * Math.cos(ang - 0.5), ay - 6 * Math.sin(ang - 0.5)],
+          [ax - 6 * Math.cos(ang + 0.5), ay - 6 * Math.sin(ang + 0.5)],
+        ].map(p => p.join(',')).join(' ');
+        arrow.setAttribute('points', pts);
+        arrow.setAttribute('fill', COL_FLOW);
+        svg.appendChild(arrow);
+      }
+    }
+    // 画部件
+    for (const id of COMP_IDS) {
+      const c = COMPS[id];
+      const isActive = id === active;
+      const rect = document.createElementNS(SVGNS, 'rect');
+      rect.setAttribute('x', String(c.x)); rect.setAttribute('y', String(c.y));
+      rect.setAttribute('width', String(c.w)); rect.setAttribute('height', String(c.h));
+      rect.setAttribute('rx', '10');
+      rect.setAttribute('fill', isActive ? c.color + '33' : COL_BG);
+      rect.setAttribute('stroke', isActive ? c.color : COL_BORDER);
+      rect.setAttribute('stroke-width', isActive ? '2.5' : '1.5');
+      rect.style.cursor = 'pointer';
+      rect.dataset.comp = id;
+      svg.appendChild(rect);
+      // 标签
+      const t = document.createElementNS(SVGNS, 'text');
+      const ct = center(c);
+      t.setAttribute('x', String(ct.cx)); t.setAttribute('y', String(ct.cy + 5));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '15'); t.setAttribute('fill', isActive ? c.color : COL_TXT);
+      t.setAttribute('font-weight', '700');
+      t.textContent = lang() === 'en' ? c.en : c.zh;
+      t.style.pointerEvents = 'none';
+      svg.appendChild(t);
+    }
+    // CPU 内部标注
+    const cpuC = COMPS.cpu;
+    const subLabels = ['CU', 'ALU', 'Reg'];
+    for (let i = 0; i < 3; i++) {
+      const sx = cpuC.x + 25 + i * 45, sy = cpuC.y + 85;
+      const r = document.createElementNS(SVGNS, 'rect');
+      r.setAttribute('x', String(sx)); r.setAttribute('y', String(sy));
+      r.setAttribute('width', '35'); r.setAttribute('height', '22'); r.setAttribute('rx', '4');
+      r.setAttribute('fill', 'rgba(167,139,250,0.15)'); r.setAttribute('stroke', COL_BORDER);
+      svg.appendChild(r);
+      const st = document.createElementNS(SVGNS, 'text');
+      st.setAttribute('x', String(sx + 17)); st.setAttribute('y', String(sy + 15));
+      st.setAttribute('text-anchor', 'middle'); st.setAttribute('font-size', '10'); st.setAttribute('fill', COL_LBL);
+      st.textContent = subLabels[i];
+      svg.appendChild(st);
+    }
+    // 状态文案
+    if (stateEl && active) {
+      const flows = FLOWS[active] || [];
+      const l = lang();
+      const labels = flows.map(([, zh, en]) => l === 'en' ? en : zh);
+      stateEl.textContent = labels.join('  |  ');
+    }
+  }
+
+  // 点击 SVG 上的部件
+  svg.addEventListener('click', (e) => {
+    const target = e.target as SVGElement;
+    const comp = target.dataset?.comp as CompId | undefined;
+    if (comp) { active = comp; render(); }
+  });
+  // 点击按钮
+  for (const id of COMP_IDS) {
+    document.getElementById('ca-' + id)?.addEventListener('click', () => { active = id; render(); });
+  }
+  document.addEventListener('langchange', () => render());
+  render();
+</script>

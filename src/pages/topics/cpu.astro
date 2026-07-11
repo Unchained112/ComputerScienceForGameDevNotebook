@@ -1,0 +1,332 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="CPU · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Architecture / CPU</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">CPU（ALU / 寄存器 / 流水线 / 分支预测）</span><span slot="en">CPU (ALU / Registers / Pipeline / Branch Prediction)</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">CPU 是计算机的"大脑"——<b>控制器</b>取指译码，<b>ALU</b>执行运算，<b>寄存器</b>暂存中间结果。现代 CPU 用<b>流水线</b>将指令拆成多级并行处理，每个时钟周期都有一条指令进入/离开不同阶段。下方动画展示五级流水线 IF→ID→EX→MEM→WB 逐拍推进。颜色：<b class="text-func-amber">IF 取指</b>、<b class="text-primary-cyan">ID 译码</b>、<b class="text-primary-purple">EX 执行</b>、<b class="text-func-green">MEM 访存</b>、<b class="text-blue-400">WB 写回</b>。</span>
+          <span slot="en">The CPU is the computer's "brain" — the <b>control unit</b> fetches & decodes, the <b>ALU</b> executes, and <b>registers</b> hold intermediates. Modern CPUs use a <b>pipeline</b> to split instructions into stages processed in parallel — every cycle, a new instruction enters while others advance. The animation below shows a 5-stage pipeline IF→ID→EX→MEM→WB. Colors: <b class="text-func-amber">IF fetch</b>, <b class="text-primary-cyan">ID decode</b>, <b class="text-primary-purple">EX execute</b>, <b class="text-func-green">MEM memory</b>, <b class="text-blue-400">WB writeback</b>.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5" data-viz="cpu-pipeline">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="cpu-play" class="btn btn-primary">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+          <span data-ui="pause" data-lang="zh" class="hidden">暂停</span><span data-ui="pause" data-lang="en" class="hidden">Pause</span>
+        </button>
+        <button id="cpu-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+        <button id="cpu-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+        <span id="cpu-state" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="cpu-svg" viewBox="0 0 800 400" class="w-full h-96 viz-stage"></svg>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">流水线五级详解</span><span slot="en">Pipeline Stages</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">经典五级流水线将一条指令的生命周期拆成五个阶段，每个阶段占用约一个时钟周期。多条指令在不同阶段<b>重叠执行</b>，使得理想情况下<b>每个周期完成一条指令</b>（CPI ≈ 1）。但<b>冒险</b>（Hazard）会打破这一理想——数据冒险、控制冒险、结构冒险。</span><span slot="en">The classic 5-stage pipeline splits an instruction's lifecycle into five stages, each roughly one clock cycle. Multiple instructions <b>overlap</b> in different stages, so ideally <b>one instruction completes per cycle</b> (CPI ≈ 1). But <b>hazards</b> break this ideal — data hazards, control hazards, and structural hazards.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">阶段</span><span slot="en">Stage</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">全称</span><span slot="en">Full name</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">操作</span><span slot="en">Action</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber font-mono">IF</td><td class="py-2 pr-4">Instruction Fetch</td><td class="py-2 pr-4">从 PC 指向的内存地址取指令到 IR</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan font-mono">ID</td><td class="py-2 pr-4">Instruction Decode</td><td class="py-2 pr-4">译码操作码，读取源寄存器</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple font-mono">EX</td><td class="py-2 pr-4">Execute</td><td class="py-2 pr-4">ALU 执行算术逻辑运算</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green font-mono">MEM</td><td class="py-2 pr-4">Memory Access</td><td class="py-2 pr-4">Load/Store 访问数据存储器</td></tr>
+            <tr><td class="py-2 pr-4 text-blue-400 font-mono">WB</td><td class="py-2 pr-4">Write Back</td><td class="py-2 pr-4">将结果写回目的寄存器</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">ALU 与寄存器组</span><span slot="en">ALU & Register File</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh"><b>ALU（算术逻辑单元）</b>是 CPU 的运算核心，执行加减、与或非、移位、比较等操作。现代 CPU 通常含多个 ALU 以支持超标量并行。<br><br>
+          <b>寄存器组</b>是 CPU 内部最快的存储，x86-64 有 16 个通用寄存器（RAX/RBX/…/R15），ARM64 有 31 个（X0–X30）。寄存器访问约 <b>0.3ns</b>（1 周期），而内存访问约 <b>100ns</b>——差距达 300 倍，这正是 Cache 存在的原因。<br><br>
+          关键特殊寄存器：<b class="text-func-amber">PC</b>（程序计数器，指向下一条指令）、<b class="text-primary-cyan">IR</b>（指令寄存器，存放当前指令）、<b class="text-func-green">SP</b>（栈指针）、<b class="text-primary-purple">FLAGS</b>（状态标志位：零位 ZF / 进位 CF / 溢出 OF / 符号 SF）。</span>
+          <span slot="en"><b>ALU (Arithmetic Logic Unit)</b> is the CPU's compute core, performing add, subtract, AND/OR/NOT, shifts, and comparisons. Modern CPUs have multiple ALUs for superscalar parallelism.<br><br>
+          The <b>register file</b> is the fastest storage inside the CPU: x86-64 has 16 GPRs (RAX/RBX/…/R15), ARM64 has 31 (X0–X30). Register access ≈ <b>0.3ns</b> (1 cycle) vs. memory ≈ <b>100ns</b> — a 300× gap, which is exactly why caches exist.<br><br>
+          Key special registers: <b class="text-func-amber">PC</b> (Program Counter, points to next instruction), <b class="text-primary-cyan">IR</b> (Instruction Register, holds current instruction), <b class="text-func-green">SP</b> (Stack Pointer), <b class="text-primary-purple">FLAGS</b> (status flags: Zero ZF / Carry CF / Overflow OF / Sign SF).</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">流水线冒险与解决</span><span slot="en">Pipeline Hazards & Solutions</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>数据冒险</b>：后一条指令需要前一条指令尚未写回的结果。解决：<b>前递/旁路</b>（Forwarding）——EX/MEM 阶段的结果直接旁路给后继指令的 EX 输入；若仍无法解决则<b>插入气泡</b>（Stall）。<br><b>控制冒险</b>：跳转指令的目标地址在 EX 阶段才确定，但 IF 已取了顺序地址的指令。解决：<b>分支预测</b>（猜测方向）+ <b>延迟分支</b>。<br><b>结构冒险</b>：多条指令争抢同一硬件资源（如 MEM 阶段访存与 IF 取指冲突）。解决：哈佛架构分离指令/数据 Cache。</span><span slot="en"><b>Data hazard</b>: a later instruction needs a result not yet written back. Fix: <b>forwarding/bypassing</b> — the EX/MEM result is routed directly to the next instruction's EX input; if still impossible, insert a <b>stall (bubble)</b>.<br><b>Control hazard</b>: the branch target is only known in EX, but IF already fetched sequential instructions. Fix: <b>branch prediction</b> (guess the direction) + <b>delayed branch</b>.<br><b>Structural hazard</b>: multiple instructions compete for the same hardware (e.g., MEM data access vs. IF instruction fetch). Fix: Harvard split I/D caches.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 流水线冒险检测器（简化伪代码）
+bool detect_hazard(int id_instr, int ex_instr) &#123;
+    // 数据冒险：ID 阶段需要 EX 阶段的目标寄存器
+    if (dest_reg[ex_instr] != 0 &amp;&amp;          // 前一条写寄存器
+        (src1_reg[id_instr] == dest_reg[ex_instr] ||
+         src2_reg[id_instr] == dest_reg[ex_instr])) &#123;
+        // 尝试前递（EX→EX），否则插入气泡
+        if (can_forward(ex_instr, id_instr))
+            forward(ex_instr, id_instr);  // 旁路
+        else
+            insert_bubble();              // 暂停一拍
+        return true;
+    &#125;
+    return false;
+&#125;
+
+// 分支预测器（2-bit 饱和计数器）
+int bht[256];  // Branch History Table
+bool predict(int pc) &#123;
+    return bht[pc &amp; 0xFF] &gt;= 2;  // 2~3 = 预测跳转
+&#125;
+void update(int pc, bool taken) &#123;
+    if (taken) bht[pc &amp; 0xFF] = min(3, bht[pc &amp; 0xFF] + 1);
+    else       bht[pc &amp; 0xFF] = max(0, bht[pc &amp; 0xFF] - 1);
+&#125;</code></pre>`}
+  py={`<pre><code># 流水线冒险检测器（简化伪代码）
+def detect_hazard(id_instr, ex_instr):
+    # 数据冒险：ID 阶段需要 EX 阶段的目标寄存器
+    if dest_reg[ex_instr] != 0 and (     # 前一条写寄存器
+        src1_reg[id_instr] == dest_reg[ex_instr] or
+        src2_reg[id_instr] == dest_reg[ex_instr]):
+        # 尝试前递（EX→EX），否则插入气泡
+        if can_forward(ex_instr, id_instr):
+            forward(ex_instr, id_instr)  # 旁路
+        else:
+            insert_bubble()              # 暂停一拍
+        return True
+    return False
+
+# 分支预测器（2-bit 饱和计数器）
+bht = [0] * 256  # Branch History Table
+
+def predict(pc):
+    return bht[pc & 0xFF] >= 2  # 2~3 = 预测跳转
+
+def update(pc, taken):
+    if taken:
+        bht[pc & 0xFF] = min(3, bht[pc & 0xFF] + 1)
+    else:
+        bht[pc & 0xFF] = max(0, bht[pc & 0xFF] - 1)</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">分支预测：赌对方向</span><span slot="en">Branch Prediction: Betting on the Right Path</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">现代 CPU 流水线深达 14-20 级，一旦遇到条件跳转，若等到 EX 阶段确定方向才取指，需<b>冲刷 (flush) 十几条已取指令</b>——代价极大。因此 CPU 在 IF 阶段就<b>预测</b>跳转方向：<br>
+          • <b>静态预测</b>：向前跳转不跳、向后跳转跳（循环回边总是跳）<br>
+          • <b>动态预测</b>：2-bit 饱和计数器、全局历史 (GHR)、TAGE 等预测器<br>
+          预测准确率可达 <b>95%+</b>；错误时冲刷流水线并从正确地址重新取指，损失约 15-20 周期。</span>
+          <span slot="en">Modern CPU pipelines are 14-20 stages deep. When a conditional branch is encountered, waiting until EX to know the direction means <b>flushing dozens of fetched instructions</b> — extremely costly. So the CPU <b>predicts</b> the branch direction already in IF:<br>
+          • <b>Static prediction</b>: forward branches not-taken, backward branches taken (loop back-edges always taken)<br>
+          • <b>Dynamic prediction</b>: 2-bit saturating counters, Global History Register (GHR), TAGE predictors<br>
+          Accuracy reaches <b>95%+</b>; on misprediction, the pipeline is flushed and refetch starts from the correct address, costing ~15-20 cycles.</span>
+        </Bilingual>
+      </p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 流水线五级动画 —— 多条指令逐周期推进
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('cpu-svg') as unknown as SVGSVGElement;
+  const stateEl = document.getElementById('cpu-state');
+
+  // 颜色
+  const COL = {
+    IF: '#FBBF24',   // amber
+    ID: '#22D3EE',   // cyan
+    EX: '#A78BFA',   // purple
+    MEM: '#22C55E',  // green
+    WB: '#60A5FA',   // blue
+    BUBBLE: 'rgba(148,163,184,0.12)',
+    BG: 'rgba(34,211,238,0.04)',
+    GRID: 'rgba(148,163,184,0.15)',
+    TXT: '#CBD5E1',
+    LBL: '#94A3B8',
+    HDR: '#22D3EE',
+  };
+  const STAGES = ['IF', 'ID', 'EX', 'MEM', 'WB'] as const;
+  type Stage = typeof STAGES[number];
+  const STAGE_COLOR: Record<Stage, string> = { IF: COL.IF, ID: COL.ID, EX: COL.EX, MEM: COL.MEM, WB: COL.WB };
+
+  // 指令列表
+  const INSTRS = ['ADD R1,R2,R3', 'SUB R4,R1,R5', 'LOAD R6,[R1]', 'MUL R7,R6,R4', 'STORE R7,[R2]'];
+  const NUM_INSTR = INSTRS.length;
+  // 每条指令需要 5 个周期走完 5 级，但流水线使得它们重叠
+  // 总周期数 = NUM_INSTR + 4 (流水线填满)
+  const TOTAL_CYCLES = NUM_INSTR + STAGES.length - 1;
+
+  // 布局
+  const CELL_W = 120, CELL_H = 44;
+  const X0 = 150, Y0 = 30;
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  // 计算第 instr 条指令在第 cycle 周期处于哪个阶段
+  function stageAt(instr: number, cycle: number): Stage | null {
+    const startCycle = instr; // 指令 i 在第 i 周期进入 IF
+    const offset = cycle - startCycle;
+    if (offset < 0 || offset >= STAGES.length) return null;
+    return STAGES[offset];
+  }
+
+  interface Frame { cycle: number; done: boolean; }
+
+  function buildFrames(): Frame[] {
+    const frames: Frame[] = [];
+    for (let c = 0; c < TOTAL_CYCLES; c++) {
+      frames.push({ cycle: c, done: c === TOTAL_CYCLES - 1 });
+    }
+    return frames;
+  }
+
+  function langText(key: string): string {
+    const l = lang();
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${l}"]`);
+    return el ? el.textContent || '' : '';
+  }
+
+  let curFrame: Frame | null = null;
+
+  function render(f: Frame | null) {
+    curFrame = f;
+    svg.innerHTML = '';
+    const curCycle = f ? f.cycle : -1;
+
+    // 列头（周期号）
+    for (let c = 0; c < TOTAL_CYCLES; c++) {
+      const x = X0 + c * CELL_W;
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(x + CELL_W / 2)); t.setAttribute('y', String(Y0 - 10));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '12'); t.setAttribute('fill', c <= curCycle ? COL.HDR : COL.LBL);
+      t.setAttribute('font-weight', '700'); t.setAttribute('font-family', 'monospace');
+      t.textContent = `C${c + 1}`;
+      svg.appendChild(t);
+    }
+
+    // 行头（指令）
+    for (let i = 0; i < NUM_INSTR; i++) {
+      const y = Y0 + i * CELL_H;
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(X0 - 12)); t.setAttribute('y', String(y + CELL_H / 2 + 4));
+      t.setAttribute('text-anchor', 'end'); t.setAttribute('font-size', '12'); t.setAttribute('fill', COL.TXT);
+      t.setAttribute('font-family', 'monospace');
+      t.textContent = `I${i + 1} ${INSTRS[i]}`;
+      svg.appendChild(t);
+    }
+
+    // 网格 + 阶段填色
+    for (let i = 0; i < NUM_INSTR; i++) {
+      for (let c = 0; c < TOTAL_CYCLES; c++) {
+        const x = X0 + c * CELL_W, y = Y0 + i * CELL_H;
+        const stage = stageAt(i, c);
+        const rect = document.createElementNS(SVGNS, 'rect');
+        rect.setAttribute('x', String(x)); rect.setAttribute('y', String(y));
+        rect.setAttribute('width', String(CELL_W)); rect.setAttribute('height', String(CELL_H));
+        rect.setAttribute('stroke', COL.GRID); rect.setAttribute('stroke-width', '1');
+
+        if (stage && c <= curCycle) {
+          // 已执行
+          rect.setAttribute('fill', STAGE_COLOR[stage] + '33');
+          rect.setAttribute('stroke', STAGE_COLOR[stage] + '88');
+          rect.setAttribute('stroke-width', c === curCycle ? '2' : '1');
+          // 阶段标签
+          const t = document.createElementNS(SVGNS, 'text');
+          t.setAttribute('x', String(x + CELL_W / 2)); t.setAttribute('y', String(y + CELL_H / 2 + 5));
+          t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '13'); t.setAttribute('fill', STAGE_COLOR[stage]);
+          t.setAttribute('font-weight', '700'); t.setAttribute('font-family', 'monospace');
+          t.textContent = stage;
+          svg.appendChild(t);
+          // 当前周期高亮
+          if (c === curCycle) {
+            const glow = document.createElementNS(SVGNS, 'rect');
+            glow.setAttribute('x', String(x + 1)); glow.setAttribute('y', String(y + 1));
+            glow.setAttribute('width', String(CELL_W - 2)); glow.setAttribute('height', String(CELL_H - 2));
+            glow.setAttribute('fill', 'none'); glow.setAttribute('stroke', STAGE_COLOR[stage]);
+            glow.setAttribute('stroke-width', '2.5'); glow.setAttribute('rx', '4');
+            svg.appendChild(glow);
+          }
+        } else {
+          rect.setAttribute('fill', COL.BG);
+        }
+        svg.appendChild(rect);
+      }
+    }
+
+    // 图例
+    const legendY = Y0 + NUM_INSTR * CELL_H + 25;
+    const stageLabels: [Stage, string][] = [
+      ['IF', 'Fetch'], ['ID', 'Decode'], ['EX', 'Execute'], ['MEM', 'Memory'], ['WB', 'WriteBack'],
+    ];
+    let lx = X0;
+    for (const [s, en] of stageLabels) {
+      const r = document.createElementNS(SVGNS, 'rect');
+      r.setAttribute('x', String(lx)); r.setAttribute('y', String(legendY));
+      r.setAttribute('width', '14'); r.setAttribute('height', '14'); r.setAttribute('rx', '3');
+      r.setAttribute('fill', STAGE_COLOR[s] + '55'); r.setAttribute('stroke', STAGE_COLOR[s]);
+      svg.appendChild(r);
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(lx + 20)); t.setAttribute('y', String(legendY + 12));
+      t.setAttribute('font-size', '12'); t.setAttribute('fill', COL.LBL); t.setAttribute('font-family', 'monospace');
+      t.textContent = `${s} ${en}`;
+      svg.appendChild(t);
+      lx += 130;
+    }
+
+    // 状态文案
+    if (stateEl && f) {
+      const l = lang();
+      if (f.done) {
+        stateEl.textContent = l === 'en' ? `Pipeline complete: ${NUM_INSTR} instrs in ${TOTAL_CYCLES} cycles (ideal: ${NUM_INSTR} cycles)` : `流水线完成：${NUM_INSTR} 条指令耗时 ${TOTAL_CYCLES} 周期（理想 ${NUM_INSTR} 周期）`;
+      } else {
+        const activeInstrs: string[] = [];
+        for (let i = 0; i < NUM_INSTR; i++) {
+          const s = stageAt(i, f.cycle);
+          if (s) activeInstrs.push(`I${i + 1}=${s}`);
+        }
+        stateEl.textContent = l === 'en' ? `Cycle ${f.cycle + 1}: ${activeInstrs.join(', ')}` : `周期 ${f.cycle + 1}：${activeInstrs.join(', ')}`;
+      }
+    }
+  }
+
+  let frames: Frame[] = [];
+  let idx = 0;
+  let timer: number | null = null;
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('cpu-play');
+    if (b) b.innerHTML = langText('play');
+  }
+  function rebuild() {
+    stop(); frames = buildFrames(); idx = 0; render(null); if (stateEl) stateEl.textContent = '';
+  }
+  function advance(): boolean {
+    if (idx < frames.length) { render(frames[idx]); idx++; return true; }
+    return false;
+  }
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('cpu-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 600);
+  }
+
+  document.getElementById('cpu-play')?.addEventListener('click', play);
+  document.getElementById('cpu-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('cpu-reset')?.addEventListener('click', rebuild);
+  document.addEventListener('langchange', () => { if (timer === null) { const b = document.getElementById('cpu-play'); if (b) b.innerHTML = langText('play'); } if (curFrame) render(curFrame); });
+  rebuild();
+</script>

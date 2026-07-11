@@ -1,0 +1,112 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Von Neumann Architecture · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Architecture / Von Neumann</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">冯·诺依曼架构</span><span slot="en">Von Neumann Architecture</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">1945 年冯·诺依曼提出<b>存储程序</b>概念：将<b>指令和数据以同等地位存储在同一内存</b>中，CPU 按周期自动取指、译码、执行。这一设计使计算机能通过修改内存中的程序来改变行为——"软件"由此诞生。</span>
+          <span slot="en">In 1945, John von Neumann proposed the <b>stored-program</b> concept: <b>instructions and data share the same memory</b> as equals, and the CPU automatically fetches, decodes, and executes in a cycle. This let computers change behavior by modifying memory — "software" was born.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">存储程序：核心思想</span><span slot="en">Stored Program: The Core Idea</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">早期的 ENIAC 靠<b>重新接线</b>来改变程序——每换一个任务需要数天重新配置。冯·诺依曼的关键洞察是：<b>指令本质上也是二进制数据</b>，可以像数据一样存入内存、被 CPU 读取。这样改变程序只需修改内存内容，无需改硬件。<br><br>
+          <b>取指-执行周期</b>（指令周期）：<br>
+          ① <b class="text-func-amber">取指 (Fetch)</b>：PC 寄存器指向下一条指令地址，CPU 从内存读取指令到指令寄存器 IR<br>
+          ② <b class="text-primary-cyan">译码 (Decode)</b>：控制单元解析操作码，确定要做什么<br>
+          ③ <b class="text-primary-purple">执行 (Execute)</b>：ALU 运算 / 访存 / 跳转<br>
+          ④ PC 自增（或被跳转指令修改），回到 ①</span>
+          <span slot="en">Early computers like ENIAC required <b>re-wiring</b> to change programs — days of reconfiguration per task. Von Neumann's key insight: <b>instructions are just binary data</b>, so they can be stored in memory and read by the CPU like any data. Changing the program now means editing memory, not hardware.<br><br>
+          <b>Fetch-Execute Cycle</b> (Instruction Cycle):<br>
+          ① <b class="text-func-amber">Fetch</b>: The PC register points to the next instruction; CPU reads it from memory into the Instruction Register (IR)<br>
+          ② <b class="text-primary-cyan">Decode</b>: The control unit parses the opcode to determine the operation<br>
+          ③ <b class="text-primary-purple">Execute</b>: ALU computes / memory access / branch<br>
+          ④ PC increments (or is modified by a branch), loop back to ①</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">指令与数据共享内存的取舍</span><span slot="en">Shared Memory: Trade-offs</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>优势</b>：结构统一简单，同一条总线即可取指又可取数；程序可作为数据被处理（编译器、自修改代码、JIT 即时编译都依赖此特性）。<br><b>代价——冯·诺依曼瓶颈</b>：CPU 与内存共享总线，<b>取指与取数不能同时进行</b>。随着 CPU 速度远超内存，总线成为性能瓶颈。此外，指令与数据混存也带来安全风险（缓冲区溢出注入攻击，催生 NX/DEP 防护）。</span><span slot="en"><b>Advantage</b>: a unified, simple structure — the same bus fetches instructions and data; programs can be treated as data (compilers, self-modifying code, and JIT compilation all rely on this).<br><b>Cost — the von Neumann bottleneck</b>: CPU and memory share a bus, so <b>instruction fetch and data access can't overlap</b>. As CPU speed outpaced memory, the bus became a performance bottleneck. Mixing instructions with data also creates security risks (buffer overflow injection attacks → NX/DEP protection).</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 模拟取指-执行周期（简化模型）
+// 内存中混合存放指令与数据
+struct CPU &#123;
+    uint8_t mem[256];   // 统一内存：指令 + 数据
+    uint8_t pc = 0;      // 程序计数器
+    uint8_t reg = 0;     // 通用寄存器
+
+    uint8_t fetch() &#123; return mem[pc++]; &#125;   // 取指，PC 自增
+
+    void run() &#123;
+        while (true) &#123;
+            uint8_t op = fetch();     // 1. 取指
+            switch (op &gt;&gt; 5) &#123;     // 2. 译码（高 3 位 = 操作码）
+                case 0: reg = mem[op &amp; 0x1F]; break;       // LOAD
+                case 1: mem[op &amp; 0x1F] = reg; break;      // STORE
+                case 2: reg += mem[op &amp; 0x1F]; break;    // ADD
+                case 7: pc = op &amp; 0x1F; break;            // JMP
+                default: return;                            // HALT
+            &#125;
+            // 3. 执行完毕，自动回到取指
+        &#125;
+    &#125;
+&#125;;</code></pre>`}
+  py={`<pre><code># 模拟取指-执行周期（简化模型）
+# 内存中混合存放指令与数据
+class CPU:
+    def __init__(self):
+        self.mem = [0] * 256   # 统一内存：指令 + 数据
+        self.pc = 0             # 程序计数器
+        self.reg = 0            # 通用寄存器
+
+    def fetch(self):
+        op = self.mem[self.pc]  # 1. 取指
+        self.pc += 1
+        return op
+
+    def run(self):
+        while True:
+            op = self.fetch()              # 1. 取指
+            opcode = op >> 5               # 2. 译码（高 3 位）
+            operand = op & 0x1F
+            if opcode == 0:   self.reg = self.mem[operand]    # LOAD
+            elif opcode == 1: self.mem[operand] = self.reg     # STORE
+            elif opcode == 2: self.reg += self.mem[operand]   # ADD
+            elif opcode == 7: self.pc = operand               # JMP
+            else: break                                       # HALT
+            # 3. 执行完毕，自动回到取指</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">冯·诺依曼 vs 哈佛架构</span><span slot="en">Von Neumann vs Harvard Architecture</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">特性</span><span slot="en">Feature</span></Bilingual></th><th class="py-2 pr-4">冯·诺依曼</th><th class="py-2 pr-4">哈佛</th><th class="py-2 pr-4"><Bilingual><span slot="zh">改进哈佛</span><span slot="en">Modified Harvard</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">指令/数据存储</td><td class="py-2 pr-4">共享内存</td><td class="py-2 pr-4">独立内存</td><td class="py-2 pr-4">主存共享，L1 分离</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">总线</td><td class="py-2 pr-4">单一总线</td><td class="py-2 pr-4">独立总线</td><td class="py-2 pr-4">L1 分离，外部统一</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">取指与取数</td><td class="py-2 pr-4 text-func-red">串行（瓶颈）</td><td class="py-2 pr-4 text-func-green">并行</td><td class="py-2 pr-4 text-func-green">L1 并行</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">自修改代码</td><td class="py-2 pr-4 text-func-green">容易</td><td class="py-2 pr-4 text-func-red">困难</td><td class="py-2 pr-4 text-func-amber">需要同步</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">硬件成本</td><td class="py-2 pr-4 text-func-green">低</td><td class="py-2 pr-4 text-func-red">高</td><td class="py-2 pr-4 text-func-amber">中</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">典型应用</td><td class="py-2 pr-4">通用计算机</td><td class="py-2 pr-4">DSP、单片机</td><td class="py-2 pr-4">现代 x86/ARM CPU</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>

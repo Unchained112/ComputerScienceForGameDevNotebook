@@ -1,0 +1,250 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Memory Hierarchy · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Architecture / Memory Hierarchy</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">存储层级</span><span slot="en">Memory Hierarchy</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">存储器面临三重矛盾：<b>速度 vs 容量 vs 成本</b>。没有任何单一存储能同时做到快、大、便宜。解决方案是<b>存储层级金字塔</b>——越往上层小而快，越往下层大而慢。点击下方各层查看延迟与容量。颜色：<b class="text-func-amber">黄=寄存器</b>、<b class="text-primary-cyan">青=Cache</b>、<b class="text-func-green">绿=RAM</b>、<b class="text-blue-400">蓝=磁盘/SSD</b>。</span>
+          <span slot="en">Memory faces a triple tension: <b>speed vs capacity vs cost</b>. No single storage can be fast, large, and cheap at once. The solution is the <b>memory hierarchy pyramid</b> — higher levels are smaller & faster, lower levels are larger & slower. Click each level below to see its latency and capacity. Colors: <b class="text-func-amber">amber=registers</b>, <b class="text-primary-cyan">cyan=cache</b>, <b class="text-func-green">green=RAM</b>, <b class="text-blue-400">blue=disk/SSD</b>.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5" data-viz="memory-hierarchy">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="mh-reg" class="btn"><span data-ui="reg" data-lang="zh">寄存器</span><span data-ui="reg" data-lang="en">Register</span></button>
+        <button id="mh-l1" class="btn"><span data-ui="l1" data-lang="zh">L1 Cache</span><span data-ui="l1" data-lang="en">L1 Cache</span></button>
+        <button id="mh-l2" class="btn"><span data-ui="l2" data-lang="zh">L2 Cache</span><span data-ui="l2" data-lang="en">L2 Cache</span></button>
+        <button id="mh-l3" class="btn"><span data-ui="l3" data-lang="zh">L3 Cache</span><span data-ui="l3" data-lang="en">L3 Cache</span></button>
+        <button id="mh-ram" class="btn"><span data-ui="ram" data-lang="zh">内存 RAM</span><span data-ui="ram" data-lang="en">RAM</span></button>
+        <button id="mh-ssd" class="btn"><span data-ui="ssd" data-lang="zh">SSD</span><span data-ui="ssd" data-lang="en">SSD</span></button>
+        <button id="mh-hdd" class="btn"><span data-ui="hdd" data-lang="zh">HDD</span><span data-ui="hdd" data-lang="en">HDD</span></button>
+        <span id="mh-state" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="mh-svg" viewBox="0 0 800 400" class="w-full h-96 viz-stage"></svg>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">局部性原理：Cache 有效的基础</span><span slot="en">Locality: Why Caches Work</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">程序访问内存具有<b>局部性</b>：<br>• <b>时间局部性</b>：刚被访问的地址很可能会被再次访问（如循环变量、热点数据）<br>• <b>空间局部性</b>：被访问地址附近的地址也很可能被访问（如数组顺序遍历）<br>局部性使少量 Cache 即能覆盖大部分内存访问——典型程序 L1 命中率可达 <b>95%+</b>。</span><span slot="en">Programs exhibit <b>locality</b> of memory access:<br>• <b>Temporal locality</b>: a recently accessed address is likely to be accessed again (e.g., loop variables, hot data)<br>• <b>Spatial locality</b>: addresses near a recently accessed address are likely to be accessed (e.g., sequential array traversal)<br>Locality means a small cache covers most memory accesses — typical programs achieve <b>95%+</b> L1 hit rate.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 缓存友好 vs 不友好：矩阵遍历
+const int N = 1024;
+int mat[N][N];  // 行主序：mat[i][0..N] 连续
+
+// ✅ 缓存友好：行优先遍历，利用空间局部性
+void row_first() &#123;
+    for (int i = 0; i &lt; N; i++)
+        for (int j = 0; j &lt; N; j++)
+            sum += mat[i][j];   // 连续访问 → Cache 命中
+&#125;
+
+// ❌ 缓存不友好：列优先遍历，每次跨一行
+void col_first() &#123;
+    for (int j = 0; j &lt; N; j++)
+        for (int i = 0; i &lt; N; i++)
+            sum += mat[i][j];   // 步长 N*sizeof(int) → Cache 频繁未命中
+&#125;
+// 行优先比列优先快 5-10 倍（L1 miss 代价 ~4ns vs 命中 ~0.3ns）</code></pre>`}
+  py={`<pre><code># 缓存友好 vs 不友好：矩阵遍历
+import numpy as np
+N = 1024
+mat = np.zeros((N, N), dtype=np.int32)  # 行主序
+
+# ✅ 缓存友好：行优先遍历
+def row_first(mat):
+    s = 0
+    for i in range(mat.shape[0]):
+        for j in range(mat.shape[1]):
+            s += mat[i, j]   # 连续访问 → Cache 命中
+    return s
+
+# ❌ 缓存不友好：列优先遍历
+def col_first(mat):
+    s = 0
+    for j in range(mat.shape[1]):
+        for i in range(mat.shape[0]):
+            s += mat[i, j]   # 步长大 → Cache 频繁未命中
+    return s
+# 行优先比列优先快 5-10 倍</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Cache 映射方式</span><span slot="en">Cache Mapping</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">CPU 访存时先将地址拆为 <code>Tag | Set/Index | Block Offset</code>，再在 Cache 中查找。三种映射方式：<b>直接映射</b>（每块只能去固定行，快但冲突多）、<b>全相联</b>（块可放任意行，冲突少但查找慢）、<b>组相联</b>（折中，N 路一组，组间直接映射组内全相联）。现代 L1 多为 8-way，L2/L3 为 12-16-way。</span><span slot="en">On a memory access, the CPU splits the address into <code>Tag | Set/Index | Block Offset</code> and looks it up in the cache. Three mapping schemes: <b>direct-mapped</b> (each block maps to one fixed line — fast but high conflict), <b>fully-associative</b> (block can go anywhere — few conflicts but slow lookup), <b>set-associative</b> (compromise: N-way per set, direct between sets, fully-associative within). Modern L1 is typically 8-way; L2/L3 are 12-16-way.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">层级</span><span slot="en">Level</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">容量</span><span slot="en">Capacity</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">延迟</span><span slot="en">Latency</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">成本</span><span slot="en">Cost</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">技术</span><span slot="en">Tech</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber">寄存器</td><td class="py-2 pr-4">~1 KB</td><td class="py-2 pr-4">~0.3 ns</td><td class="py-2 pr-4 text-func-red">最高</td><td class="py-2 pr-4">SRAM/触发器</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan">L1 Cache</td><td class="py-2 pr-4">32-64 KB</td><td class="py-2 pr-4">~1 ns</td><td class="py-2 pr-4 text-func-red">高</td><td class="py-2 pr-4">SRAM</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan">L2 Cache</td><td class="py-2 pr-4">256 KB-1 MB</td><td class="py-2 pr-4">~3 ns</td><td class="py-2 pr-4 text-func-amber">较高</td><td class="py-2 pr-4">SRAM</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan">L3 Cache</td><td class="py-2 pr-4">8-32 MB</td><td class="py-2 pr-4">~12 ns</td><td class="py-2 pr-4 text-func-amber">中</td><td class="py-2 pr-4">SRAM</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green">内存 RAM</td><td class="py-2 pr-4">8-64 GB</td><td class="py-2 pr-4">~100 ns</td><td class="py-2 pr-4 text-func-green">低</td><td class="py-2 pr-4">DRAM</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-blue-400">SSD</td><td class="py-2 pr-4">256 GB-2 TB</td><td class="py-2 pr-4">~100 μs</td><td class="py-2 pr-4 text-func-green">低</td><td class="py-2 pr-4">NAND Flash</td></tr>
+            <tr><td class="py-2 pr-4 text-blue-400">HDD</td><td class="py-2 pr-4">1-16 TB</td><td class="py-2 pr-4">~10 ms</td><td class="py-2 pr-4 text-func-green">最低</td><td class="py-2 pr-4">机械磁盘</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">虚拟内存：用磁盘扩展内存</span><span slot="en">Virtual Memory: Extending RAM with Disk</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">操作系统通过<b>虚拟内存</b>为每个进程提供独立的、连续的地址空间，实际物理内存可能不连续且远小于虚拟空间。核心机制是<b>分页 (Paging)</b>：<br>
+          • 虚拟地址空间被切成固定大小的<b>页</b>（通常 4 KB），物理内存切成等大的<b>页框</b><br>
+          • <b>页表</b>记录虚拟页→物理页框的映射，由 MMU（内存管理单元）查表翻译<br>
+          • 访问不在物理内存中的页时触发<b>缺页中断 (Page Fault)</b>，OS 从磁盘换入该页<br>
+          • <b>TLB</b>（Translation Lookaside Buffer）缓存页表项，避免每次访存都查页表<br>
+          这使得程序可用比物理内存更大的地址空间，代价是缺页时的大延迟（~10ms）。</span>
+          <span slot="en">The OS uses <b>virtual memory</b> to give each process an independent, contiguous address space, while physical RAM may be fragmented and much smaller. The core mechanism is <b>paging</b>:<br>
+          • The virtual address space is split into fixed-size <b>pages</b> (typically 4 KB); physical RAM is split into equal <b>frames</b><br>
+          • The <b>page table</b> maps virtual pages → physical frames; the MMU (Memory Management Unit) does the lookup<br>
+          • Accessing a page not in RAM triggers a <b>page fault</b>; the OS swaps it in from disk<br>
+          • The <b>TLB</b> (Translation Lookaside Buffer) caches page table entries to avoid a table walk on every access<br>
+          This lets programs use an address space larger than physical RAM, at the cost of ~10ms latency on page faults.</span>
+        </Bilingual>
+      </p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 存储金字塔 —— 点击各层高亮并显示详情
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('mh-svg') as unknown as SVGSVGElement;
+  const stateEl = document.getElementById('mh-state');
+
+  type LayerId = 'reg' | 'l1' | 'l2' | 'l3' | 'ram' | 'ssd' | 'hdd';
+  interface Layer {
+    id: LayerId; zh: string; en: string; color: string;
+    latency: string; capacity: string;
+    zh_desc: string; en_desc: string;
+  }
+  const LAYERS: Layer[] = [
+    { id: 'reg', zh: '寄存器', en: 'Register', color: '#FBBF24', latency: '~0.3 ns', capacity: '~1 KB',
+      zh_desc: 'CPU 内部最快的存储，直接参与 ALU 运算。x86-64 有 16 个通用寄存器。', en_desc: 'Fastest storage inside the CPU, directly feeding the ALU. x86-64 has 16 GPRs.' },
+    { id: 'l1', zh: 'L1 Cache', en: 'L1 Cache', color: '#22D3EE', latency: '~1 ns', capacity: '32-64 KB',
+      zh_desc: '分指令 Cache (L1I) 和数据 Cache (L1D)，每核独享，8-way 组相联。', en_desc: 'Split into instruction (L1I) and data (L1D) caches, per-core private, 8-way set-associative.' },
+    { id: 'l2', zh: 'L2 Cache', en: 'L2 Cache', color: '#22D3EE', latency: '~3 ns', capacity: '256 KB-1 MB',
+      zh_desc: '每核或每簇共享，补充 L1 容量不足，统一缓存指令和数据。', en_desc: 'Per-core or per-cluster shared, supplements L1 capacity, unified I/D cache.' },
+    { id: 'l3', zh: 'L3 Cache', en: 'L3 Cache', color: '#22D3EE', latency: '~12 ns', capacity: '8-32 MB',
+      zh_desc: '全核共享的最后一级缓存 (LLC)，多核间数据共享通过 L3 完成。', en_desc: 'Shared Last-Level Cache (LLC) across all cores; inter-core data sharing happens here.' },
+    { id: 'ram', zh: '内存 RAM', en: 'RAM', color: '#22C55E', latency: '~100 ns', capacity: '8-64 GB',
+      zh_desc: 'DRAM 主存，存放运行中程序的指令与数据。断电即丢失。', en_desc: 'DRAM main memory, holds instructions and data of running programs. Volatile.' },
+    { id: 'ssd', zh: 'SSD', en: 'SSD', color: '#60A5FA', latency: '~100 μs', capacity: '256 GB-2 TB',
+      zh_desc: 'NAND Flash 固态盘，无机械结构，随机读写远快于 HDD。', en_desc: 'NAND Flash solid-state drive, no moving parts, far faster random R/W than HDD.' },
+    { id: 'hdd', zh: 'HDD', en: 'HDD', color: '#60A5FA', latency: '~10 ms', capacity: '1-16 TB',
+      zh_desc: '机械磁盘，磁性盘片+磁头，容量大但随机寻道慢，用于大容量存储。', en_desc: 'Mechanical disk, magnetic platters + head; high capacity but slow random seek, for bulk storage.' },
+  ];
+  const LAYER_IDS = LAYERS.map(l => l.id);
+
+  const COL_BG = 'rgba(34,211,238,0.05)', COL_BORDER = 'rgba(148,163,184,0.3)', COL_TXT = '#CBD5E1', COL_LBL = '#94A3B8';
+
+  let active: LayerId = 'reg';
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  function render() {
+    svg.innerHTML = '';
+    const cx = 400, topY = 20, bottomY = 340;
+    const layerH = (bottomY - topY) / LAYERS.length;
+    const maxW = 500, minW = 80;
+
+    for (let i = 0; i < LAYERS.length; i++) {
+      const layer = LAYERS[i];
+      const y = topY + i * layerH;
+      // 梯形宽度：越往下越宽
+      const wTop = minW + (maxW - minW) * (i / LAYERS.length);
+      const wBot = minW + (maxW - minW) * ((i + 1) / LAYERS.length);
+      const isActive = layer.id === active;
+
+      const poly = document.createElementNS(SVGNS, 'polygon');
+      const pts = [
+        [cx - wTop / 2, y], [cx + wTop / 2, y],
+        [cx + wBot / 2, y + layerH], [cx - wBot / 2, y + layerH],
+      ].map(p => p.join(',')).join(' ');
+      poly.setAttribute('points', pts);
+      poly.setAttribute('fill', isActive ? layer.color + '44' : COL_BG);
+      poly.setAttribute('stroke', isActive ? layer.color : COL_BORDER);
+      poly.setAttribute('stroke-width', isActive ? '2.5' : '1.5');
+      poly.style.cursor = 'pointer';
+      poly.dataset.layer = layer.id;
+      svg.appendChild(poly);
+
+      // 标签
+      const label = document.createElementNS(SVGNS, 'text');
+      label.setAttribute('x', String(cx)); label.setAttribute('y', String(y + layerH / 2 + 4));
+      label.setAttribute('text-anchor', 'middle'); label.setAttribute('font-size', '13');
+      label.setAttribute('fill', isActive ? layer.color : COL_TXT);
+      label.setAttribute('font-weight', '700');
+      label.textContent = lang() === 'en' ? layer.en : layer.zh;
+      label.style.pointerEvents = 'none';
+      svg.appendChild(label);
+
+      // 右侧延迟标注
+      const lat = document.createElementNS(SVGNS, 'text');
+      lat.setAttribute('x', String(cx + wBot / 2 + 20)); lat.setAttribute('y', String(y + layerH / 2 + 4));
+      lat.setAttribute('font-size', '11'); lat.setAttribute('fill', COL_LBL);
+      lat.setAttribute('font-family', 'monospace');
+      lat.textContent = layer.latency;
+      svg.appendChild(lat);
+
+      // 左侧容量标注
+      const cap = document.createElementNS(SVGNS, 'text');
+      cap.setAttribute('x', String(cx - wBot / 2 - 20)); cap.setAttribute('y', String(y + layerH / 2 + 4));
+      cap.setAttribute('text-anchor', 'end'); cap.setAttribute('font-size', '11'); cap.setAttribute('fill', COL_LBL);
+      cap.setAttribute('font-family', 'monospace');
+      cap.textContent = layer.capacity;
+      svg.appendChild(cap);
+    }
+
+    // 左侧标注：容量↑
+    const capLabel = document.createElementNS(SVGNS, 'text');
+    capLabel.setAttribute('x', '30'); capLabel.setAttribute('y', '30');
+    capLabel.setAttribute('font-size', '12'); capLabel.setAttribute('fill', COL_LBL);
+    capLabel.textContent = lang() === 'en' ? '← Capacity' : '← 容量';
+    svg.appendChild(capLabel);
+    const capArrow = document.createElementNS(SVGNS, 'text');
+    capArrow.setAttribute('x', '30'); capArrow.setAttribute('y', '340');
+    capArrow.setAttribute('font-size', '12'); capArrow.setAttribute('fill', COL_LBL);
+    capArrow.textContent = lang() === 'en' ? '   grows →' : '   增大 →';
+    svg.appendChild(capArrow);
+
+    // 右侧标注：延迟↓
+    const latLabel = document.createElementNS(SVGNS, 'text');
+    latLabel.setAttribute('x', '700'); latLabel.setAttribute('y', '30');
+    latLabel.setAttribute('font-size', '12'); latLabel.setAttribute('fill', COL_LBL);
+    latLabel.textContent = lang() === 'en' ? 'Latency ↓' : '延迟 ↓';
+    svg.appendChild(latLabel);
+
+    // 底部详情
+    const activeLayer = LAYERS.find(l => l.id === active)!;
+    if (stateEl) {
+      const l = lang();
+      const desc = l === 'en' ? activeLayer.en_desc : activeLayer.zh_desc;
+      stateEl.textContent = `${l === 'en' ? activeLayer.en : activeLayer.zh} | ${activeLayer.latency} | ${activeLayer.capacity} — ${desc}`;
+    }
+  }
+
+  svg.addEventListener('click', (e) => {
+    const target = e.target as SVGElement;
+    const layer = target.dataset?.layer as LayerId | undefined;
+    if (layer) { active = layer; render(); }
+  });
+  for (const id of LAYER_IDS) {
+    document.getElementById('mh-' + id)?.addEventListener('click', () => { active = id; render(); });
+  }
+  document.addEventListener('langchange', () => render());
+  render();
+</script>

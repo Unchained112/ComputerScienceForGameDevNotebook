@@ -1,0 +1,150 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="GPU Architecture · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Architecture / GPU</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">GPU 架构（与图形学关联）</span><span slot="en">GPU Architecture (Graphics Connection)</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">GPU（图形处理器）专为<b>大规模并行计算</b>而生。与 CPU 追求低延迟单线程性能不同，GPU 追求<b>高吞吐量</b>——用数千个轻量核心同时处理海量数据。这使得 GPU 在图形渲染、深度学习、物理模拟等领域无可替代。</span>
+          <span slot="en">The GPU (Graphics Processing Unit) is designed for <b>massive parallel computation</b>. Unlike the CPU, which pursues low-latency single-thread performance, the GPU pursues <b>high throughput</b> — thousands of lightweight cores processing vast data simultaneously. This makes GPUs irreplaceable in graphics rendering, deep learning, and physics simulation.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">SIMD vs SIMT：并行执行模型</span><span slot="en">SIMD vs SIMT: Parallel Execution Models</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh"><b>SIMD（单指令多数据）</b>：CPU 的向量指令（如 x86 AVX、ARM NEON）属于 SIMD——一条指令同时对一组数据做相同操作。例如 <code>AVX-512</code> 一条指令可同时处理 16 个 32 位浮点数。程序员需手动将数据打包成向量。<br><br>
+          <b>SIMT（单指令多线程）</b>：NVIDIA GPU 独创的执行模型——一条指令控制<b>一组线程 (Warp，32 线程)</b>同时执行相同操作，但每个线程有自己的寄存器和程序计数器。SIMT 对程序员更友好——写一份串行代码，GPU 自动并行到数千线程。当 warp 内线程的控制流分叉 (divergence) 时，不同分支串行执行，导致性能下降。<br><br>
+          AMD GPU 则使用 <b>Wavefront</b>（64 线程）作为类似概念。</span>
+          <span slot="en"><b>SIMD (Single Instruction, Multiple Data)</b>: CPU vector instructions (x86 AVX, ARM NEON) are SIMD — one instruction operates on a group of data simultaneously. E.g., <code>AVX-512</code> processes 16 × 32-bit floats in one instruction. The programmer manually packs data into vectors.<br><br>
+          <b>SIMT (Single Instruction, Multiple Threads)</b>: NVIDIA's GPU execution model — one instruction controls a <b>group of threads (Warp, 32 threads)</b> executing the same operation, but each thread has its own registers and PC. SIMT is more programmer-friendly — write serial code, the GPU parallelizes it to thousands of threads. When threads within a warp diverge (control flow branches), different paths execute serially, degrading performance.<br><br>
+          AMD GPUs use <b>Wavefront</b> (64 threads) as the analogous concept.</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">CPU vs GPU 架构对比</span><span slot="en">CPU vs GPU Architecture</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">特性</span><span slot="en">Feature</span></Bilingual></th><th class="py-2 pr-4">CPU</th><th class="py-2 pr-4">GPU</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">核心数量</td><td class="py-2 pr-4">8-32 个复杂核心</td><td class="py-2 pr-4">数千-数万轻量核心</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">单核性能</td><td class="py-2 pr-4 text-func-green">高（深流水线+推测执行）</td><td class="py-2 pr-4 text-func-red">低（简单流水线）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">并行模型</td><td class="py-2 pr-4">MIMD（多指令多数据）</td><td class="py-2 pr-4">SIMT/SIMD</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">Cache 占比</td><td class="py-2 pr-4 text-func-green">大（~30-50% 面积）</td><td class="py-2 pr-4 text-func-red">小（~10% 面积）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">控制单元</td><td class="py-2 pr-4 text-func-green">复杂（分支预测+乱序）</td><td class="py-2 pr-4 text-func-red">简单（顺序执行）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">内存带宽</td><td class="py-2 pr-4">~50 GB/s (DDR)</td><td class="py-2 pr-4 text-func-green">~1 TB/s (HBM/GDDR)</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">延迟 vs 吞吐</td><td class="py-2 pr-4 text-func-green">低延迟</td><td class="py-2 pr-4 text-func-green">高吞吐</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">擅长任务</td><td class="py-2 pr-4">逻辑控制、串行计算</td><td class="py-2 pr-4">图形渲染、矩阵运算</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Warp 调度与分支发散</span><span slot="en">Warp Scheduling & Branch Divergence</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">GPU 将线程按 32 个一组打包为 <b>Warp</b>（NVIDIA 术语），Warp 是 GPU 的最小调度单位——同一条指令对 Warp 内 32 个线程同时执行。若 Warp 内线程走了不同分支（如 <code>if (threadIdx % 2 == 0)</code>），则发生<b>分支发散</b>：GPU 串行执行各分支，其余线程空转，性能减半。<br><br>
+      <b>内存合并访问</b>：当 Warp 内 32 个线程访问连续内存地址时，GPU 可合并为一次大事务（coalesced）；若地址分散则需多次事务，带宽骤降。因此 GPU 编程要求数据布局对齐且连续。</span><span slot="en">The GPU groups threads into bundles of 32 called a <b>Warp</b> (NVIDIA terminology) — the minimum scheduling unit. The same instruction executes on all 32 threads in the warp simultaneously. If threads within a warp take different branches (e.g., <code>if (threadIdx % 2 == 0)</code>), <b>branch divergence</b> occurs: the GPU serially executes each path while the other threads idle, halving performance.<br><br>
+      <b>Memory coalescing</b>: when 32 threads in a warp access contiguous memory addresses, the GPU can coalesce them into one large transaction; scattered addresses require multiple transactions, slashing bandwidth. GPU programming thus demands aligned, contiguous data layouts.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// ===== CUDA Kernel: 向量加法（SIMT 模型）=====
+// 一份代码 → GPU 启动数千个线程并行执行
+__global__ void vector_add(float* A, float* B, float* C, int n) &#123;
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i &lt; n)
+        C[i] = A[i] + B[i];   // 每个线程处理一个元素
+    // 同一 Warp 内 32 个线程同时执行此行
+&#125;
+
+// 主机端启动 kernel
+int n = 1 &lt;&lt; 20;
+int threads = 256;
+int blocks = (n + threads - 1) / threads;
+vector_add&lt;&lt;&lt;blocks, threads&gt;&gt;&gt;(d_A, d_B, d_C, n);
+// 启动 blocks × threads = ~4M 个线程
+
+// ===== 分支发散示例（性能陷阱）=====
+__global__ void divergent(int* data, int n) &#123;
+    int i = threadIdx.x;
+    if (i % 2 == 0)
+        data[i] *= 2;    // 偶数线程走这
+    else
+        data[i] += 1;    // 奇数线程走这
+    // ❌ 同一 Warp 内奇偶线程分叉 → 串行执行，性能减半
+&#125;
+
+// 修复：重排数据使 Warp 内无分叉
+__global__ void coalesced(int* data, int n) &#123;
+    int i = threadIdx.x;
+    data[i] = (i % 2 == 0) ? data[i] * 2 : data[i] + 1;
+    // ✅ 无分支，用三元运算符避免控制流发散
+&#125;</code></pre>`}
+  py={`<pre><code># ===== GPU 编程模拟（NumPy 向量化 = SIMD 思想）=====
+import numpy as np
+
+# CPU 串行版本
+def vector_add_cpu(a, b):
+    c = np.zeros_like(a)
+    for i in range(len(a)):
+        c[i] = a[i] + b[i]    # 逐元素，一次一个
+    return c
+
+# GPU/向量化版本（NumPy 底层调用 SIMD）
+def vector_add_vec(a, b):
+    return a + b               # 一条指令处理全部元素
+
+# 性能对比
+n = 10_000_000
+a = np.random.rand(n).astype(np.float32)
+b = np.random.rand(n).astype(np.float32)
+
+# 串行：~3s   向量化：~0.01s   加速 ~300×
+
+# ===== 分支发散模拟 =====
+def divergent(data):
+    # ❌ 条件分支阻止向量化
+    for i in range(len(data)):
+        if i % 2 == 0:
+            data[i] *= 2
+        else:
+            data[i] += 1
+
+def coalesced(data):
+    # ✅ 无分支，可完全向量化
+    mask = np.arange(len(data)) % 2 == 0
+    data[mask] *= 2
+    data[~mask] += 1</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">GPU 与图形渲染管线</span><span slot="en">GPU & the Graphics Pipeline</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">GPU 的诞生正是为了加速 <b>3D 图形渲染管线</b>。在图形管线中，每个三角形顶点需要经过<b>顶点着色器</b>变换，每个像素需要经过<b>片元着色器</b>计算颜色——这两者都是"对大量独立元素做相同运算"的典型场景，完美匹配 SIMT 模型。<br><br>
+          • <b>顶点阶段</b>：每个顶点独立做 MVP 变换 → Warp 并行处理顶点<br>
+          • <b>光栅化</b>：三角形转为像素片段<br>
+          • <b>片元阶段</b>：每个像素独立做光照计算 → Warp 并行处理像素<br>
+          • 现代 GPU 还支持 <b>Compute Shader</b>，将通用计算（物理、AI）直接跑在 GPU 上，不经过图形管线<br><br>
+          更多渲染管线细节请参阅 <a class="text-primary-cyan underline" href="/graphics/render">3D 渲染管线可视化页</a>。</span>
+          <span slot="en">The GPU was born to accelerate the <b>3D graphics pipeline</b>. In the pipeline, each triangle vertex passes through the <b>vertex shader</b> for transformation, and each pixel passes through the <b>fragment shader</b> for color — both are classic "same operation on many independent elements" patterns, perfectly matching the SIMT model.<br><br>
+          • <b>Vertex stage</b>: each vertex independently undergoes MVP transform → warps process vertices in parallel<br>
+          • <b>Rasterization</b>: triangles converted to pixel fragments<br>
+          • <b>Fragment stage</b>: each pixel independently computes lighting → warps process pixels in parallel<br>
+          • Modern GPUs also support <b>Compute Shaders</b> for general-purpose compute (physics, AI) without going through the graphics pipeline<br><br>
+          For more on the render pipeline, see the <a class="text-primary-cyan underline" href="/graphics/render">3D Render Pipeline visualizer</a>.</span>
+        </Bilingual>
+      </p>
+    </section>
+  </article>
+</BaseLayout>
