@@ -1,0 +1,398 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="DNS · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Networks / DNS</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">DNS（域名系统）</span><span slot="en">DNS (Domain Name System)</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh"><b>DNS</b>（域名系统）是互联网的"电话簿"——将人类可读的域名（<code>game.example.com</code>）翻译为 IP 地址（<code>93.184.216.34</code>）。DNS 采用<b>分层分布式</b>架构：根服务器 → 顶级域（TLD）服务器 → 权威服务器。下方动画展示一次完整的<b>递归查询</b>流程。</span>
+          <span slot="en"><b>DNS</b> (Domain Name System) is the internet's "phonebook" — translating human-readable domain names (<code>game.example.com</code>) into IP addresses (<code>93.184.216.34</code>). DNS uses a <b>hierarchical distributed</b> architecture: Root servers → Top-Level Domain (TLD) servers → Authoritative servers. The animation below shows a full <b>recursive query</b> flow.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：DNS 递归解析动画 -->
+    <div class="glass p-5" data-viz="dns-resolve">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="dns-play" class="btn btn-primary">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+          <span data-ui="pause" data-lang="zh" class="hidden">暂停</span><span data-ui="pause" data-lang="en" class="hidden">Pause</span>
+        </button>
+        <button id="dns-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+        <button id="dns-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+        <span id="dns-state" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="dns-svg" viewBox="0 0 800 420" class="w-full h-96 viz-stage"></svg>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">递归查询 vs 迭代查询</span><span slot="en">Recursive vs Iterative Query</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">DNS 查询有两种模式：<br>
+          <b class="text-primary-cyan">递归查询（Recursive）</b>：客户端只问一次本地 DNS 服务器，由本地 DNS 服务器<b>代替客户端</b>逐级向上查询（根→TLD→权威），最终返回结果。大多数用户终端使用这种模式。<br>
+          <b class="text-func-amber">迭代查询（Iterative）</b>：每级 DNS 服务器不替你查，而是告诉你「下一级去问谁」。本地 DNS 服务器向根服务器发起的就是迭代查询——根服务器返回 TLD 地址，本地 DNS 再自己去问 TLD。<br><br>
+          实际中是<b>混合模式</b>：客户端→本地 DNS（递归），本地 DNS→根/TLD/权威（迭代）。</span>
+          <span slot="en">DNS queries have two modes:<br>
+          <b class="text-primary-cyan">Recursive Query</b>: The client asks the local DNS resolver once, and the resolver <b>queries on the client's behalf</b> up the hierarchy (root→TLD→authoritative), returning the final result. Most user devices use this mode.<br>
+          <b class="text-func-amber">Iterative Query</b>: Each DNS server doesn't query for you — it tells you "who to ask next." The local DNS resolver's queries to root servers are iterative — root returns TLD address, and the resolver asks TLD itself.<br><br>
+          In practice it's <b>hybrid</b>: client→local DNS (recursive), local DNS→root/TLD/authoritative (iterative).</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">DNS 记录类型</span><span slot="en">DNS Record Types</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">DNS 不仅是域名→IP 的映射，还存储多种记录类型。游戏场景中，<b class="text-primary-cyan">SRV</b> 记录用于指定游戏服务器端口（非标准端口），<b class="text-func-amber">CNAME</b> 用于 CDN 别名。</span><span slot="en">DNS isn't just domain→IP; it stores multiple record types. In games, <b class="text-primary-cyan">SRV</b> specifies game server ports (non-standard), and <b class="text-func-amber">CNAME</b> is used for CDN aliases.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">类型</span><span slot="en">Type</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">全称</span><span slot="en">Full Name</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">作用</span><span slot="en">Purpose</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">示例</span><span slot="en">Example</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green font-mono">A</td><td class="py-2 pr-4">Address</td><td class="py-2 pr-4"><Bilingual><span slot="zh">域名 → IPv4 地址</span><span slot="en">Domain → IPv4</span></Bilingual></td><td class="py-2 pr-4 font-mono text-xs">game.com → 93.184.216.34</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green font-mono">AAAA</td><td class="py-2 pr-4">IPv6 Address</td><td class="py-2 pr-4"><Bilingual><span slot="zh">域名 → IPv6 地址</span><span slot="en">Domain → IPv6</span></Bilingual></td><td class="py-2 pr-4 font-mono text-xs">game.com → 2606:2800::</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber font-mono">CNAME</td><td class="py-2 pr-4">Canonical Name</td><td class="py-2 pr-4"><Bilingual><span slot="zh">域名别名（指向另一域名）</span><span slot="en">Alias to another domain</span></Bilingual></td><td class="py-2 pr-4 font-mono text-xs">cdn.game.com → game.cdn.net</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple font-mono">MX</td><td class="py-2 pr-4">Mail Exchange</td><td class="py-2 pr-4"><Bilingual><span slot="zh">邮件服务器</span><span slot="en">Mail server</span></Bilingual></td><td class="py-2 pr-4 font-mono text-xs">game.com MX → mail.game.com</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan font-mono">SRV</td><td class="py-2 pr-4">Service</td><td class="py-2 pr-4"><Bilingual><span slot="zh">指定服务端口和主机</span><span slot="en">Service host + port</span></Bilingual></td><td class="py-2 pr-4 font-mono text-xs">_minecraft._tcp → host:25565</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-red font-mono">TXT</td><td class="py-2 pr-4">Text</td><td class="py-2 pr-4"><Bilingual><span slot="zh">任意文本（验证/SPF）</span><span slot="en">Arbitrary text</span></Bilingual></td><td class="py-2 pr-4 font-mono text-xs">v=spf1 include:_spf.game.com</td></tr>
+            <tr><td class="py-2 pr-4 text-func-amber font-mono">NS</td><td class="py-2 pr-4">Name Server</td><td class="py-2 pr-4"><Bilingual><span slot="zh">指定权威 DNS 服务器</span><span slot="en">Authoritative NS</span></Bilingual></td><td class="py-2 pr-4 font-mono text-xs">game.com NS → ns1.game.com</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">DNS 层级结构</span><span slot="en">DNS Hierarchy</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">DNS 域名从右到左层级递增：<br>
+          <code>game.example.com.</code> 的解析层级：<br>
+          ① <b class="text-func-red">根域（.）</b>：全球 13 组根服务器（A-M），管理顶级域<br>
+          ② <b class="text-func-amber">顶级域（.com）</b>：管理 .com 下的所有二级域名<br>
+          ③ <b class="text-primary-cyan">二级域（example.com）</b>：由域名注册商管理<br>
+          ④ <b class="text-func-green">子域（game.example.com）</b>：由组织自己的 DNS 服务器管理<br><br>
+          域名末尾的 <code>.</code> 代表根域，通常省略但实际存在。完整的域名叫<b>FQDN</b>（Fully Qualified Domain Name）。</span>
+          <span slot="en">DNS domains increase in hierarchy from right to left:<br>
+          Resolving <code>game.example.com.</code>:<br>
+          ① <b class="text-func-red">Root (.)</b>: 13 root server clusters (A-M), manages TLDs<br>
+          ② <b class="text-func-amber">TLD (.com)</b>: manages all second-level domains under .com<br>
+          ③ <b class="text-primary-cyan">Second-level (example.com)</b>: managed by domain registrar<br>
+          ④ <b class="text-func-green">Subdomain (game.example.com)</b>: managed by the org's own DNS servers<br><br>
+          The trailing <code>.</code> represents the root, usually omitted but implied. The full form is called <b>FQDN</b> (Fully Qualified Domain Name).</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">DNS 缓存与 TTL</span><span slot="en">DNS Caching & TTL</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">DNS 查询很慢（可能多次往返），因此每级都有<b>缓存</b>：<br>
+          • <b class="text-func-green">浏览器缓存</b>：Chrome/Firefox 内置 DNS 缓存（~60s）<br>
+          • <b class="text-primary-cyan">操作系统缓存</b>：OS 级 DNS 缓存（Windows: DNS Client 服务）<br>
+          • <b class="text-func-amber">本地 DNS 服务器缓存</b>：ISP/企业 DNS 缓存<br>
+          • <b class="text-func-red">各级 DNS 服务器缓存</b>：根/TLD/权威均可缓存<br><br>
+          每条记录的 <b>TTL（Time To Live）</b>决定缓存时长。游戏服务器迁移 IP 时，需<b>提前降低 TTL</b>（如从 86400s → 300s），等待旧 TTL 过期后再切换，避免旧 IP 被缓存导致玩家连不上。</span>
+          <span slot="en">DNS queries are slow (potentially multiple round trips), so every level has <b>caching</b>:<br>
+          • <b class="text-func-green">Browser cache</b>: Chrome/Firefox built-in DNS cache (~60s)<br>
+          • <b class="text-primary-cyan">OS cache</b>: OS-level DNS cache (Windows: DNS Client service)<br>
+          • <b class="text-func-amber">Local DNS resolver cache</b>: ISP/enterprise DNS cache<br>
+          • <b class="text-func-red">Server caches</b>: Root/TLD/authoritative all cache<br><br>
+          Each record's <b>TTL (Time To Live)</b> determines cache duration. When migrating a game server's IP, <b>lower TTL in advance</b> (e.g., 86400s → 300s), wait for old TTL to expire, then switch — preventing players from connecting to the old cached IP.</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">DNS 查询代码示例</span><span slot="en">DNS Query Code Example</span></Bilingual></h2>
+      <CodeTabs
+  cpp={`<pre><code>// C++ DNS 查询（使用 getaddrinfo）
+#include &lt;netdb.h&gt;
+#include &lt;arpa/inet.h&gt;
+
+// 查询 game.example.com 的 A 记录
+addrinfo hints = &#123;&#125;;
+hints.ai_family = AF_INET;       // IPv4
+hints.ai_socktype = SOCK_STREAM; // TCP
+
+addrinfo* result = nullptr;
+int ret = getaddrinfo("game.example.com", "8080", &amp;hints, &amp;result);
+if (ret == 0) &#123;
+    for (auto* p = result; p; p = p-&gt;ai_next) &#123;
+        char ip[INET_ADDRSTRLEN];
+        sockaddr_in* addr = (sockaddr_in*)p-&gt;ai_addr;
+        inet_ntop(AF_INET, &amp;addr-&gt;sin_addr, ip, sizeof(ip));
+        printf("IP: %s Port: %d\n", ip, ntohs(addr-&gt;sin_port));
+        // 输出: IP: 93.184.216.34 Port: 8080
+    &#125;
+    freeaddrinfo(result);
+&#125;
+// getaddrinfo 内部已处理缓存和递归查询</code></pre>`}
+  py={`<pre><code># Python DNS 查询
+import socket
+
+# 方法1: 标准库（系统调用）
+ip = socket.gethostbyname("game.example.com")
+print(f"IP: {ip}")  # IP: 93.184.216.34
+
+# 方法2: dnspython 库（可查任意记录类型）
+# pip install dnspython
+import dns.resolver
+
+# 查询 A 记录（IPv4）
+answers = dns.resolver.resolve("game.example.com", "A")
+for rdata in answers:
+    print(f"A: {rdata.address}")
+
+# 查询 SRV 记录（游戏服务器定位）
+# _minecraft._tcp.game.example.com SRV → host:25565
+srv_answers = dns.resolver.resolve(
+    "_minecraft._tcp.game.example.com", "SRV")
+for rdata in srv_answers:
+    print(f"SRV: {rdata.target}:{rdata.port} "
+          f"priority={rdata.priority} weight={rdata.weight}")
+
+# 查询 CNAME（CDN 别名）
+cname_answers = dns.resolver.resolve("cdn.game.example.com", "CNAME")
+for rdata in cname_answers:
+    print(f"CNAME: {rdata.target}")</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">DNS 安全与游戏场景</span><span slot="en">DNS Security & Game Scenarios</span></Bilingual></h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+        <div class="p-3 rounded-lg bg-[color:var(--glass-bg)] border border-[color:var(--glass-border)]">
+          <p class="text-func-red font-semibold mb-1"><Bilingual><span slot="zh">DNS 劫持</span><span slot="en">DNS Hijacking</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">篡改 DNS 响应，将玩家引导到钓鱼服务器。防御：DNSSEC、DoH/DoT 加密。</span><span slot="en">Tampering with DNS responses to redirect players to phishing servers. Defense: DNSSEC, DoH/DoT encryption.</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg bg-[color:var(--glass-bg)] border border-[color:var(--glass-border)]">
+          <p class="text-func-amber font-semibold mb-1"><Bilingual><span slot="zh">DNSSEC</span><span slot="en">DNSSEC</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">数字签名验证 DNS 响应真实性，防止篡改。游戏登录服务应启用。</span><span slot="en">Digitally signs DNS responses to verify authenticity. Game login services should enable it.</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg bg-[color:var(--glass-bg)] border border-[color:var(--glass-border)]">
+          <p class="text-primary-cyan font-semibold mb-1"><Bilingual><span slot="zh">DoH / DoT</span><span slot="en">DoH / DoT</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">DNS over HTTPS / TLS，加密 DNS 查询防窃听。现代游戏客户端应支持。</span><span slot="en">DNS over HTTPS/TLS, encrypting queries against eavesdropping. Modern game clients should support.</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg bg-[color:var(--glass-bg)] border border-[color:var(--glass-border)]">
+          <p class="text-func-green font-semibold mb-1"><Bilingual><span slot="zh">GeoDNS</span><span slot="en">GeoDNS</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">根据玩家地理位置返回最近服务器 IP。游戏区域服选型的核心。</span><span slot="en">Returns nearest server IP by player geo-location. Core for game regional server selection.</span></Bilingual></p>
+        </div>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // DNS 递归解析动画
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('dns-svg') as unknown as SVGSVGElement;
+  const stateEl = document.getElementById('dns-state');
+
+  const COL = {
+    CLIENT: '#22D3EE', LOCAL: '#22C55E', ROOT: '#F87171',
+    TLD: '#FBBF24', AUTH: '#A78BFA',
+    BG: 'rgba(34,211,238,0.04)', GRID: 'rgba(148,163,184,0.15)',
+    TXT: '#CBD5E1', LBL: '#94A3B8', HDR: '#22D3EE',
+  };
+
+  interface DnsStep {
+    from: string; to: string;
+    label: string; labelEn: string;
+    detail: string; detailEn: string;
+  }
+
+  const STEPS: DnsStep[] = [
+    { from: 'client', to: 'local', label: '查询 game.example.com', labelEn: 'Query game.example.com', detail: '客户端向本地 DNS 发起递归查询', detailEn: 'Client sends recursive query to local DNS' },
+    { from: 'local', to: 'root', label: 'Where is .com?', labelEn: 'Where is .com?', detail: '本地 DNS 向根服务器查询', detailEn: 'Local DNS queries root server' },
+    { from: 'root', to: 'local', label: '→ .com TLD 服务器', labelEn: '→ .com TLD servers', detail: '根服务器返回 TLD 地址（迭代）', detailEn: 'Root returns TLD address (iterative)' },
+    { from: 'local', to: 'tld', label: 'Where is example.com?', labelEn: 'Where is example.com?', detail: '本地 DNS 向 .com TLD 查询', detailEn: 'Local DNS queries .com TLD' },
+    { from: 'tld', to: 'local', label: '→ example.com 权威', labelEn: '→ example.com auth', detail: 'TLD 返回权威服务器地址', detailEn: 'TLD returns authoritative NS' },
+    { from: 'local', to: 'auth', label: 'game.example.com IP?', labelEn: 'game.example.com IP?', detail: '本地 DNS 向权威服务器查询', detailEn: 'Local DNS queries authoritative' },
+    { from: 'auth', to: 'local', label: '93.184.216.34', labelEn: '93.184.216.34', detail: '权威服务器返回 A 记录', detailEn: 'Authoritative returns A record' },
+    { from: 'local', to: 'client', label: '93.184.216.34 (cached)', labelEn: '93.184.216.34 (cached)', detail: '本地 DNS 缓存并返回给客户端', detailEn: 'Local DNS caches and returns to client' },
+  ];
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  interface Frame { step: number; done: boolean; }
+
+  function buildFrames(): Frame[] {
+    const frames: Frame[] = [];
+    for (let s = 0; s <= STEPS.length; s++) {
+      frames.push({ step: s, done: s === STEPS.length });
+    }
+    return frames;
+  }
+
+  function langText(key: string): string {
+    const l = lang();
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${l}"]`);
+    return el ? el.textContent || '' : '';
+  }
+
+  let curFrame: Frame | null = null;
+
+  // 节点位置
+  const NODES: Record<string, { x: number; y: number; label: string; labelEn: string; color: string }> = {
+    client: { x: 100, y: 350, label: '客户端', labelEn: 'Client', color: COL.CLIENT },
+    local:  { x: 300, y: 200, label: '本地 DNS', labelEn: 'Local DNS', color: COL.LOCAL },
+    root:   { x: 100, y: 60,  label: '根服务器', labelEn: 'Root', color: COL.ROOT },
+    tld:    { x: 400, y: 60,  label: '.com TLD', labelEn: '.com TLD', color: COL.TLD },
+    auth:   { x: 700, y: 60,  label: '权威服务器', labelEn: 'Authoritative', color: COL.AUTH },
+  };
+
+  function render(f: Frame | null) {
+    curFrame = f;
+    svg.innerHTML = '';
+    const curStep = f ? f.step : 0;
+    const l = lang();
+
+    // 绘制节点
+    for (const [id, node] of Object.entries(NODES)) {
+      const circle = document.createElementNS(SVGNS, 'circle');
+      circle.setAttribute('cx', String(node.x));
+      circle.setAttribute('cy', String(node.y));
+      circle.setAttribute('r', '28');
+      circle.setAttribute('fill', node.color + '22');
+      circle.setAttribute('stroke', node.color);
+      circle.setAttribute('stroke-width', '2');
+      svg.appendChild(circle);
+
+      const label = document.createElementNS(SVGNS, 'text');
+      label.setAttribute('x', String(node.x));
+      label.setAttribute('y', String(node.y + 48));
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('font-size', '11');
+      label.setAttribute('fill', node.color);
+      label.setAttribute('font-weight', '700');
+      label.textContent = l === 'en' ? node.labelEn : node.label;
+      svg.appendChild(label);
+    }
+
+    // 绘制已执行的步骤箭头
+    for (let i = 0; i < curStep && i < STEPS.length; i++) {
+      const step = STEPS[i];
+      const from = NODES[step.from];
+      const to = NODES[step.to];
+      if (!from || !to) continue;
+
+      const isCurrent = i === curStep - 1;
+      const color = isCurrent ? from.color : COL.LBL;
+      const opacity = isCurrent ? '1' : '0.35';
+
+      // 计算箭头起止（从圆边缘出发）
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const ux = dx / dist, uy = dy / dist;
+      const x1 = from.x + ux * 28;
+      const y1 = from.y + uy * 28;
+      const x2 = to.x - ux * 28;
+      const y2 = to.y - uy * 28;
+
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', String(x1));
+      line.setAttribute('y1', String(y1));
+      line.setAttribute('x2', String(x2));
+      line.setAttribute('y2', String(y2));
+      line.setAttribute('stroke', color);
+      line.setAttribute('stroke-width', isCurrent ? '2.5' : '1.5');
+      line.setAttribute('opacity', opacity);
+      line.setAttribute('marker-end', 'url(#dns-arrow)');
+      svg.appendChild(line);
+
+      // 标签（中点上方）
+      const midX = (x1 + x2) / 2;
+      const midY = (y1 + y2) / 2;
+      const label = document.createElementNS(SVGNS, 'text');
+      // 偏移避免重叠
+      const offX = -uy * 12, offY = ux * 12;
+      label.setAttribute('x', String(midX + offX));
+      label.setAttribute('y', String(midY + offY));
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('font-size', '9');
+      label.setAttribute('fill', color);
+      label.setAttribute('font-weight', isCurrent ? '700' : '400');
+      label.setAttribute('opacity', opacity);
+      label.textContent = l === 'en' ? step.labelEn : step.label;
+      svg.appendChild(label);
+
+      // 步骤编号
+      const stepNum = document.createElementNS(SVGNS, 'text');
+      stepNum.setAttribute('x', String(midX - offX));
+      stepNum.setAttribute('y', String(midY - offY + 4));
+      stepNum.setAttribute('text-anchor', 'middle');
+      stepNum.setAttribute('font-size', '10');
+      stepNum.setAttribute('fill', color);
+      stepNum.setAttribute('font-weight', '700');
+      stepNum.setAttribute('opacity', opacity);
+      stepNum.setAttribute('font-family', 'monospace');
+      stepNum.textContent = `${i + 1}`;
+      svg.appendChild(stepNum);
+    }
+
+    // 箭头标记定义
+    const defs = document.createElementNS(SVGNS, 'defs');
+    const marker = document.createElementNS(SVGNS, 'marker');
+    marker.setAttribute('id', 'dns-arrow');
+    marker.setAttribute('markerWidth', '8');
+    marker.setAttribute('markerHeight', '8');
+    marker.setAttribute('refX', '6');
+    marker.setAttribute('refY', '4');
+    marker.setAttribute('orient', 'auto');
+    const arrowPath = document.createElementNS(SVGNS, 'polygon');
+    arrowPath.setAttribute('points', '0,0 8,4 0,8');
+    arrowPath.setAttribute('fill', COL.LBL);
+    marker.appendChild(arrowPath);
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    // 状态文案
+    if (stateEl && f) {
+      if (f.done) {
+        stateEl.textContent = l === 'en' ? 'Resolution complete — IP cached at local DNS' : '解析完成 — IP 已缓存在本地 DNS';
+      } else if (f.step === 0) {
+        stateEl.textContent = l === 'en' ? 'Click Play to start DNS resolution' : '点击播放开始 DNS 解析';
+      } else {
+        const step = STEPS[f.step - 1];
+        stateEl.textContent = l === 'en' ? step.detailEn : step.detail;
+      }
+    }
+  }
+
+  let frames: Frame[] = [];
+  let idx = 0;
+  let timer: number | null = null;
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('dns-play');
+    if (b) b.innerHTML = langText('play');
+  }
+  function rebuild() {
+    stop(); frames = buildFrames(); idx = 0; render(null); if (stateEl) stateEl.textContent = '';
+  }
+  function advance(): boolean {
+    if (idx < frames.length) { render(frames[idx]); idx++; return true; }
+    return false;
+  }
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('dns-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 800);
+  }
+
+  document.getElementById('dns-play')?.addEventListener('click', play);
+  document.getElementById('dns-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('dns-reset')?.addEventListener('click', rebuild);
+  document.addEventListener('langchange', () => { if (timer === null) { const b = document.getElementById('dns-play'); if (b) b.innerHTML = langText('play'); } if (curFrame) render(curFrame); });
+  rebuild();
+</script>

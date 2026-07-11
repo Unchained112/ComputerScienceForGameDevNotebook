@@ -92,6 +92,7 @@ export const outline: OutlineNode[] = [
       { id: 'tcp', zh: 'TCP / UDP', en: 'TCP / UDP', href: '/topics/tcp-udp' },
       { id: 'dns', zh: 'DNS', en: 'DNS', href: '/topics/dns' },
       { id: 'ws', zh: 'WebSocket', en: 'WebSocket', href: '/topics/websocket' },
+      { id: 'rpc', zh: 'RPC 与游戏通信', en: 'RPC & Game Comms', href: '/topics/rpc' },
       { id: 'cdn', zh: 'CDN 与联机优化', en: 'CDN & Netcode', href: '/topics/cdn' },
     ],
   },

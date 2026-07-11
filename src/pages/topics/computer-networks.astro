@@ -1,0 +1,175 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Computer Networks · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Networks / Overview</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">计算机网络概览</span><span slot="en">Computer Networks Overview</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">计算机网络的核心思想是<b>分层</b>与<b>端到端原则</b>——将复杂的通信任务拆成多层，每层只关注本层职责，下层为上层提供服务。游戏开发者需要理解网络分类、拓扑结构、关键指标（延迟/带宽/丢包）以及各层设备职责，才能在联机架构中做出合理选型。</span>
+          <span slot="en">Computer networks are built on <b>layering</b> and the <b>end-to-end principle</b> — splitting complex communication into layers, each focused on its own responsibility while providing services to the layer above. Game developers must understand network classifications, topologies, key metrics (latency / bandwidth / packet loss), and device roles to make sound architectural choices for multiplayer.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">网络按覆盖范围分类</span><span slot="en">Networks by Coverage</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">按地理覆盖范围，网络可分为五级。游戏场景中，<b class="text-primary-cyan">LAN</b> 对应局域网吧/主机派对（低延迟），<b class="text-func-amber">WAN</b> 对应跨地域联机（高延迟，需 netcode 补偿）。</span><span slot="en">By geographic coverage, networks fall into five tiers. In gaming, <b class="text-primary-cyan">LAN</b> maps to local parties (low latency), while <b class="text-func-amber">WAN</b> maps to cross-region multiplayer (high latency, requiring netcode compensation).</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">类型</span><span slot="en">Type</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">覆盖范围</span><span slot="en">Range</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">典型延迟</span><span slot="en">Latency</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">示例</span><span slot="en">Example</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green font-mono">PAN</td><td class="py-2 pr-4">1–10 m</td><td class="py-2 pr-4 text-func-green">~1 ms</td><td class="py-2 pr-4">蓝牙耳机、手柄</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan font-mono">LAN</td><td class="py-2 pr-4">10 m–1 km</td><td class="py-2 pr-4 text-func-green">0.1–1 ms</td><td class="py-2 pr-4">网吧、家庭 Wi-Fi、主机派对</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber font-mono">MAN</td><td class="py-2 pr-4">1–50 km</td><td class="py-2 pr-4 text-func-amber">1–10 ms</td><td class="py-2 pr-4">城域光纤、校园网</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-red font-mono">WAN</td><td class="py-2 pr-4">50 km–全球</td><td class="py-2 pr-4 text-func-red">10–200 ms</td><td class="py-2 pr-4">互联网、跨服联机</td></tr>
+            <tr><td class="py-2 pr-4 text-primary-purple font-mono">GAN</td><td class="py-2 pr-4">全球</td><td class="py-2 pr-4 text-func-red">100–300 ms</td><td class="py-2 pr-4">卫星互联网、跨洲联机</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">网络拓扑结构</span><span slot="en">Network Topologies</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">拓扑决定了网络的可靠性、扩展性和成本。现代游戏服务器集群通常采用<b class="text-primary-cyan">星型 + 冗余</b>（中心交换机做高可用），而 P2P 联机采用<b class="text-func-amber">网状</b>拓扑（每对玩家直连）。</span><span slot="en">Topology determines reliability, scalability, and cost. Modern game server clusters typically use <b class="text-primary-cyan">star + redundancy</b> (HA switches at the core), while P2P multiplayer uses <b class="text-func-amber">mesh</b> (direct peer-to-peer connections).</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">拓扑</span><span slot="en">Topology</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">结构</span><span slot="en">Structure</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">优点</span><span slot="en">Pros</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">缺点</span><span slot="en">Cons</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan font-mono">星型 Star</td><td class="py-2 pr-4">所有节点连中心节点</td><td class="py-2 pr-4 text-func-green">简单、易扩展</td><td class="py-2 pr-4 text-func-red">中心节点单点故障</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber font-mono">总线 Bus</td><td class="py-2 pr-4">共享一条主干线</td><td class="py-2 pr-4 text-func-green">成本低、布线简单</td><td class="py-2 pr-4 text-func-red">冲突多、断线全网瘫痪</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple font-mono">环型 Ring</td><td class="py-2 pr-4">节点首尾相连成环</td><td class="py-2 pr-4 text-func-green">无冲突、公平</td><td class="py-2 pr-4 text-func-red">单节点断开全网断</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green font-mono">网状 Mesh</td><td class="py-2 pr-4">节点间多条路径互联</td><td class="py-2 pr-4 text-func-green">高可靠、多路径冗余</td><td class="py-2 pr-4 text-func-red">布线复杂、成本高</td></tr>
+            <tr><td class="py-2 pr-4 text-blue-400 font-mono">树型 Tree</td><td class="py-2 pr-4">层次化星型组合</td><td class="py-2 pr-4 text-func-green">层次清晰、易管理</td><td class="py-2 pr-4 text-func-red">根节点故障影响大</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">端到端原则</span><span slot="en">End-to-End Principle</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh"><b>端到端原则</b>是互联网架构的基石：通信功能应在<b>通信两端</b>实现，而非网络核心。网络只负责「尽力而为地转发数据包」，可靠性（重传、排序、流控）由端点的传输层（TCP）负责。<br><br>
+          这一设计使网络核心<b>极简且可扩展</b>——路由器不需要理解应用语义，只管转发。这也是为什么 <b class="text-func-amber">UDP</b> 能用于游戏实时通信：应用层自己决定哪些包需要可靠、哪些可以丢弃（如位置快照）。<br><br>
+          反例：<b class="text-func-red">NAT</b>（网络地址转换）打破了端到端原则——中间设备修改地址，导致 P2P 打洞困难，玩家主机联机需要 STUN/TURN 辅助。</span>
+          <span slot="en">The <b>end-to-end principle</b> is the cornerstone of internet architecture: communication functions should be implemented at the <b>communicating endpoints</b>, not in the network core. The network only does "best-effort forwarding" — reliability (retransmission, ordering, flow control) is handled by the transport layer (TCP) at endpoints.<br><br>
+          This keeps the core <b>simple and scalable</b> — routers don't need to understand application semantics, just forward packets. This is also why <b class="text-func-amber">UDP</b> works for real-time gaming: the application layer decides which packets need reliability and which can be dropped (e.g., position snapshots).<br><br>
+          Counter-example: <b class="text-func-red">NAT</b> (Network Address Translation) violates this — middleboxes rewrite addresses, making P2P hole-punching difficult, requiring STUN/TURN for player-host game sessions.</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">关键网络性能指标</span><span slot="en">Key Network Performance Metrics</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">游戏联机对网络指标有特殊要求：<b class="text-func-red">延迟（RTT）</b>决定操作响应感，<b class="text-func-amber">抖动（Jitter）</b>影响预测平滑度，<b class="text-func-red">丢包率</b>影响状态同步可靠性。FPS/格斗游戏要求 RTT &lt; 50ms，回合制/策略游戏可容忍 200ms+。</span><span slot="en">Multiplayer games have special requirements: <b class="text-func-red">latency (RTT)</b> determines input responsiveness, <b class="text-func-amber">jitter</b> affects prediction smoothness, <b class="text-func-red">packet loss</b> impacts state sync reliability. FPS/fighting games need RTT &lt; 50ms, turn-based/strategy games tolerate 200ms+.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">指标</span><span slot="en">Metric</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">含义</span><span slot="en">Meaning</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏可接受值</span><span slot="en">Game Threshold</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-red font-mono">延迟 RTT</td><td class="py-2 pr-4">数据包往返时间</td><td class="py-2 pr-4"><span class="text-func-green">&lt;50ms 竞技</span> / <span class="text-func-amber">&lt;150ms 休闲</span></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber font-mono">抖动 Jitter</td><td class="py-2 pr-4">连续 RTT 的变化幅度</td><td class="py-2 pr-4"><span class="text-func-green">&lt;30ms</span>（大抖动需 jitter buffer）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-red font-mono">丢包率 Loss</td><td class="py-2 pr-4">未到达目的的包比例</td><td class="py-2 pr-4"><span class="text-func-green">&lt;1%</span>（&gt;5% 严重影响体验）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan font-mono">带宽 BW</td><td class="py-2 pr-4">单位时间传输数据量</td><td class="py-2 pr-4">游戏通常只需 <span class="text-func-green">50–500 KB/s</span></td></tr>
+            <tr><td class="py-2 pr-4 text-primary-purple font-mono">吞吐量</td><td class="py-2 pr-4">实际有效传输速率</td><td class="py-2 pr-4">受带宽 × RTT × Loss 共同限制</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">网络设备与 OSI 层级</span><span slot="en">Network Devices & OSI Layers</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">不同设备工作在不同 OSI 层级，理解这一点有助于排查网络问题：<b class="text-func-green">集线器</b>是物理层广播（已淘汰），<b class="text-primary-cyan">交换机</b>是数据链路层按 MAC 转发，<b class="text-func-amber">路由器</b>是网络层按 IP 路由，<b class="text-func-red">防火墙</b>在传输/应用层过滤。</span><span slot="en">Devices operate at different OSI layers — understanding this helps troubleshoot: <b class="text-func-green">hubs</b> are physical-layer broadcasts (obsolete), <b class="text-primary-cyan">switches</b> forward by MAC at Layer 2, <b class="text-func-amber">routers</b> route by IP at Layer 3, <b class="text-func-red">firewalls</b> filter at transport/application layers.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">设备</span><span slot="en">Device</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">OSI 层</span><span slot="en">OSI Layer</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">转发依据</span><span slot="en">Forwards by</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏场景</span><span slot="en">Game Use</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green font-mono">Hub 集线器</td><td class="py-2 pr-4">L1 物理</td><td class="py-2 pr-4">广播到所有端口</td><td class="py-2 pr-4 text-ink-muted">已淘汰</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan font-mono">Switch 交换机</td><td class="py-2 pr-4">L2 链路</td><td class="py-2 pr-4">MAC 地址表</td><td class="py-2 pr-4">网吧/机房内网</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber font-mono">Router 路由器</td><td class="py-2 pr-4">L3 网络</td><td class="py-2 pr-4">IP 路由表</td><td class="py-2 pr-4">跨网段/跨服通信</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-red font-mono">Firewall 防火墙</td><td class="py-2 pr-4">L4/L7</td><td class="py-2 pr-4">端口/应用规则</td><td class="py-2 pr-4">游戏服务器防护</td></tr>
+            <tr><td class="py-2 pr-4 text-primary-purple font-mono">LB 负载均衡</td><td class="py-2 pr-4">L4/L7</td><td class="py-2 pr-4">哈希/轮询/最少连接</td><td class="py-2 pr-4">游戏服务器集群分流</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">网络延迟构成与优化</span><span slot="en">Latency Breakdown & Optimization</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">一次网络请求的端到端延迟由四部分构成，每部分的优化手段不同。游戏联机对<b class="text-func-red">传播延迟</b>几乎无法优化（受光速限制），只能通过<b class="text-func-green">就近部署（CDN/边缘节点）</b>缩短物理距离。</span><span slot="en">End-to-end latency consists of four parts, each with different optimization strategies. For multiplayer, <b class="text-func-red">propagation delay</b> is nearly irreducible (speed of light), so the only lever is <b class="text-func-green">proximity deployment (CDN / edge nodes)</b> to shorten physical distance.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 延迟构成分解（估算）
+struct LatencyBreakdown &#123;
+    double propagation;   // 传播延迟: 距离/光速
+    double transmission;  // 传输延迟: 包大小/带宽
+    double processing;    // 处理延迟: 路由器查表
+    double queuing;       // 排队延迟: 路由器缓冲区
+&#125;;
+
+// 示例：从北京到纽约的游戏服务器
+LatencyBreakdown estimate(double distance_km, int pkt_bytes, double bw_mbps) &#123;
+    LatencyBreakdown lb;
+    // 传播: 光在光纤中速度 ≈ 2×10^5 km/s
+    lb.propagation = distance_km / 2e5;          // 11000km → 55ms
+    // 传输: 包大小 / 带宽
+    lb.transmission = (pkt_bytes * 8) / (bw_mbps * 1e6); // 1KB/10Mbps → 0.8ms
+    lb.processing = 0.005;                        // 每跳 ~5μs, 约 15 跳 → 75μs
+    lb.queuing = 0.002;                           // 无拥塞时极小
+    return lb;
+&#125;
+// 总 RTT ≈ 2 × (55 + 0.8 + 0.08 + 0.002) ≈ 112 ms</code></pre>`}
+  py={`<pre><code># 延迟构成分解（估算）
+from dataclasses import dataclass
+
+@dataclass
+class LatencyBreakdown:
+    propagation: float    # 传播延迟: 距离/光速
+    transmission: float   # 传输延迟: 包大小/带宽
+    processing: float     # 处理延迟: 路由器查表
+    queuing: float        # 排队延迟: 路由器缓冲区
+
+def estimate(distance_km, pkt_bytes, bw_mbps):
+    """估算从北京到纽约游戏服务器的延迟"""
+    # 传播: 光在光纤中速度 ≈ 2×10^5 km/s
+    propagation = distance_km / 2e5          # 11000km → 55ms
+    # 传输: 包大小 / 带宽
+    transmission = (pkt_bytes * 8) / (bw_mbps * 1e6)  # 1KB/10Mbps → 0.8ms
+    processing = 0.005  # 每跳 ~5μs, 约 15 跳 → 75μs
+    queuing = 0.002     # 无拥塞时极小
+    return LatencyBreakdown(propagation, transmission, processing, queuing)
+
+lb = estimate(11000, 1024, 10)
+rtt = 2 * (lb.propagation + lb.transmission + lb.processing + lb.queuing)
+print(f"RTT ≈ {rtt:.1f} ms")  # RTT ≈ 112.0 ms</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">与后续主题的关联</span><span slot="en">Relationship to Subsequent Topics</span></Bilingual></h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+        <div class="p-3 rounded-lg bg-[color:var(--glass-bg)] border border-[color:var(--glass-border)]">
+          <p class="text-primary-cyan font-semibold mb-1">→ <Bilingual><span slot="zh">OSI 与 TCP/IP 模型</span><span slot="en">OSI & TCP/IP</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">分层思想的具体实现：七层 vs 四层</span><span slot="en">Concrete layering: 7-layer vs 4-layer</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg bg-[color:var(--glass-bg)] border border-[color:var(--glass-border)]">
+          <p class="text-func-amber font-semibold mb-1">→ <Bilingual><span slot="zh">TCP / UDP</span><span slot="en">TCP / UDP</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">传输层协议：可靠 vs 实时</span><span slot="en">Transport: reliable vs real-time</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg bg-[color:var(--glass-bg)] border border-[color:var(--glass-border)]">
+          <p class="text-func-green font-semibold mb-1">→ <Bilingual><span slot="zh">HTTP / HTTPS</span><span slot="en">HTTP / HTTPS</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">应用层协议：RESTful API 基石</span><span slot="en">Application layer: RESTful API foundation</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg bg-[color:var(--glass-bg)] border border-[color:var(--glass-border)]">
+          <p class="text-primary-purple font-semibold mb-1">→ <Bilingual><span slot="zh">CDN 与联机优化</span><span slot="en">CDN & Netcode</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">边缘缓存与延迟优化策略</span><span slot="en">Edge caching & latency optimization</span></Bilingual></p>
+        </div>
+      </div>
+    </section>
+  </article>
+</BaseLayout>

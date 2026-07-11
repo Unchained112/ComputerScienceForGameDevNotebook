@@ -1,0 +1,492 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="TCP / UDP · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Networks / TCP & UDP</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">TCP / UDP</span><span slot="en">TCP / UDP</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh"><b class="text-primary-cyan">TCP</b>（传输控制协议）面向连接、可靠传输，通过三次握手建连、四次挥手断连，内置流控与拥塞控制。<b class="text-func-amber">UDP</b>（用户数据报协议）无连接、不可靠但极简快速。游戏联机的核心选择：<b>登录/交易</b>用 TCP 保证可靠，<b>实时位置同步</b>用 UDP 追求低延迟。下方动画展示 TCP 完整生命周期。</span>
+          <span slot="en"><b class="text-primary-cyan">TCP</b> (Transmission Control Protocol) is connection-oriented and reliable — using a 3-way handshake to connect, 4-way teardown to disconnect, with built-in flow and congestion control. <b class="text-func-amber">UDP</b> (User Datagram Protocol) is connectionless, unreliable, but minimal and fast. The core multiplayer choice: <b>login/transactions</b> use TCP for reliability, <b>real-time position sync</b> uses UDP for low latency. The animation below shows the full TCP lifecycle.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：TCP 三次握手 + 数据传输 + 四次挥手 -->
+    <div class="glass p-5" data-viz="tcp-handshake">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="tcp-play" class="btn btn-primary">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+          <span data-ui="pause" data-lang="zh" class="hidden">暂停</span><span data-ui="pause" data-lang="en" class="hidden">Pause</span>
+        </button>
+        <button id="tcp-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+        <button id="tcp-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+        <span id="tcp-state" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="tcp-svg" viewBox="0 0 800 460" class="w-full h-96 viz-stage"></svg>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">TCP 三次握手</span><span slot="en">TCP 3-Way Handshake</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">TCP 建立连接需要三次报文交换，确保双方都准备好收发数据：<br>
+          ① <b class="text-func-amber">SYN</b>（Client→Server）：客户端发送 SYN=1, seq=x，进入 SYN_SENT 状态<br>
+          ② <b class="text-primary-cyan">SYN+ACK</b>（Server→Client）：服务端回复 SYN=1, ACK=1, seq=y, ack=x+1，进入 SYN_RCVD 状态<br>
+          ③ <b class="text-func-green">ACK</b>（Client→Server）：客户端发送 ACK=1, seq=x+1, ack=y+1，双方进入 ESTABLISHED 状态<br><br>
+          <b>为什么是三次而不是两次？</b>因为要确认<b>双方的收发能力</b>。两次握手无法防止「旧的 SYN 报文延迟到达」导致的错误连接。</span>
+          <span slot="en">TCP connection setup requires three message exchanges to ensure both sides are ready:<br>
+          ① <b class="text-func-amber">SYN</b> (Client→Server): Client sends SYN=1, seq=x, enters SYN_SENT<br>
+          ② <b class="text-primary-cyan">SYN+ACK</b> (Server→Client): Server replies SYN=1, ACK=1, seq=y, ack=x+1, enters SYN_RCVD<br>
+          ③ <b class="text-func-green">ACK</b> (Client→Server): Client sends ACK=1, seq=x+1, ack=y+1, both enter ESTABLISHED<br><br>
+          <b>Why three and not two?</b> Because both sides must confirm <b>each other's send/receive ability</b>. Two-way handshake can't prevent stale delayed SYN packets from creating false connections.</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">TCP 四次挥手</span><span slot="en">TCP 4-Way Teardown</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">断开连接需要四次报文交换，因为 TCP 是<b>全双工</b>的——每方都需独立关闭自己的发送通道：<br>
+          ① <b class="text-func-red">FIN</b>（主动方→被动方）：「我没有数据要发了」<br>
+          ② <b class="text-primary-cyan">ACK</b>（被动方→主动方）：「收到，但我可能还有数据要发」→ 主动方进入 FIN_WAIT_2<br>
+          ③ <b class="text-func-amber">FIN</b>（被动方→主动方）：「我也发完了」→ 被动方进入 LAST_ACK<br>
+          ④ <b class="text-func-green">ACK</b>（主动方→被动方）：「收到，再见」→ 主动方进入 TIME_WAIT（等待 2MSL 后关闭）<br><br>
+          <b>TIME_WAIT</b> 等待 2 倍最大报文生存时间（MSL），确保被动方收到最后的 ACK，且防止旧连接的报文干扰新连接。</span>
+          <span slot="en">Teardown requires four messages because TCP is <b>full-duplex</b> — each side must independently close its send channel:<br>
+          ① <b class="text-func-red">FIN</b> (Active→Passive): "I have no more data to send"<br>
+          ② <b class="text-primary-cyan">ACK</b> (Passive→Active): "Got it, but I may still have data" → Active enters FIN_WAIT_2<br>
+          ③ <b class="text-func-amber">FIN</b> (Passive→Active): "I'm done too" → Passive enters LAST_ACK<br>
+          ④ <b class="text-func-green">ACK</b> (Active→Passive): "Got it, bye" → Active enters TIME_WAIT (closes after 2MSL)<br><br>
+          <b>TIME_WAIT</b> waits 2× Maximum Segment Lifetime to ensure the final ACK reaches the passive side and to prevent stale packets from interfering with new connections.</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">TCP vs UDP 对比</span><span slot="en">TCP vs UDP Comparison</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">特性</span><span slot="en">Feature</span></Bilingual></th><th class="py-2 pr-4 text-primary-cyan">TCP</th><th class="py-2 pr-4 text-func-amber">UDP</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">连接</span><span slot="en">Connection</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">面向连接（握手）</span><span slot="en">Connection-oriented</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">无连接</span><span slot="en">Connectionless</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">可靠性</span><span slot="en">Reliability</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">可靠（ACK/重传/排序）</span><span slot="en">Reliable (ACK/retry/order)</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">不可靠（尽力而为）</span><span slot="en">Unreliable (best-effort)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">顺序</span><span slot="en">Ordering</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">保证按序到达</span><span slot="en">In-order delivery</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">不保证顺序</span><span slot="en">No ordering</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">流控/拥塞</span><span slot="en">Flow/Congestion</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">有（滑动窗口/AIMD）</span><span slot="en">Yes (sliding window/AIMD)</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">无</span><span slot="en">No</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">头部开销</span><span slot="en">Header</span></Bilingual></td><td class="py-2 pr-4">20 字节</td><td class="py-2 pr-4">8 字节</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">传输速度</span><span slot="en">Speed</span></Bilingual></td><td class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">较慢（开销大）</span><span slot="en">Slower</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">快（无额外开销）</span><span slot="en">Fast</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">数据边界</span><span slot="en">Boundary</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">流（无边界）</span><span slot="en">Stream (no boundary)</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">数据报（有边界）</span><span slot="en">Datagram (bounded)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">广播/多播</span><span slot="en">Broadcast/Multicast</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">不支持</span><span slot="en">No</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">支持</span><span slot="en">Yes</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">游戏场景</span><span slot="en">Game Use</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">登录、交易、匹配</span><span slot="en">Login, trade, matchmaking</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">位置同步、语音、射击</span><span slot="en">Position sync, voice, shooting</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">TCP 拥塞控制</span><span slot="en">TCP Congestion Control</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">TCP 拥塞控制通过<b>拥塞窗口（cwnd）</b>动态调节发送速率，核心算法经历四个阶段：<br>
+          ① <b class="text-func-green">慢启动（Slow Start）</b>：cwnd 从 1 开始，每收到一个 ACK 翻倍（指数增长），到 ssthresh 后切换<br>
+          ② <b class="text-primary-cyan">拥塞避免（Congestion Avoidance）</b>：cwnd 每轮加 1（线性增长），谨慎探测带宽<br>
+          ③ <b class="text-func-amber">快重传（Fast Retransmit）</b>：收到 3 个重复 ACK 时立即重传丢失报文（不等超时）<br>
+          ④ <b class="text-func-red">快恢复（Fast Recovery）</b>：ssthresh = cwnd/2，cwnd = ssthresh，进入拥塞避免（不回 1）<br><br>
+          经典算法：Reno / NewReno / Cubic（Linux 默认）/ BBR（Google，基于带宽探测）。</span>
+          <span slot="en">TCP congestion control dynamically adjusts send rate via the <b>congestion window (cwnd)</b>, cycling through four phases:<br>
+          ① <b class="text-func-green">Slow Start</b>: cwnd starts at 1, doubles per ACK (exponential), switches at ssthresh<br>
+          ② <b class="text-primary-cyan">Congestion Avoidance</b>: cwnd += 1 per round (linear), cautiously probing bandwidth<br>
+          ③ <b class="text-func-amber">Fast Retransmit</b>: on 3 duplicate ACKs, retransmit immediately (no timeout wait)<br>
+          ④ <b class="text-func-red">Fast Recovery</b>: ssthresh = cwnd/2, cwnd = ssthresh, enter congestion avoidance (no reset to 1)<br><br>
+          Classic algorithms: Reno / NewReno / Cubic (Linux default) / BBR (Google, bandwidth-probing).</span>
+        </Bilingual>
+      </p>
+      <CodeTabs
+  cpp={`<pre><code>// TCP 拥塞控制简化模拟
+class TCPCongestionControl &#123;
+    int cwnd = 1;        // 拥塞窗口
+    int ssthresh = 16;   // 慢启动阈值
+    enum Phase &#123; SLOW_START, CONGESTION_AVOIDANCE, FAST_RECOVERY &#125;;
+    Phase phase = SLOW_START;
+
+    void onACK() &#123;
+        switch (phase) &#123;
+            case SLOW_START:
+                cwnd++;              // 指数增长
+                if (cwnd &gt;= ssthresh)
+                    phase = CONGESTION_AVOIDANCE;
+                break;
+            case CONGESTION_AVOIDANCE:
+                cwnd += 1 / cwnd;    // 线性增长
+                break;
+            case FAST_RECOVERY:
+                cwnd++;              // 每收到重复 ACK +1
+                break;
+        &#125;
+    &#125;
+
+    void onTimeout() &#123;
+        ssthresh = cwnd / 2;        // 超时: 阈值减半
+        cwnd = 1;                    // 窗口归 1
+        phase = SLOW_START;          // 重新慢启动
+    &#125;
+
+    void onTripleDupACK() &#123;
+        ssthresh = cwnd / 2;        // 3 倍重复 ACK
+        cwnd = ssthresh + 3;       // 快恢复
+        phase = FAST_RECOVERY;
+        // 重传丢失的报文...
+    &#125;
+&#125;;</code></pre>`}
+  py={`<pre><code># TCP 拥塞控制简化模拟
+from enum import Enum
+
+class TCPCongestionControl:
+    def __init__(self):
+        self.cwnd = 1           # 拥塞窗口
+        self.ssthresh = 16      # 慢启动阈值
+        self.phase = "SLOW_START"
+
+    def on_ack(self):
+        if self.phase == "SLOW_START":
+            self.cwnd += 1      # 指数增长
+            if self.cwnd >= self.ssthresh:
+                self.phase = "CONGESTION_AVOIDANCE"
+        elif self.phase == "CONGESTION_AVOIDANCE":
+            self.cwnd += 1 / self.cwnd  # 线性增长
+        elif self.phase == "FAST_RECOVERY":
+            self.cwnd += 1      # 每收到重复 ACK +1
+
+    def on_timeout(self):
+        self.ssthresh = self.cwnd // 2  # 超时: 阈值减半
+        self.cwnd = 1                   # 窗口归 1
+        self.phase = "SLOW_START"       # 重新慢启动
+
+    def on_triple_dup_ack(self):
+        self.ssthresh = self.cwnd // 2  # 3 倍重复 ACK
+        self.cwnd = self.ssthresh + 3   # 快恢复
+        self.phase = "FAST_RECOVERY"
+        # 重传丢失的报文...</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Socket 编程示例</span><span slot="en">Socket Programming Example</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">游戏服务器通常使用<b>混合模式</b>：TCP Socket 处理登录/匹配等可靠请求，UDP Socket 处理实时位置同步。下方代码展示 TCP 回声服务端和 UDP 客户端的基本用法。</span><span slot="en">Game servers typically use a <b>hybrid model</b>: TCP sockets for reliable requests (login/matchmaking), UDP sockets for real-time position sync. The code below shows basic TCP echo server and UDP client.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// ===== TCP 服务端（C++ POSIX Socket）=====
+#include &lt;sys/socket.h&gt;
+#include &lt;netinet/in.h&gt;
+#include &lt;unistd.h&gt;
+
+int main() &#123;
+    int server = socket(AF_INET, SOCK_STREAM, 0);  // TCP
+    sockaddr_in addr&#123;.sin_family=AF_INET, .sin_port=htons(8080), .sin_addr=INADDR_ANY&#125;;
+    bind(server, (sockaddr*)&amp;addr, sizeof(addr));
+    listen(server, 5);
+
+    while (true) &#123;
+        int client = accept(server, nullptr, nullptr);
+        char buf[1024];
+        int n = recv(client, buf, sizeof(buf), 0);
+        send(client, buf, n, 0);  // 回声
+        close(client);
+    &#125;
+&#125;
+
+// ===== UDP 客户端（C++）=====
+// 游戏位置同步：无需建连，直接发包
+int sock = socket(AF_INET, SOCK_DGRAM, 0);  // UDP
+sockaddr_in server&#123;.sin_family=AF_INET, .sin_port=htons(9090)&#125;;
+inet_pton(AF_INET, "10.0.0.1", &amp;server.sin_addr);
+
+struct PlayerState &#123; float x, y, z; int seq; &#125;;
+PlayerState state&#123;100.0f, 200.0f, 50.0f, 1&#125;;
+// 每帧发送位置快照（不可靠，丢了就丢）
+sendto(sock, &amp;state, sizeof(state), 0,
+       (sockaddr*)&amp;server, sizeof(server));</code></pre>`}
+  py={`<pre><code># ===== TCP 服务端（Python）=====
+import socket
+
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # TCP
+server.bind(('0.0.0.0', 8080))
+server.listen(5)
+
+while True:
+    client, addr = server.accept()
+    data = client.recv(1024)
+    client.sendall(data)  # 回声
+    client.close()
+
+# ===== UDP 客户端（Python）=====
+# 游戏位置同步：无需建连，直接发包
+import struct
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
+server_addr = ('10.0.0.1', 9090)
+
+# 每帧发送位置快照（不可靠，丢了就丢）
+# pack: 3 floats + 1 int = 16 bytes
+player_state = struct.pack('!3fi', 100.0, 200.0, 50.0, 1)
+sock.sendto(player_state, server_addr)
+
+# 对比 TCP：需要先 connect → recv → send，每次都有握手开销
+# UDP 优势：无握手、无 ACK、直接发，延迟最低</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">游戏中的 TCP/UDP 选型</span><span slot="en">TCP vs UDP for Games</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏功能</span><span slot="en">Game Feature</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">推荐协议</span><span slot="en">Protocol</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">原因</span><span slot="en">Reason</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4"><Bilingual><span slot="zh">登录/注册</span><span slot="en">Login/Register</span></Bilingual></td><td class="py-2 pr-4 text-primary-cyan">TCP</td><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">必须可靠，不能丢</span><span slot="en">Must be reliable</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4"><Bilingual><span slot="zh">匹配/排队</span><span slot="en">Matchmaking/Queue</span></Bilingual></td><td class="py-2 pr-4 text-primary-cyan">TCP</td><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">状态关键，需确认</span><span slot="en">Critical state</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4"><Bilingual><span slot="zh">商城交易</span><span slot="en">Shop Transaction</span></Bilingual></td><td class="py-2 pr-4 text-primary-cyan">TCP</td><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">数据完整性最高优先</span><span slot="en">Data integrity paramount</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4"><Bilingual><span slot="zh">位置同步</span><span slot="en">Position Sync</span></Bilingual></td><td class="py-2 pr-4 text-func-amber">UDP</td><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">低延迟，旧包可丢弃</span><span slot="en">Low latency, stale drops ok</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4"><Bilingual><span slot="zh">射击命中</span><span slot="en">Hit Detection</span></Bilingual></td><td class="py-2 pr-4 text-func-amber">UDP</td><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">实时性要求高</span><span slot="en">High real-time requirement</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4"><Bilingual><span slot="zh">语音聊天</span><span slot="en">Voice Chat</span></Bilingual></td><td class="py-2 pr-4 text-func-amber">UDP</td><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">允许丢包，不允许延迟</span><span slot="en">Loss ok, delay not</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4"><Bilingual><span slot="zh">聊天文字</span><span slot="en">Text Chat</span></Bilingual></td><td class="py-2 pr-4 text-primary-cyan">TCP</td><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">需要有序可靠</span><span slot="en">Needs order + reliability</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // TCP 三次握手 + 数据 + 四次挥手 动画
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('tcp-svg') as unknown as SVGSVGElement;
+  const stateEl = document.getElementById('tcp-state');
+
+  const COL = {
+    SYN: '#FBBF24', ACK: '#22C55E', FIN: '#F87171', DATA: '#22D3EE',
+    CLIENT: '#22D3EE', SERVER: '#A78BFA',
+    BG: 'rgba(34,211,238,0.04)', GRID: 'rgba(148,163,184,0.15)',
+    TXT: '#CBD5E1', LBL: '#94A3B8', HDR: '#22D3EE',
+  };
+
+  interface PacketStep {
+    dir: 'c2s' | 's2c';
+    type: 'SYN' | 'SYN+ACK' | 'ACK' | 'DATA' | 'FIN' | 'ACK2';
+    label: string;
+    labelEn: string;
+    detail: string;
+    detailEn: string;
+    color: string;
+  };
+
+  const STEPS: PacketStep[] = [
+    { dir: 'c2s', type: 'SYN', label: 'SYN seq=x', labelEn: 'SYN seq=x', detail: '客户端发起连接请求', detailEn: 'Client requests connection', color: COL.SYN },
+    { dir: 's2c', type: 'SYN+ACK', label: 'SYN+ACK seq=y ack=x+1', labelEn: 'SYN+ACK seq=y ack=x+1', detail: '服务端确认并发起自己的 SYN', detailEn: 'Server ACKs and sends own SYN', color: COL.SYN },
+    { dir: 'c2s', type: 'ACK', label: 'ACK ack=y+1', labelEn: 'ACK ack=y+1', detail: '连接建立 (ESTABLISHED)', detailEn: 'Connection established', color: COL.ACK },
+    { dir: 'c2s', type: 'DATA', label: 'DATA', labelEn: 'DATA', detail: '数据传输阶段', detailEn: 'Data transfer phase', color: COL.DATA },
+    { dir: 's2c', type: 'DATA', label: 'DATA', labelEn: 'DATA', detail: '双向数据交互', detailEn: 'Bidirectional data', color: COL.DATA },
+    { dir: 'c2s', type: 'FIN', label: 'FIN seq=m', labelEn: 'FIN seq=m', detail: '客户端请求断开', detailEn: 'Client requests close', color: COL.FIN },
+    { dir: 's2c', type: 'ACK2', label: 'ACK ack=m+1', labelEn: 'ACK ack=m+1', detail: '服务端确认，半关闭', detailEn: 'Server ACKs, half-close', color: COL.ACK },
+    { dir: 's2c', type: 'FIN', label: 'FIN seq=n', labelEn: 'FIN seq=n', detail: '服务端也请求断开', detailEn: 'Server requests close', color: COL.FIN },
+    { dir: 'c2s', type: 'ACK2', label: 'ACK ack=n+1', labelEn: 'ACK ack=n+1', detail: 'TIME_WAIT → 关闭', detailEn: 'TIME_WAIT → closed', color: COL.ACK },
+  ];
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  interface Frame { step: number; done: boolean; }
+
+  function buildFrames(): Frame[] {
+    const frames: Frame[] = [];
+    for (let s = 0; s <= STEPS.length; s++) {
+      frames.push({ step: s, done: s === STEPS.length });
+    }
+    return frames;
+  }
+
+  function langText(key: string): string {
+    const l = lang();
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${l}"]`);
+    return el ? el.textContent || '' : '';
+  }
+
+  let curFrame: Frame | null = null;
+
+  function render(f: Frame | null) {
+    curFrame = f;
+    svg.innerHTML = '';
+    const curStep = f ? f.step : 0;
+    const l = lang();
+
+    const clientX = 100, serverX = 700;
+    const y0 = 40;
+    const stepH = 40;
+
+    // 泳道标题
+    const cTitle = document.createElementNS(SVGNS, 'text');
+    cTitle.setAttribute('x', String(clientX));
+    cTitle.setAttribute('y', String(y0 - 15));
+    cTitle.setAttribute('text-anchor', 'middle');
+    cTitle.setAttribute('font-size', '14');
+    cTitle.setAttribute('font-weight', '700');
+    cTitle.setAttribute('fill', COL.CLIENT);
+    cTitle.textContent = l === 'en' ? 'Client' : '客户端';
+    svg.appendChild(cTitle);
+
+    const sTitle = document.createElementNS(SVGNS, 'text');
+    sTitle.setAttribute('x', String(serverX));
+    sTitle.setAttribute('y', String(y0 - 15));
+    sTitle.setAttribute('text-anchor', 'middle');
+    sTitle.setAttribute('font-size', '14');
+    sTitle.setAttribute('font-weight', '700');
+    sTitle.setAttribute('fill', COL.SERVER);
+    sTitle.textContent = l === 'en' ? 'Server' : '服务端';
+    svg.appendChild(sTitle);
+
+    // 泳道线
+    for (const x of [clientX, serverX]) {
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', String(x));
+      line.setAttribute('y1', String(y0));
+      line.setAttribute('x2', String(x));
+      line.setAttribute('y2', String(y0 + STEPS.length * stepH + 20));
+      line.setAttribute('stroke', COL.GRID);
+      line.setAttribute('stroke-width', '2');
+      line.setAttribute('stroke-dasharray', '6 4');
+      svg.appendChild(line);
+    }
+
+    // 阶段分隔标签
+    const phaseY1 = y0 + 3 * stepH + 10;
+    const ph1 = document.createElementNS(SVGNS, 'text');
+    ph1.setAttribute('x', '15');
+    ph1.setAttribute('y', String(y0 + 20));
+    ph1.setAttribute('font-size', '9');
+    ph1.setAttribute('fill', COL.SYN);
+    ph1.setAttribute('font-weight', '600');
+    ph1.setAttribute('opacity', curStep >= 1 ? '1' : '0.3');
+    ph1.textContent = l === 'en' ? '① Handshake' : '① 握手';
+    svg.appendChild(ph1);
+
+    const ph2 = document.createElementNS(SVGNS, 'text');
+    ph2.setAttribute('x', '15');
+    ph2.setAttribute('y', String(y0 + 3 * stepH + 25));
+    ph2.setAttribute('font-size', '9');
+    ph2.setAttribute('fill', COL.DATA);
+    ph2.setAttribute('font-weight', '600');
+    ph2.setAttribute('opacity', curStep >= 4 ? '1' : '0.3');
+    ph2.textContent = l === 'en' ? '② Data' : '② 数据';
+    svg.appendChild(ph2);
+
+    const ph3 = document.createElementNS(SVGNS, 'text');
+    ph3.setAttribute('x', '15');
+    ph3.setAttribute('y', String(y0 + 5 * stepH + 25));
+    ph3.setAttribute('font-size', '9');
+    ph3.setAttribute('fill', COL.FIN);
+    ph3.setAttribute('font-weight', '600');
+    ph3.setAttribute('opacity', curStep >= 6 ? '1' : '0.3');
+    ph3.textContent = l === 'en' ? '③ Teardown' : '③ 挥手';
+    svg.appendChild(ph3);
+
+    // 绘制已执行的步骤
+    for (let i = 0; i < curStep && i < STEPS.length; i++) {
+      const step = STEPS[i];
+      const y = y0 + i * stepH + 20;
+      const fromX = step.dir === 'c2s' ? clientX : serverX;
+      const toX = step.dir === 'c2s' ? serverX : clientX;
+
+      // 箭头线
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', String(fromX));
+      line.setAttribute('y1', String(y));
+      line.setAttribute('x2', String(toX));
+      line.setAttribute('y2', String(y));
+      line.setAttribute('stroke', step.color);
+      line.setAttribute('stroke-width', '2');
+      svg.appendChild(line);
+
+      // 箭头头
+      const arrowSize = 8;
+      const arrowDir = step.dir === 'c2s' ? 1 : -1;
+      const arrow = document.createElementNS(SVGNS, 'polygon');
+      const ax = toX - arrowDir * arrowSize;
+      arrow.setAttribute('points', `${toX},${y} ${ax},${y - 4} ${ax},${y + 4}`);
+      arrow.setAttribute('fill', step.color);
+      svg.appendChild(arrow);
+
+      // 标签
+      const midX = (fromX + toX) / 2;
+      const label = document.createElementNS(SVGNS, 'text');
+      label.setAttribute('x', String(midX));
+      label.setAttribute('y', String(y - 6));
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('font-size', '10');
+      label.setAttribute('fill', step.color);
+      label.setAttribute('font-weight', '700');
+      label.setAttribute('font-family', 'monospace');
+      label.textContent = l === 'en' ? step.labelEn : step.label;
+      svg.appendChild(label);
+
+      // 当前步骤高亮
+      if (i === curStep - 1) {
+        const glow = document.createElementNS(SVGNS, 'rect');
+        glow.setAttribute('x', String(Math.min(fromX, toX) - 5));
+        glow.setAttribute('y', String(y - 12));
+        glow.setAttribute('width', String(Math.abs(toX - fromX) + 10));
+        glow.setAttribute('height', '24');
+        glow.setAttribute('fill', 'none');
+        glow.setAttribute('stroke', step.color);
+        glow.setAttribute('stroke-width', '1.5');
+        glow.setAttribute('rx', '4');
+        glow.setAttribute('opacity', '0.5');
+        svg.appendChild(glow);
+      }
+    }
+
+    // 状态文案
+    if (stateEl && f) {
+      if (f.done) {
+        stateEl.textContent = l === 'en' ? 'Connection closed' : '连接已关闭';
+      } else if (f.step === 0) {
+        stateEl.textContent = l === 'en' ? 'Click Play to start handshake' : '点击播放开始握手';
+      } else {
+        const step = STEPS[f.step - 1];
+        stateEl.textContent = l === 'en' ? step.detailEn : step.detail;
+      }
+    }
+  }
+
+  let frames: Frame[] = [];
+  let idx = 0;
+  let timer: number | null = null;
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('tcp-play');
+    if (b) b.innerHTML = langText('play');
+  }
+  function rebuild() {
+    stop(); frames = buildFrames(); idx = 0; render(null); if (stateEl) stateEl.textContent = '';
+  }
+  function advance(): boolean {
+    if (idx < frames.length) { render(frames[idx]); idx++; return true; }
+    return false;
+  }
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('tcp-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 700);
+  }
+
+  document.getElementById('tcp-play')?.addEventListener('click', play);
+  document.getElementById('tcp-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('tcp-reset')?.addEventListener('click', rebuild);
+  document.addEventListener('langchange', () => { if (timer === null) { const b = document.getElementById('tcp-play'); if (b) b.innerHTML = langText('play'); } if (curFrame) render(curFrame); });
+  rebuild();
+</script>

@@ -1,0 +1,288 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="CDN & Netcode · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Networks / CDN & Netcode</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">CDN 与联机优化</span><span slot="en">CDN & Netcode</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh"><b>CDN</b>（内容分发网络）通过在全球部署<b>边缘节点</b>，将静态资源缓存到离玩家最近的服务器，大幅降低下载延迟。而<b>Netcode</b> 是游戏联机的实时通信优化技术，包含<b>客户端预测</b>、<b>服务器回滚</b>、<b>延迟补偿</b>等策略。两者配合：CDN 负责<b>资源分发</b>（纹理/补丁/视频），Netcode 负责<b>实时同步</b>（位置/状态/输入）。</span>
+          <span slot="en"><b>CDN</b> (Content Delivery Network) deploys <b>edge nodes</b> worldwide, caching static assets on servers closest to players, drastically reducing download latency. <b>Netcode</b> is the real-time communication optimization technology for multiplayer, including <b>client-side prediction</b>, <b>server rollback</b>, and <b>lag compensation</b>. They work together: CDN handles <b>asset delivery</b> (textures/patches/video), Netcode handles <b>real-time sync</b> (position/state/input).</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">CDN 工作原理</span><span slot="en">How CDN Works</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">CDN 的核心是<b>边缘缓存</b>和<b>就近接入</b>：<br>
+          ① <b class="text-func-amber">DNS 智能解析</b>：玩家请求 <code>cdn.game.com</code> 时，DNS 根据<b>玩家 IP 地理位置</b>返回最近的 CDN 边缘节点 IP（GeoDNS / Anycast）<br>
+          ② <b class="text-primary-cyan">边缘缓存命中</b>：若边缘节点已缓存该资源 → 直接返回（<b>缓存命中</b>），延迟通常 &lt; 10ms<br>
+          ③ <b class="text-func-red">回源（Miss）</b>：若未缓存 → 边缘节点向<b>源站（Origin）</b>请求，获取后缓存一份再返回给玩家<br>
+          ④ <b class="text-func-green">缓存失效</b>：通过 <b>TTL</b> 或 <b>主动刷新</b>（Purge API）管理缓存有效期<br><br>
+          游戏场景：版本更新时，补丁文件先上传到源站，CDN 自动分发到全球边缘节点。玩家下载时命中最近的节点，下载速度可达源站的 10-50 倍。</span>
+          <span slot="en">CDN's core is <b>edge caching</b> and <b>proximity access</b>:<br>
+          ① <b class="text-func-amber">Smart DNS</b>: When a player requests <code>cdn.game.com</code>, DNS returns the nearest CDN edge node IP based on <b>player geo-location</b> (GeoDNS / Anycast)<br>
+          ② <b class="text-primary-cyan">Cache Hit</b>: If the edge node has the asset cached → return directly (<b>cache hit</b>), latency typically &lt; 10ms<br>
+          ③ <b class="text-func-red">Origin Fetch (Miss)</b>: If not cached → edge node fetches from <b>origin server</b>, caches a copy, then returns to player<br>
+          ④ <b class="text-func-green">Cache Invalidation</b>: Manage cache validity via <b>TTL</b> or <b>active purge</b> (Purge API)<br><br>
+          Games: On version updates, patch files upload to origin, CDN auto-distributes to global edge nodes. Players download from the nearest node, 10-50× faster than origin.</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">CDN vs P2P vs 直连源站</span><span slot="en">CDN vs P2P vs Direct Origin</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">特性</span><span slot="en">Feature</span></Bilingual></th><th class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">直连源站</span><span slot="en">Direct Origin</span></Bilingual></th><th class="py-2 pr-4 text-func-green">CDN</th><th class="py-2 pr-4 text-func-amber">P2P</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">延迟</span><span slot="en">Latency</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">高（跨洲 100-300ms）</span><span slot="en">High</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">低（&lt;20ms）</span><span slot="en">Low</span></Bilingual></td><td class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">中（依赖对等节点）</span><span slot="en">Medium</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">源站压力</span><span slot="en">Origin Load</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">全部承担</span><span slot="en">Full</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">极低（仅回源）</span><span slot="en">Minimal</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">极低（玩家分担）</span><span slot="en">Minimal</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">带宽成本</span><span slot="en">Bandwidth Cost</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">高</span><span slot="en">High</span></Bilingual></td><td class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">中</span><span slot="en">Medium</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">低（玩家贡献）</span><span slot="en">Low</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">可靠性</span><span slot="en">Reliability</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">单点故障</span><span slot="en">Single point</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">高（多节点冗余）</span><span slot="en">High</span></Bilingual></td><td class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">中（依赖在线率）</span><span slot="en">Medium</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">部署难度</span><span slot="en">Deployment</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">简单</span><span slot="en">Simple</span></Bilingual></td><td class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">中（配置 CDN）</span><span slot="en">Medium</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">复杂（需客户端P2P）</span><span slot="en">Complex</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">游戏适用</span><span slot="en">Game Use</span></Bilingual></td><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">小规模内测</span><span slot="en">Small beta</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">主流方案</span><span slot="en">Mainstream</span></Bilingual></td><td class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">大文件分发（补丁）</span><span slot="en">Large patches</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">游戏 Netcode 核心技术</span><span slot="en">Game Netcode Core Techniques</span></Bilingual></h2>
+      <div class="space-y-3 text-sm">
+        <div class="p-3 rounded-lg border border-[color:var(--glass-border)]">
+          <p class="font-semibold text-func-green mb-1">① <Bilingual><span slot="zh">客户端预测（Client-Side Prediction）</span><span slot="en">Client-Side Prediction</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">玩家按键后<b>客户端立即</b>模拟移动结果，不等服务器确认。服务器权威返回<b>纠正</b>时再回滚重放。<b>Quake</b> 首创，现代 FPS 标配。显著降低<b>输入延迟感</b>（从 RTT/2 降到 ~0）。</span><span slot="en">On input, the client <b>immediately</b> simulates movement, without waiting for server. When the server sends <b>correction</b>, the client rolls back and replays. Pioneered by <b>Quake</b>, standard in modern FPS. Reduces <b>input latency</b> from RTT/2 to ~0.</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg border border-[color:var(--glass-border)]">
+          <p class="font-semibold text-primary-cyan mb-1">② <Bilingual><span slot="zh">服务器插值与外推</span><span slot="en">Server Interpolation & Extrapolation</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">远端玩家位置只在离散时刻收到（每 tick 一个快照）。<b>插值</b>在两个快照间平滑过渡（有 RTT/2 延迟但丝滑）；<b>外推</b>用速度推算未来位置（低延迟但可能穿墙）。通常用<b>插值 + 小外推</b>组合。</span><span slot="en">Remote player positions arrive at discrete snapshots (one per tick). <b>Interpolation</b> smoothly blends between snapshots (RTT/2 delay but smooth); <b>extrapolation</b> predicts future position by velocity (low latency but may clip). Usually combined.</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg border border-[color:var(--glass-border)]">
+          <p class="font-semibold text-func-amber mb-1">③ <Bilingual><span slot="zh">延迟补偿（Lag Compensation）</span><span slot="en">Lag Compensation</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">服务器维护<b>历史位置快照</b>。玩家开枪时附带<b>客户端看到的时刻</b>，服务器<b>回滚到该时刻</b>进行命中判定。高延迟玩家也能<b>打中自己看到的目标</b>，但可能被低延迟玩家觉得"已躲开却中弹"。CS/Valorant 核心机制。</span><span slot="en">Server maintains <b>historical position snapshots</b>. On shot, client sends <b>what it saw at that moment</b>; server <b>rewinds to that timestamp</b> for hit detection. High-latency players can <b>hit what they see</b>, but low-latency players may feel "I dodged but got hit". CS/Valorant core mechanic.</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg border border-[color:var(--glass-border)]">
+          <p class="font-semibold text-func-red mb-1">④ <Bilingual><span slot="zh">回滚网络（Rollback Netcode）</span><span slot="en">Rollback Netcode</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">格斗游戏（街霸/GGXX）专用。双方各自模拟本地输入，收到对方输入时<b>回滚到过去</b>重新模拟到当前帧。<b>GGPO</b> 框架是标杆。优点：零输入延迟；缺点：大量回滚时画面闪烁，对性能要求高。</span><span slot="en">Fighting games (SF/GGXX) specific. Both sides simulate local inputs, then <b>rollback to the past</b> and re-simulate to the present when opponent inputs arrive. <b>GGPO</b> framework is the gold standard. Pro: zero input delay; Con: visual flicker on heavy rollback, high performance demand.</span></Bilingual></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">CDN 缓存策略代码</span><span slot="en">CDN Cache Strategy Code</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">游戏资源分发的最佳实践：版本清单文件不缓存，资源文件用内容哈希命名并永久缓存。</span><span slot="en">Best practice for game asset delivery: version manifest is not cached, assets use content-hash names and are permanently cached.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 游戏更新检查 + CDN 下载流程
+#include &lt;httplib.h&gt;
+#include &lt;nlohmann/json.hpp&gt;
+
+struct AssetManifest &#123;
+    std::string version;
+    std::vector&lt;struct &#123; std::string name, url, hash; int size; &#125;&gt; assets;
+&#125;;
+
+void checkAndUpdate() &#123;
+    httplib::Client cdn("https://cdn.game.com");
+
+    // 1. 下载版本清单（不缓存 → 每次拿最新）
+    auto res = cdn.Get("/manifest.json");
+    auto manifest = nlohmann::json::parse(res-&gt;body);
+
+    // 2. 比对本地版本号
+    std::string localVer = readLocalVersion();
+    if (manifest["version"] == localVer) return;  // 已是最新
+
+    // 3. 逐个下载变更的资源（URL 含内容哈希 → 永久缓存安全）
+    for (auto& asset : manifest["assets"]) &#123;
+        std::string url = asset["url"];  // /textures/tex_v3_a1b2c3d4.ktx
+        // CDN 边缘命中 → 10ms 内返回（99%+ 命中率）
+        auto data = cdn.Get(url.c_str());
+        saveAsset(asset["name"], data-&gt;body);
+
+        // 验证 SHA-256（防篡改）
+        if (sha256(data-&gt;body) != asset["hash"]) &#123;
+            throw std::runtime_error("Asset integrity check failed!");
+        &#125;
+    &#125;
+&#125;</code></pre>`}
+  py={`<pre><code># 游戏更新检查 + CDN 下载流程
+import requests
+import hashlib
+
+CDN_BASE = "https://cdn.game.com"
+
+def check_and_update():
+    # 1. 下载版本清单（Cache-Control: no-cache → 每次拿最新）
+    resp = requests.get(f"{CDN_BASE}/manifest.json",
+                        headers={"Cache-Control": "no-cache"})
+    manifest = resp.json()
+
+    # 2. 比对本地版本号
+    local_ver = read_local_version()
+    if manifest["version"] == local_ver:
+        return  # 已是最新
+
+    # 3. 逐个下载变更的资源（URL 含内容哈希 → 永久缓存安全）
+    for asset in manifest["assets"]:
+        url = asset["url"]  # /textures/tex_v3_a1b2c3d4.ktx
+        # CDN 边缘命中 → 10ms 内返回（99%+ 命中率）
+        data = requests.get(f"{CDN_BASE}{url}").content
+
+        # 验证 SHA-256（防篡改）
+        if hashlib.sha256(data).hexdigest() != asset["hash"]:
+            raise ValueError("Asset integrity check failed!")
+
+        save_asset(asset["name"], data)
+
+# CDN 缓存策略最佳实践：
+# - manifest.json: Cache-Control: no-cache, max-age=0
+# - *.ktx/textures: Cache-Control: public, max-age=31536000, immutable
+# - *.js/scripts:  Cache-Control: public, max-age=31536000, immutable
+# （文件名含内容哈希，内容变更→哈希变更→URL变更→自动失效）</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">客户端预测与回滚（伪代码）</span><span slot="en">Client Prediction & Rollback (Pseudocode)</span></Bilingual></h2>
+      <CodeTabs
+  cpp={`<pre><code>// 客户端预测 + 服务器权威回滚（FPS 标准模型）
+#include &lt;deque&gt;
+
+struct PlayerState &#123; float x, y, z; float vx, vy, vz; &#125;;
+struct Input &#123; int seq; float dx, dy; bool jump; &#125;;
+
+class ClientPrediction &#123;
+    PlayerState current;              // 当前预测状态
+    std::deque&lt;Input&gt; pendingInputs; // 已发送未确认的输入
+    int serverSeq = 0;                // 服务器已确认的最新序列号
+
+    // 玩家按键 → 立即模拟（不等服务器）
+    void onInput(Input input) &#123;
+        pendingInputs.push_back(input);
+        // 客户端立即应用：零输入延迟感
+        current = simulateStep(current, input);
+        sendToServer(input);  // UDP 发送
+    &#125;
+
+    // 收到服务器权威状态
+    void onServerState(PlayerState serverState, int ackSeq) &#123;
+        serverSeq = ackSeq;
+        // 1. 回滚到服务器状态
+        current = serverState;
+        // 2. 移除已确认的输入
+        while (!pendingInputs.empty() &amp;&amp;
+               pendingInputs.front().seq &lt;= ackSeq)
+            pendingInputs.pop_front();
+        // 3. 重新模拟未确认的输入（replay）
+        for (auto&amp; input : pendingInputs)
+            current = simulateStep(current, input);
+        // 若与预测差异大 → 画面跳变（rubberbanding）
+    &#125;
+
+    PlayerState simulateStep(PlayerState s, Input in) &#123;
+        s.x += in.dx * 0.1f;  s.z += in.dy * 0.1f;
+        if (in.jump) s.vy = 5.0f;
+        // ... 物理/碰撞模拟 ...
+        return s;
+    &#125;
+&#125;;</code></pre>`}
+  py={`<pre><code># 客户端预测 + 服务器权威回滚（FPS 标准模型）
+from dataclasses import dataclass, field
+from collections import deque
+
+@dataclass
+class PlayerState:
+    x: float = 0; y: float = 0; z: float = 0
+    vx: float = 0; vy: float = 0; vz: float = 0
+
+@dataclass
+class Input:
+    seq: int
+    dx: float; dy: float
+    jump: bool
+
+class ClientPrediction:
+    def __init__(self):
+        self.current = PlayerState()             # 当前预测状态
+        self.pending_inputs = deque()             # 已发送未确认的输入
+        self.server_seq = 0                       # 服务器已确认的最新序列号
+
+    def on_input(self, inp: Input):
+        """玩家按键 → 立即模拟（不等服务器）"""
+        self.pending_inputs.append(inp)
+        # 客户端立即应用：零输入延迟感
+        self.current = self._simulate(self.current, inp)
+        self._send_to_server(inp)  # UDP 发送
+
+    def on_server_state(self, server_state: PlayerState, ack_seq: int):
+        """收到服务器权威状态"""
+        self.server_seq = ack_seq
+        # 1. 回滚到服务器状态
+        self.current = PlayerState(**server_state.__dict__)
+        # 2. 移除已确认的输入
+        while self.pending_inputs and self.pending_inputs[0].seq <= ack_seq:
+            self.pending_inputs.popleft()
+        # 3. 重新模拟未确认的输入（replay）
+        for inp in self.pending_inputs:
+            self.current = self._simulate(self.current, inp)
+        # 若与预测差异大 → 画面跳变（rubberbanding）
+
+    def _simulate(self, s: PlayerState, inp: Input) -> PlayerState:
+        s.x += inp.dx * 0.1
+        s.z += inp.dy * 0.1
+        if inp.jump:
+            s.vy = 5.0
+        # ... 物理/碰撞模拟 ...
+        return s</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">游戏联机延迟优化策略</span><span slot="en">Multiplayer Latency Optimization</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">策略</span><span slot="en">Strategy</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">层级</span><span slot="en">Layer</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">效果</span><span slot="en">Effect</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">适用</span><span slot="en">Game Type</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">就近部署服务器</span><span slot="en">Regional Servers</span></Bilingual></td><td class="py-2 pr-4 text-ink-muted">基础设施</td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">RTT 降 50%+</span><span slot="en">RTT -50%+</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">所有联机游戏</span><span slot="en">All</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan"><Bilingual><span slot="zh">客户端预测</span><span slot="en">Client Prediction</span></Bilingual></td><td class="py-2 pr-4 text-ink-muted">Netcode</td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">输入延迟→0</span><span slot="en">Input→0</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">FPS/TPS/竞速</span><span slot="en">FPS/TPS/Racing</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">延迟补偿</span><span slot="en">Lag Compensation</span></Bilingual></td><td class="py-2 pr-4 text-ink-muted">Netcode</td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">公平命中判定</span><span slot="en">Fair hit detection</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">FPS/射击</span><span slot="en">FPS/Shooter</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">回滚网络</span><span slot="en">Rollback Netcode</span></Bilingual></td><td class="py-2 pr-4 text-ink-muted">Netcode</td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">零帧输入延迟</span><span slot="en">Zero-frame delay</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">格斗/街机</span><span slot="en">Fighting/Arcade</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">CDN 边缘缓存</span><span slot="en">CDN Edge Cache</span></Bilingual></td><td class="py-2 pr-4 text-ink-muted">资源分发</td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">下载速度 10-50×</span><span slot="en">10-50× faster</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">更新/补丁分发</span><span slot="en">Updates/Patches</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-primary-purple"><Bilingual><span slot="zh">Jitter Buffer</span><span slot="en">Jitter Buffer</span></Bilingual></td><td class="py-2 pr-4 text-ink-muted">传输</td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">平滑抖动</span><span slot="en">Smooth jitter</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">语音/视频</span><span slot="en">Voice/Video</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">与同批主题的关联</span><span slot="en">Related Topics</span></Bilingual></h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+        <div class="p-3 rounded-lg bg-[color:var(--glass-bg)] border border-[color:var(--glass-border)]">
+          <p class="text-primary-cyan font-semibold mb-1">← <Bilingual><span slot="zh">DNS</span><span slot="en">DNS</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">GeoDNS 实现 CDN 就近接入</span><span slot="en">GeoDNS enables proximity access</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg bg-[color:var(--glass-bg)] border border-[color:var(--glass-border)]">
+          <p class="text-func-amber font-semibold mb-1">← <Bilingual><span slot="zh">TCP / UDP</span><span slot="en">TCP / UDP</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">Netcode 基于 UDP 构建可靠/不可靠通道</span><span slot="en">Netcode builds on UDP channels</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg bg-[color:var(--glass-bg)] border border-[color:var(--glass-border)]">
+          <p class="text-func-green font-semibold mb-1">← <Bilingual><span slot="zh">HTTP / HTTPS</span><span slot="en">HTTP / HTTPS</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">CDN 缓存策略基于 HTTP 缓存头</span><span slot="en">CDN caching via HTTP headers</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg bg-[color:var(--glass-bg)] border border-[color:var(--glass-border)]">
+          <p class="text-primary-purple font-semibold mb-1">→ <Bilingual><span slot="zh">RPC 与游戏通信</span><span slot="en">RPC & Game Comms</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">自定义 UDP RPC 是 Netcode 的基础</span><span slot="en">Custom UDP RPC underpins Netcode</span></Bilingual></p>
+        </div>
+      </div>
+    </section>
+  </article>
+</BaseLayout>

@@ -1,0 +1,394 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="OSI & TCP/IP · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Networks / OSI & TCP/IP</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">OSI 与 TCP/IP 模型</span><span slot="en">OSI & TCP/IP Models</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">网络分层模型将通信拆成多个层级，每层为上层提供服务。两种主流模型：<b>OSI 七层模型</b>（理论标准，分层清晰但实际少用）和 <b>TCP/IP 四层模型</b>（工程实践标准，互联网实际使用）。关键概念是<b>封装</b>——数据从应用层向下传递时，每层添加自己的<b>头部（Header）</b>，接收端逐层剥离。下方动画展示封装与解封装过程。</span>
+          <span slot="en">Layered models split communication into levels, each serving the layer above. Two models dominate: the <b>OSI 7-layer model</b> (theoretical standard, clean but rarely used as-is) and the <b>TCP/IP 4-layer model</b> (engineering standard, what the internet actually runs on). The key concept is <b>encapsulation</b> — as data descends through layers, each adds its own <b>header</b>; the receiver strips them layer by layer. The animation below shows this process.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：封装过程动画 -->
+    <div class="glass p-5" data-viz="osi-encap">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="osi-play" class="btn btn-primary">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+          <span data-ui="pause" data-lang="zh" class="hidden">暂停</span><span data-ui="pause" data-lang="en" class="hidden">Pause</span>
+        </button>
+        <button id="osi-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+        <button id="osi-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+        <span id="osi-state" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="osi-svg" viewBox="0 0 800 420" class="w-full h-96 viz-stage"></svg>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">OSI 七层 vs TCP/IP 四层对照</span><span slot="en">OSI 7-Layer vs TCP/IP 4-Layer</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">OSI 模型将会话层、表示层单独分出，而 TCP/IP 将它们合并到应用层。实际开发中，工程师更常用<b>五层折中模型</b>（将 OSI 上三层合并为应用层）来讨论网络问题。</span><span slot="en">OSI separates session and presentation layers, while TCP/IP merges them into the application layer. In practice, engineers often use a <b>5-layer hybrid</b> (merging OSI's top three into one application layer) for discussion.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">OSI 层</span><span slot="en">OSI Layer</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">TCP/IP 层</span><span slot="en">TCP/IP Layer</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">数据单元</span><span slot="en">PDU</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">典型协议</span><span slot="en">Protocols</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">设备</span><span slot="en">Device</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4"><b class="text-func-amber">L7</b> 应用层</td><td class="py-2 pr-4 text-func-amber" rowspan="3">应用层 Application</td><td class="py-2 pr-4 text-primary-cyan">Message / Data</td><td class="py-2 pr-4">HTTP, DNS, WebSocket, gRPC</td><td class="py-2 pr-4 text-ink-muted">—</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4"><b class="text-func-amber">L6</b> 表示层</td><td class="py-2 pr-4 text-primary-cyan">Data</td><td class="py-2 pr-4">TLS/SSL, JPEG, Protobuf</td><td class="py-2 pr-4 text-ink-muted">—</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4"><b class="text-func-amber">L5</b> 会话层</td><td class="py-2 pr-4 text-primary-cyan">Data</td><td class="py-2 pr-4">RPC, NetBIOS</td><td class="py-2 pr-4 text-ink-muted">—</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4"><b class="text-primary-cyan">L4</b> 传输层</td><td class="py-2 pr-4 text-primary-cyan">传输层 Transport</td><td class="py-2 pr-4 text-primary-cyan">Segment / Datagram</td><td class="py-2 pr-4"><b>TCP, UDP</b></td><td class="py-2 pr-4">防火墙、LB</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4"><b class="text-func-green">L3</b> 网络层</td><td class="py-2 pr-4 text-func-green">网际层 Internet</td><td class="py-2 pr-4 text-primary-cyan">Packet</td><td class="py-2 pr-4"><b>IP, ICMP</b>, ARP</td><td class="py-2 pr-4">路由器</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4"><b class="text-primary-purple">L2</b> 数据链路层</td><td class="py-2 pr-4 text-primary-purple" rowspan="2">网络接口层 Network Access</td><td class="py-2 pr-4 text-primary-cyan">Frame</td><td class="py-2 pr-4">Ethernet, Wi-Fi, PPP</td><td class="py-2 pr-4">交换机</td></tr>
+            <tr><td class="py-2 pr-4"><b class="text-func-red">L1</b> 物理层</td><td class="py-2 pr-4 text-primary-cyan">Bit</td><td class="py-2 pr-4">电信号/光信号</td><td class="py-2 pr-4">集线器、线缆</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">封装与解封装</span><span slot="en">Encapsulation & Decapsulation</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">当应用层产生数据要发送时，数据从上到下经过每一层，每层在数据前<b>添加自己的头部</b>（有时还有尾部）：<br>
+          ① <b class="text-func-amber">L7 应用层</b>：产生 HTTP 请求报文（Method + Headers + Body）<br>
+          ② <b class="text-primary-cyan">L4 传输层</b>：添加 TCP 头（源端口 + 目的端口 + 序列号 + 确认号 + 窗口）→ <b>Segment</b><br>
+          ③ <b class="text-func-green">L3 网络层</b>：添加 IP 头（源 IP + 目的 IP + TTL）→ <b>Packet</b><br>
+          ④ <b class="text-primary-purple">L2 链路层</b>：添加以太网帧头（源 MAC + 目的 MAC）+ FCS 尾部 → <b>Frame</b><br>
+          ⑤ <b class="text-func-red">L1 物理层</b>：转换为比特流（电信号/光信号）在线缆上传输<br><br>
+          接收端<b>逆序</b>剥离头部：物理层→链路层→网络层→传输层→应用层，每层读取自己的头部信息后丢弃，将载荷交给上层。这就是「剥洋葱」过程。</span>
+          <span slot="en">When the application layer produces data to send, it descends through each layer, and each layer <b>prepends its own header</b> (sometimes also a trailer):<br>
+          ① <b class="text-func-amber">L7 Application</b>: produces HTTP message (Method + Headers + Body)<br>
+          ② <b class="text-primary-cyan">L4 Transport</b>: adds TCP header (src port + dst port + seq + ack + window) → <b>Segment</b><br>
+          ③ <b class="text-func-green">L3 Network</b>: adds IP header (src IP + dst IP + TTL) → <b>Packet</b><br>
+          ④ <b class="text-primary-purple">L2 Data Link</b>: adds Ethernet frame header (src MAC + dst MAC) + FCS trailer → <b>Frame</b><br>
+          ⑤ <b class="text-func-red">L1 Physical</b>: converts to bit stream (electrical/optical signals) on the wire<br><br>
+          The receiver <b>reverses</b> the process: physical→link→network→transport→application, each layer reads and strips its own header before passing the payload up — the "onion peeling" process.</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">各层职责详解</span><span slot="en">Layer Responsibilities</span></Bilingual></h2>
+      <div class="space-y-3 text-sm">
+        <div class="p-3 rounded-lg border border-[color:var(--glass-border)]">
+          <p class="font-semibold text-func-amber mb-1">L7 · Application <Bilingual><span slot="zh">应用层</span><span slot="en">Application Layer</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">为用户应用程序提供网络服务接口。游戏场景：HTTP REST API（登录/商店）、WebSocket（聊天）、gRPC（匹配服务）。</span><span slot="en">Provides network service interfaces to user applications. Games: HTTP REST API (login/shop), WebSocket (chat), gRPC (matchmaking).</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg border border-[color:var(--glass-border)]">
+          <p class="font-semibold text-func-amber mb-1">L6 · Presentation <Bilingual><span slot="zh">表示层</span><span slot="en">Presentation Layer</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">数据格式转换、加密解密、压缩。游戏场景：TLS 加密、Protobuf/FlatBuffers 序列化、纹理压缩。</span><span slot="en">Data format conversion, encryption/decryption, compression. Games: TLS encryption, Protobuf/FlatBuffers serialization, texture compression.</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg border border-[color:var(--glass-border)]">
+          <p class="font-semibold text-func-amber mb-1">L5 · Session <Bilingual><span slot="zh">会话层</span><span slot="en">Session Layer</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">建立、管理、终止会话。游戏场景：RPC 会话管理、断线重连逻辑。</span><span slot="en">Establishes, manages, and terminates sessions. Games: RPC session management, reconnection logic.</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg border border-[color:var(--glass-border)]">
+          <p class="font-semibold text-primary-cyan mb-1">L4 · Transport <Bilingual><span slot="zh">传输层</span><span slot="en">Transport Layer</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">端到端可靠传输（TCP）或不可靠快速传输（UDP）。游戏场景：<b>TCP</b> 用于登录/交易（可靠），<b>UDP</b> 用于实时位置同步（低延迟）。详见 <code>/topics/tcp-udp</code>。</span><span slot="en">End-to-end reliable (TCP) or unreliable fast (UDP) transport. Games: <b>TCP</b> for login/transactions (reliable), <b>UDP</b> for real-time position sync (low latency). See <code>/topics/tcp-udp</code>.</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg border border-[color:var(--glass-border)]">
+          <p class="font-semibold text-func-green mb-1">L3 · Network <Bilingual><span slot="zh">网络层</span><span slot="en">Network Layer</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">路由选择与 IP 寻址，负责跨网段转发。游戏场景：跨服联机的 IP 路由、NAT 穿透、任播（Anycast）就近接入。</span><span slot="en">Routing and IP addressing, cross-segment forwarding. Games: IP routing for cross-server play, NAT traversal, anycast for proximity access.</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg border border-[color:var(--glass-border)]">
+          <p class="font-semibold text-primary-purple mb-1">L2 · Data Link <Bilingual><span slot="zh">数据链路层</span><span slot="en">Data Link Layer</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">同一局域网内的帧传输、MAC 寻址、差错检测。游戏场景：网吧内网交换、Wi-Fi 无线传输。</span><span slot="en">Frame transmission within a LAN, MAC addressing, error detection. Games: LAN switching in cybercafés, Wi-Fi wireless.</span></Bilingual></p>
+        </div>
+        <div class="p-3 rounded-lg border border-[color:var(--glass-border)]">
+          <p class="font-semibold text-func-red mb-1">L1 · Physical <Bilingual><span slot="zh">物理层</span><span slot="en">Physical Layer</span></Bilingual></p>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">比特流在物理介质上的传输。游戏场景：光纤/网线/无线电波。光速限制决定了<b>物理延迟下限</b>。</span><span slot="en">Bit stream transmission over physical media. Games: fiber/cable/radio waves. Speed of light sets the <b>theoretical latency floor</b>.</span></Bilingual></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">OSI 层记忆口诀</span><span slot="en">OSI Layer Mnemonics</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">从底到顶七层：<b class="text-func-red">物</b>(Physical) → <b class="text-primary-purple">链</b>(Data Link) → <b class="text-func-green">网</b>(Network) → <b class="text-primary-cyan">传</b>(Transport) → <b class="text-func-amber">会</b>(Session) → <b class="text-func-amber">表</b>(Presentation) → <b class="text-func-amber">应</b>(Application)<br>
+          口诀：<b>「物链网传会表应」</b>（谐音：勿怜网传会表应）<br>
+          英文： <b>A</b>ll <b>P</b>eople <b>S</b>eem <b>T</b>o <b>N</b>eed <b>D</b>ata <b>P</b>rocessing（从顶到底）</span>
+          <span slot="en">Bottom to top: <b class="text-func-red">P</b>hysical → <b class="text-primary-purple">D</b>ata Link → <b class="text-func-green">N</b>etwork → <b class="text-primary-cyan">T</b>ransport → <b class="text-func-amber">S</b>ession → <b class="text-func-amber">P</b>resentation → <b class="text-func-amber">A</b>pplication<br>
+          Mnemonic (top to bottom): <b>A</b>ll <b>P</b>eople <b>S</b>eem <b>T</b>o <b>N</b>eed <b>D</b>ata <b>P</b>rocessing<br>
+          Mnemonic (bottom to top): <b>P</b>lease <b>D</b>o <b>N</b>ot <b>T</b>ouch <b>S</b>teve's <b>P</b>et <b>A</b>lligator</span>
+        </Bilingual>
+      </p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 封装过程动画 —— 数据逐层添加头部
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('osi-svg') as unknown as SVGSVGElement;
+  const stateEl = document.getElementById('osi-state');
+
+  const COL = {
+    L7: '#FBBF24', L6: '#FCD34D', L5: '#FDE68A',
+    L4: '#22D3EE', L3: '#22C55E', L2: '#A78BFA', L1: '#F87171',
+    BG: 'rgba(34,211,238,0.04)', GRID: 'rgba(148,163,184,0.15)',
+    TXT: '#CBD5E1', LBL: '#94A3B8', HDR: '#22D3EE',
+    ARROW: '#22D3EE',
+  };
+
+  type Layer = 'L7' | 'L6' | 'L5' | 'L4' | 'L3' | 'L2' | 'L1';
+  const LAYERS: Layer[] = ['L7', 'L6', 'L5', 'L4', 'L3', 'L2', 'L1'];
+  const LAYER_COLOR: Record<Layer, string> = {
+    L7: COL.L7, L6: COL.L6, L5: COL.L5, L4: COL.L4, L3: COL.L3, L2: COL.L2, L1: COL.L1,
+  };
+
+  const layerLabels: Record<string, { zh: string; en: string; pdu: string }> = {
+    L7: { zh: '应用层', en: 'Application', pdu: 'Data' },
+    L6: { zh: '表示层', en: 'Presentation', pdu: 'Data' },
+    L5: { zh: '会话层', en: 'Session', pdu: 'Data' },
+    L4: { zh: '传输层', en: 'Transport', pdu: 'Segment' },
+    L3: { zh: '网络层', en: 'Network', pdu: 'Packet' },
+    L2: { zh: '链路层', en: 'Data Link', pdu: 'Frame' },
+    L1: { zh: '物理层', en: 'Physical', pdu: 'Bits' },
+  };
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  interface Frame { step: number; done: boolean; }
+  const TOTAL_STEPS = 8; // 0=初始, 1-7=封装L7→L1, 7=传输
+
+  function buildFrames(): Frame[] {
+    const frames: Frame[] = [];
+    for (let s = 0; s <= TOTAL_STEPS; s++) {
+      frames.push({ step: s, done: s === TOTAL_STEPS });
+    }
+    return frames;
+  }
+
+  function langText(key: string): string {
+    const l = lang();
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${l}"]`);
+    return el ? el.textContent || '' : '';
+  }
+
+  let curFrame: Frame | null = null;
+
+  function render(f: Frame | null) {
+    curFrame = f;
+    svg.innerHTML = '';
+    const curStep = f ? f.step : 0;
+    const l = lang();
+
+    // 左侧：发送端封装栈
+    const stackX = 180;
+    const stackY0 = 30;
+    const layerH = 42;
+    const dataW = 300;
+
+    // 标题
+    const title = document.createElementNS(SVGNS, 'text');
+    title.setAttribute('x', String(stackX + dataW / 2));
+    title.setAttribute('y', String(stackY0 - 12));
+    title.setAttribute('text-anchor', 'middle');
+    title.setAttribute('font-size', '13');
+    title.setAttribute('fill', COL.HDR);
+    title.setAttribute('font-weight', '700');
+    title.textContent = l === 'en' ? 'Sender (Encapsulation ↓)' : '发送端（封装 ↓）';
+    svg.appendChild(title);
+
+    // 从L7到L1逐层绘制
+    for (let i = 0; i < LAYERS.length; i++) {
+      const layer = LAYERS[i];
+      const y = stackY0 + i * layerH;
+      const active = i < curStep; // 已封装的层
+      const isCurrent = i === curStep - 1; // 当前刚添加的层
+
+      // 层标签
+      const lbl = document.createElementNS(SVGNS, 'text');
+      lbl.setAttribute('x', String(stackX - 10));
+      lbl.setAttribute('y', String(y + layerH / 2 + 4));
+      lbl.setAttribute('text-anchor', 'end');
+      lbl.setAttribute('font-size', '11');
+      lbl.setAttribute('fill', active ? LAYER_COLOR[layer] : COL.LBL);
+      lbl.setAttribute('font-weight', '700');
+      lbl.setAttribute('font-family', 'monospace');
+      const ll = layerLabels[layer];
+      lbl.textContent = `${layer} ${l === 'en' ? ll.en : ll.zh}`;
+      svg.appendChild(lbl);
+
+      // 头部方块（当前层及以下才有头部）
+      if (active) {
+        const hdrW = 50;
+        const hdrRect = document.createElementNS(SVGNS, 'rect');
+        hdrRect.setAttribute('x', String(stackX));
+        hdrRect.setAttribute('y', String(y + 4));
+        hdrRect.setAttribute('width', String(hdrW));
+        hdrRect.setAttribute('height', String(layerH - 8));
+        hdrRect.setAttribute('fill', LAYER_COLOR[layer] + (isCurrent ? '66' : '33'));
+        hdrRect.setAttribute('stroke', LAYER_COLOR[layer]);
+        hdrRect.setAttribute('stroke-width', isCurrent ? '2.5' : '1');
+        hdrRect.setAttribute('rx', '3');
+        svg.appendChild(hdrRect);
+
+        const hdrTxt = document.createElementNS(SVGNS, 'text');
+        hdrTxt.setAttribute('x', String(stackX + hdrW / 2));
+        hdrTxt.setAttribute('y', String(y + layerH / 2 + 4));
+        hdrTxt.setAttribute('text-anchor', 'middle');
+        hdrTxt.setAttribute('font-size', '9');
+        hdrTxt.setAttribute('fill', LAYER_COLOR[layer]);
+        hdrTxt.setAttribute('font-weight', '700');
+        hdrTxt.setAttribute('font-family', 'monospace');
+        hdrTxt.textContent = layer;
+        svg.appendChild(hdrTxt);
+      }
+
+      // 数据载荷方块
+      const dataX = stackX + (active ? 50 : 0);
+      const dataRectW = dataW - (active ? 50 : 0);
+      const dataRect = document.createElementNS(SVGNS, 'rect');
+      dataRect.setAttribute('x', String(dataX));
+      dataRect.setAttribute('y', String(y + 4));
+      dataRect.setAttribute('width', String(dataRectW));
+      dataRect.setAttribute('height', String(layerH - 8));
+      dataRect.setAttribute('fill', active ? 'rgba(34,211,238,0.06)' : 'rgba(148,163,184,0.06)');
+      dataRect.setAttribute('stroke', active ? COL.GRID : 'rgba(148,163,184,0.1)');
+      dataRect.setAttribute('stroke-dasharray', active ? 'none' : '4 4');
+      dataRect.setAttribute('rx', '3');
+      svg.appendChild(dataRect);
+
+      if (!active) {
+        const placeholder = document.createElementNS(SVGNS, 'text');
+        placeholder.setAttribute('x', String(dataX + dataRectW / 2));
+        placeholder.setAttribute('y', String(y + layerH / 2 + 4));
+        placeholder.setAttribute('text-anchor', 'middle');
+        placeholder.setAttribute('font-size', '10');
+        placeholder.setAttribute('fill', COL.LBL);
+        placeholder.setAttribute('opacity', '0.5');
+        placeholder.textContent = l === 'en' ? '(pending)' : '（待封装）';
+        svg.appendChild(placeholder);
+      }
+    }
+
+    // PDU 标签（右侧）
+    for (let i = 0; i < LAYERS.length; i++) {
+      const layer = LAYERS[i];
+      const y = stackY0 + i * layerH;
+      const active = i < curStep;
+      if (active) {
+        const pduTxt = document.createElementNS(SVGNS, 'text');
+        pduTxt.setAttribute('x', String(stackX + dataW + 12));
+        pduTxt.setAttribute('y', String(y + layerH / 2 + 4));
+        pduTxt.setAttribute('font-size', '11');
+        pduTxt.setAttribute('fill', LAYER_COLOR[layer]);
+        pduTxt.setAttribute('font-weight', '600');
+        pduTxt.setAttribute('font-family', 'monospace');
+        pduTxt.textContent = `→ ${layerLabels[layer].pdu}`;
+        svg.appendChild(pduTxt);
+      }
+    }
+
+    // 底部传输箭头（最后一步）
+    if (curStep >= TOTAL_STEPS) {
+      const arrowY = stackY0 + LAYERS.length * layerH + 20;
+      const arrow = document.createElementNS(SVGNS, 'text');
+      arrow.setAttribute('x', String(stackX + dataW / 2));
+      arrow.setAttribute('y', String(arrowY));
+      arrow.setAttribute('text-anchor', 'middle');
+      arrow.setAttribute('font-size', '14');
+      arrow.setAttribute('fill', COL.L1);
+      arrow.setAttribute('font-weight', '700');
+      arrow.textContent = l === 'en' ? '⚡ Bit stream transmitted over physical medium' : '⚡ 比特流在物理介质上传输';
+      svg.appendChild(arrow);
+
+      // 接收端解封装提示
+      const rx = document.createElementNS(SVGNS, 'text');
+      rx.setAttribute('x', String(stackX + dataW / 2));
+      rx.setAttribute('y', String(arrowY + 22));
+      rx.setAttribute('text-anchor', 'middle');
+      rx.setAttribute('font-size', '11');
+      rx.setAttribute('fill', COL.LBL);
+      rx.textContent = l === 'en' ? 'Receiver: decapsulate L1→L7 (reverse)' : '接收端：解封装 L1→L7（逆序剥离头部）';
+      svg.appendChild(rx);
+    }
+
+    // 图例
+    const legendY = stackY0 + LAYERS.length * layerH + 55;
+    const hdrLegend = document.createElementNS(SVGNS, 'rect');
+    hdrLegend.setAttribute('x', String(stackX));
+    hdrLegend.setAttribute('y', String(legendY));
+    hdrLegend.setAttribute('width', '14');
+    hdrLegend.setAttribute('height', '14');
+    hdrLegend.setAttribute('rx', '3');
+    hdrLegend.setAttribute('fill', COL.HDR + '55');
+    hdrLegend.setAttribute('stroke', COL.HDR);
+    svg.appendChild(hdrLegend);
+    const hdrLbl = document.createElementNS(SVGNS, 'text');
+    hdrLbl.setAttribute('x', String(stackX + 20));
+    hdrLbl.setAttribute('y', String(legendY + 12));
+    hdrLbl.setAttribute('font-size', '11');
+    hdrLbl.setAttribute('fill', COL.LBL);
+    hdrLbl.textContent = l === 'en' ? 'Header' : '头部';
+    svg.appendChild(hdrLbl);
+
+    const dataLegend = document.createElementNS(SVGNS, 'rect');
+    dataLegend.setAttribute('x', String(stackX + 90));
+    dataLegend.setAttribute('y', String(legendY));
+    dataLegend.setAttribute('width', '14');
+    dataLegend.setAttribute('height', '14');
+    dataLegend.setAttribute('rx', '3');
+    dataLegend.setAttribute('fill', 'rgba(34,211,238,0.06)');
+    dataLegend.setAttribute('stroke', COL.GRID);
+    dataLegend.setAttribute('stroke-dasharray', '4 4');
+    svg.appendChild(dataLegend);
+    const dataLbl = document.createElementNS(SVGNS, 'text');
+    dataLbl.setAttribute('x', String(stackX + 110));
+    dataLbl.setAttribute('y', String(legendY + 12));
+    dataLbl.setAttribute('font-size', '11');
+    dataLbl.setAttribute('fill', COL.LBL);
+    dataLbl.textContent = l === 'en' ? 'Payload' : '载荷';
+    svg.appendChild(dataLbl);
+
+    // 状态文案
+    if (stateEl && f) {
+      if (f.done) {
+        stateEl.textContent = l === 'en' ? 'Encapsulation complete — bit stream on the wire' : '封装完成——比特流已传输';
+      } else if (f.step === 0) {
+        stateEl.textContent = l === 'en' ? 'Click Play to start encapsulation' : '点击播放开始封装';
+      } else {
+        const layer = LAYERS[f.step - 1];
+        const ll = layerLabels[layer];
+        stateEl.textContent = l === 'en' ? `${layer} ${ll.en}: add header → ${ll.pdu}` : `${layer} ${ll.zh}：添加头部 → ${ll.pdu}`;
+      }
+    }
+  }
+
+  let frames: Frame[] = [];
+  let idx = 0;
+  let timer: number | null = null;
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('osi-play');
+    if (b) b.innerHTML = langText('play');
+  }
+  function rebuild() {
+    stop(); frames = buildFrames(); idx = 0; render(null); if (stateEl) stateEl.textContent = '';
+  }
+  function advance(): boolean {
+    if (idx < frames.length) { render(frames[idx]); idx++; return true; }
+    return false;
+  }
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('osi-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 700);
+  }
+
+  document.getElementById('osi-play')?.addEventListener('click', play);
+  document.getElementById('osi-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('osi-reset')?.addEventListener('click', rebuild);
+  document.addEventListener('langchange', () => { if (timer === null) { const b = document.getElementById('osi-play'); if (b) b.innerHTML = langText('play'); } if (curFrame) render(curFrame); });
+  rebuild();
+</script>

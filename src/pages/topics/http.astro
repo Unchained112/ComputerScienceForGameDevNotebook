@@ -1,0 +1,240 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="HTTP / HTTPS · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Networks / HTTP & HTTPS</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">HTTP / HTTPS</span><span slot="en">HTTP / HTTPS</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh"><b>HTTP</b>（超文本传输协议）是 Web 通信的基石——无状态、请求-响应模型。<b>HTTPS</b> = HTTP + <b>TLS</b> 加密层，保证数据机密性、完整性和身份认证。游戏后端大量使用 HTTP/HTTPS：REST API（登录/商店/排行榜）、CDN 资源分发、版本更新检查。HTTP/2 和 HTTP/3 引入多路复用和 QUIC，显著降低延迟。</span>
+          <span slot="en"><b>HTTP</b> (HyperText Transfer Protocol) is the backbone of web communication — stateless, request-response model. <b>HTTPS</b> = HTTP + <b>TLS</b> encryption, ensuring confidentiality, integrity, and authentication. Game backends heavily use HTTP/HTTPS: REST APIs (login/shop/leaderboard), CDN asset delivery, version update checks. HTTP/2 and HTTP/3 introduced multiplexing and QUIC, significantly reducing latency.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">HTTP 请求方法</span><span slot="en">HTTP Methods</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">HTTP 方法语义对应 CRUD 操作。游戏 REST API 设计中，<b>GET</b> 查询排行榜、<b>POST</b> 提交成绩、<b>PUT</b> 更新玩家档案、<b>DELETE</b> 删除存档。<b class="text-func-red">重要</b>：GET 应<b>幂等</b>且无副作用，POST 不幂等。</span><span slot="en">HTTP methods map to CRUD semantics. In game REST API design: <b>GET</b> queries leaderboard, <b>POST</b> submits scores, <b>PUT</b> updates player profile, <b>DELETE</b> removes save data. <b class="text-func-red">Important</b>: GET should be <b>idempotent</b> with no side effects; POST is not.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">方法</span><span slot="en">Method</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">含义</span><span slot="en">Meaning</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">幂等</span><span slot="en">Idempotent</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏场景</span><span slot="en">Game Use</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green font-mono">GET</td><td class="py-2 pr-4"><Bilingual><span slot="zh">获取资源</span><span slot="en">Retrieve resource</span></Bilingual></td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4"><Bilingual><span slot="zh">查询排行榜、玩家信息</span><span slot="en">Leaderboard, player info</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber font-mono">POST</td><td class="py-2 pr-4"><Bilingual><span slot="zh">创建资源</span><span slot="en">Create resource</span></Bilingual></td><td class="py-2 pr-4 text-func-red">✗</td><td class="py-2 pr-4"><Bilingual><span slot="zh">登录、提交成绩、充值</span><span slot="en">Login, submit score, payment</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan font-mono">PUT</td><td class="py-2 pr-4"><Bilingual><span slot="zh">整体更新</span><span slot="en">Full update</span></Bilingual></td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4"><Bilingual><span slot="zh">更新玩家档案</span><span slot="en">Update player profile</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple font-mono">PATCH</td><td class="py-2 pr-4"><Bilingual><span slot="zh">局部更新</span><span slot="en">Partial update</span></Bilingual></td><td class="py-2 pr-4 text-func-amber">?</td><td class="py-2 pr-4"><Bilingual><span slot="zh">修改昵称/头像</span><span slot="en">Change nickname/avatar</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-func-red font-mono">DELETE</td><td class="py-2 pr-4"><Bilingual><span slot="zh">删除资源</span><span slot="en">Delete resource</span></Bilingual></td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4"><Bilingual><span slot="zh">删除存档/角色</span><span slot="en">Delete save/character</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">HTTP 状态码速查</span><span slot="en">HTTP Status Codes</span></Bilingual></h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="text-func-green font-semibold mb-2 font-mono">2xx Success</p>
+          <div class="text-sm space-y-1 text-ink-muted">
+            <p><b class="text-ink">200</b> OK — <Bilingual><span slot="zh">请求成功</span><span slot="en">Success</span></Bilingual></p>
+            <p><b class="text-ink">201</b> Created — <Bilingual><span slot="zh">资源已创建</span><span slot="en">Resource created</span></Bilingual></p>
+            <p><b class="text-ink">204</b> No Content — <Bilingual><span slot="zh">成功无返回体</span><span slot="en">Success, no body</span></Bilingual></p>
+          </div>
+        </div>
+        <div>
+          <p class="text-func-amber font-semibold mb-2 font-mono">3xx Redirect</p>
+          <div class="text-sm space-y-1 text-ink-muted">
+            <p><b class="text-ink">301</b> Moved Permanently — <Bilingual><span slot="zh">永久重定向</span><span slot="en">Permanent redirect</span></Bilingual></p>
+            <p><b class="text-ink">302</b> Found — <Bilingual><span slot="zh">临时重定向</span><span slot="en">Temporary redirect</span></Bilingual></p>
+            <p><b class="text-ink">304</b> Not Modified — <Bilingual><span slot="zh">缓存有效</span><span slot="en">Cache valid</span></Bilingual></p>
+          </div>
+        </div>
+        <div>
+          <p class="text-func-red font-semibold mb-2 font-mono">4xx Client Error</p>
+          <div class="text-sm space-y-1 text-ink-muted">
+            <p><b class="text-ink">400</b> Bad Request — <Bilingual><span slot="zh">参数错误</span><span slot="en">Bad params</span></Bilingual></p>
+            <p><b class="text-ink">401</b> Unauthorized — <Bilingual><span slot="zh">未认证</span><span slot="en">Not authenticated</span></Bilingual></p>
+            <p><b class="text-ink">403</b> Forbidden — <Bilingual><span slot="zh">无权限</span><span slot="en">No permission</span></Bilingual></p>
+            <p><b class="text-ink">404</b> Not Found — <Bilingual><span slot="zh">资源不存在</span><span slot="en">Not found</span></Bilingual></p>
+            <p><b class="text-ink">429</b> Too Many Requests — <Bilingual><span slot="zh">限流</span><span slot="en">Rate limited</span></Bilingual></p>
+          </div>
+        </div>
+        <div>
+          <p class="text-func-red font-semibold mb-2 font-mono">5xx Server Error</p>
+          <div class="text-sm space-y-1 text-ink-muted">
+            <p><b class="text-ink">500</b> Internal Server Error — <Bilingual><span slot="zh">服务器内部错误</span><span slot="en">Server error</span></Bilingual></p>
+            <p><b class="text-ink">502</b> Bad Gateway — <Bilingual><span slot="zh">网关错误</span><span slot="en">Gateway error</span></Bilingual></p>
+            <p><b class="text-ink">503</b> Service Unavailable — <Bilingual><span slot="zh">服务不可用（维护中）</span><span slot="en">Service down</span></Bilingual></p>
+            <p><b class="text-ink">504</b> Gateway Timeout — <Bilingual><span slot="zh">网关超时</span><span slot="en">Gateway timeout</span></Bilingual></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">HTTPS 与 TLS 握手</span><span slot="en">HTTPS & TLS Handshake</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">HTTPS 在 HTTP 下方插入 <b>TLS（传输层安全）</b>层，提供三大安全保证：<br>
+          • <b class="text-func-green">机密性</b>：对称加密（AES/ChaCha20）保护数据内容<br>
+          • <b class="text-primary-cyan">完整性</b>：MAC/HMAC 防止数据被篡改<br>
+          • <b class="text-func-amber">认证</b>：非对称加密（RSA/ECDHE）+ 数字证书验证服务器身份<br><br>
+          <b>TLS 1.3 握手流程（2-RTT，比 TLS 1.2 少一轮）</b>：<br>
+          ① Client → Server：<b class="text-func-amber">ClientHello</b>（支持的密码套件列表 + 随机数 + ECDHE 公钥）<br>
+          ② Server → Client：<b class="text-func-amber">ServerHello</b>（选定密码套件 + 随机数 + ECDHE 公钥）+ <b class="text-primary-cyan">证书</b> + <b class="text-func-green">Finished</b><br>
+          ③ 双方用 ECDHE 协商出共享密钥，后续用对称加密通信<br><br>
+          游戏场景：HTTPS 保护登录凭据、充值支付、个人数据传输。TLS 1.3 的 1-RTT 恢复（会话复用）可进一步降低延迟。</span>
+          <span slot="en">HTTPS inserts a <b>TLS (Transport Layer Security)</b> layer below HTTP, providing three security guarantees:<br>
+          • <b class="text-func-green">Confidentiality</b>: symmetric encryption (AES/ChaCha20) protects data content<br>
+          • <b class="text-primary-cyan">Integrity</b>: MAC/HMAC prevents tampering<br>
+          • <b class="text-func-amber">Authentication</b>: asymmetric encryption (RSA/ECDHE) + digital certificates verify server identity<br><br>
+          <b>TLS 1.3 Handshake (2-RTT, one less round than TLS 1.2)</b>:<br>
+          ① Client → Server: <b class="text-func-amber">ClientHello</b> (cipher suite list + random + ECDHE public key)<br>
+          ② Server → Client: <b class="text-func-amber">ServerHello</b> (chosen cipher + random + ECDHE public key) + <b class="text-primary-cyan">Certificate</b> + <b class="text-func-green">Finished</b><br>
+          ③ Both derive shared key via ECDHE, then communicate with symmetric encryption<br><br>
+          Games: HTTPS protects login credentials, payments, and personal data. TLS 1.3's 1-RTT resumption further reduces latency.</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">HTTP 版本对比</span><span slot="en">HTTP Version Comparison</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">HTTP 协议经历了多次演进。<b>HTTP/1.1</b> 引入持久连接（Keep-Alive），但队头阻塞严重。<b>HTTP/2</b> 引入二进制分帧和多路复用，解决队头阻塞。<b>HTTP/3</b> 基于 QUIC（UDP），彻底消除 TCP 层队头阻塞，是未来游戏 API 的趋势。</span><span slot="en">HTTP has evolved through multiple versions. <b>HTTP/1.1</b> introduced persistent connections (Keep-Alive) but suffers from head-of-line blocking. <b>HTTP/2</b> introduced binary framing and multiplexing. <b>HTTP/3</b> is built on QUIC (UDP), eliminating TCP-layer head-of-line blocking — the future of game APIs.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">版本</span><span slot="en">Version</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">年份</span><span slot="en">Year</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">传输层</span><span slot="en">Transport</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">核心特性</span><span slot="en">Key Feature</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">队头阻塞</span><span slot="en">HOL Blocking</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-red font-mono">HTTP/1.0</td><td class="py-2 pr-4">1996</td><td class="py-2 pr-4">TCP</td><td class="py-2 pr-4"><Bilingual><span slot="zh">短连接（每请求新连）</span><span slot="en">Short connection</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">严重</span><span slot="en">Severe</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber font-mono">HTTP/1.1</td><td class="py-2 pr-4">1997</td><td class="py-2 pr-4">TCP</td><td class="py-2 pr-4"><Bilingual><span slot="zh">Keep-Alive 持久连接、管道化</span><span slot="en">Keep-Alive, pipelining</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">有（TCP 层）</span><span slot="en">Yes (TCP)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan font-mono">HTTP/2</td><td class="py-2 pr-4">2015</td><td class="py-2 pr-4">TCP</td><td class="py-2 pr-4"><Bilingual><span slot="zh">二进制分帧、多路复用、头部压缩(HPACK)</span><span slot="en">Binary framing, multiplexing, HPACK</span></Bilingual></td><td class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">TCP 层有</span><span slot="en">TCP-layer only</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-func-green font-mono">HTTP/3</td><td class="py-2 pr-4">2022</td><td class="py-2 pr-4 text-func-green">QUIC (UDP)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">0-RTT 恢复、无 HOL 阻塞、连接迁移</span><span slot="en">0-RTT, no HOL, connection migration</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">消除</span><span slot="en">Eliminated</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">HTTP 请求与响应结构</span><span slot="en">HTTP Request & Response Structure</span></Bilingual></h2>
+      <CodeTabs
+  cpp={`<pre><code>// ===== HTTP 请求报文结构 =====
+// POST /api/v1/score HTTP/1.1
+// Host: game.example.com
+// Content-Type: application/json
+// Authorization: Bearer eyJhbGciOiJIUzI1Ni...
+// Content-Length: 56
+//
+// &#123;"playerId": "p001", "score": 9800, "level": 42&#125;
+
+// ===== HTTP 响应报文结构 =====
+// HTTP/1.1 200 OK
+// Content-Type: application/json
+// Cache-Control: max-age=60
+// Content-Length: 89
+//
+// &#123;"rank": 3, "totalPlayers": 1024, "nextReward": "gold_chest"&#125;
+
+// C++ HTTP 客户端（伪代码）
+#include &lt;httplib.h&gt;
+httplib::Client cli("https://game.example.com");
+
+// 提交成绩（POST）
+httplib::Headers hdr = &#123;&#123;"Authorization", "Bearer " + token&#125;&#125;;
+auto res = cli.Post("/api/v1/score", hdr,
+    R"(&#123;"playerId":"p001","score":9800&#125;)", "application/json");
+
+if (res-&gt;status == 200) &#123;
+    printf("Rank: %s\n", res-&gt;body.c_str());
+&#125;</code></pre>`}
+  py={`<pre><code># ===== HTTP 请求报文结构 =====
+# POST /api/v1/score HTTP/1.1
+# Host: game.example.com
+# Content-Type: application/json
+# Authorization: Bearer eyJhbGciOiJIUzI1Ni...
+# Content-Length: 56
+#
+# {"playerId": "p001", "score": 9800, "level": 42}
+
+# ===== HTTP 响应报文结构 =====
+# HTTP/1.1 200 OK
+# Content-Type: application/json
+# Cache-Control: max-age=60
+# Content-Length: 89
+#
+# {"rank": 3, "totalPlayers": 1024, "nextReward": "gold_chest"}
+
+# Python HTTP 客户端
+import requests
+
+BASE = "https://game.example.com/api/v1"
+token = "eyJhbGciOiJIUzI1Ni..."
+headers = {"Authorization": f"Bearer {token}"}
+
+# 提交成绩（POST）
+resp = requests.post(f"{BASE}/score",
+    json={"playerId": "p001", "score": 9800, "level": 42},
+    headers=headers)
+
+if resp.status_code == 200:
+    data = resp.json()
+    print(f"Rank: {data['rank']}/{data['totalPlayers']}")
+    print(f"Reward: {data['nextReward']}")
+
+# 查询排行榜（GET）
+resp = requests.get(f"{BASE}/leaderboard?limit=10", headers=headers)
+for entry in resp.json()["entries"]:
+    print(f"{entry['name']}: {entry['score']}")</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">RESTful API 设计原则</span><span slot="en">RESTful API Design Principles</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh"><b>REST</b>（表现层状态转移）是一种 API 设计风格，核心原则：<br>
+          ① <b class="text-func-green">资源导向</b>：URL 表示资源名词（<code>/players/123</code> 而非 <code>/getPlayer?id=123</code>）<br>
+          ② <b class="text-primary-cyan">方法语义</b>：用 HTTP 方法表达操作意图（GET/POST/PUT/DELETE）<br>
+          ③ <b class="text-func-amber">无状态</b>：每个请求自包含（含认证 token），服务器不保存会话状态<br>
+          ④ <b class="text-func-red">分层</b>：客户端不关心是否经过 CDN/网关/负载均衡<br><br>
+          游戏后端示例：<br>
+          • <code>GET /players/&#123;id&#125;</code> — 获取玩家信息<br>
+          • <code>POST /players/&#123;id&#125;/items</code> — 给玩家添加物品<br>
+          • <code>GET /leaderboard?game=battle&type=daily</code> — 查询排行榜<br>
+          • <code>DELETE /sessions/&#123;token&#125;</code> — 注销登录</span>
+          <span slot="en"><b>REST</b> (Representational State Transfer) is an API design style with core principles:<br>
+          ① <b class="text-func-green">Resource-oriented</b>: URLs are resource nouns (<code>/players/123</code> not <code>/getPlayer?id=123</code>)<br>
+          ② <b class="text-primary-cyan">Method semantics</b>: HTTP methods express intent (GET/POST/PUT/DELETE)<br>
+          ③ <b class="text-func-amber">Stateless</b>: Each request is self-contained (includes auth token), server holds no session<br>
+          ④ <b class="text-func-red">Layered</b>: Client doesn't know if CDN/gateway/LB is in between<br><br>
+          Game backend examples:<br>
+          • <code>GET /players/&#123;id&#125;</code> — Get player info<br>
+          • <code>POST /players/&#123;id&#125;/items</code> — Add item to player<br>
+          • <code>GET /leaderboard?game=battle&type=daily</code> — Query leaderboard<br>
+          • <code>DELETE /sessions/&#123;token&#125;</code> — Logout</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">HTTP 缓存与游戏更新</span><span slot="en">HTTP Caching & Game Updates</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">HTTP 缓存头对游戏资源分发至关重要：<br>
+          • <b class="text-func-green">Cache-Control: max-age=86400</b> — 静态资源（纹理/模型）缓存 24 小时<br>
+          • <b class="text-primary-cyan">ETag</b> — 资源指纹，客户端发 <code>If-None-Match</code>，命中则返回 <b>304</b> 省带宽<br>
+          • <b class="text-func-amber">Last-Modified</b> — 时间戳，客户端发 <code>If-Modified-Since</code><br><br>
+          游戏更新策略：版本号 + CDN 边缘缓存 + 增量补丁（patch）。大版本更新时通过 Cache-Control: no-cache 强制刷新清单文件，资源文件用内容哈希命名（<code>texture_v3_a1b2c3.png</code>）实现永久缓存。</span>
+          <span slot="en">HTTP cache headers are critical for game asset delivery:<br>
+          • <b class="text-func-green">Cache-Control: max-age=86400</b> — Static assets (textures/models) cached for 24h<br>
+          • <b class="text-primary-cyan">ETag</b> — Resource fingerprint; client sends <code>If-None-Match</code>, server returns <b>304</b> to save bandwidth<br>
+          • <b class="text-func-amber">Last-Modified</b> — Timestamp; client sends <code>If-Modified-Since</code><br><br>
+          Game update strategy: version number + CDN edge cache + incremental patches. Major updates force-refresh manifest via <code>Cache-Control: no-cache</code>; asset files use content-hash names (<code>texture_v3_a1b2c3.png</code>) for permanent caching.</span>
+        </Bilingual>
+      </p>
+    </section>
+  </article>
+</BaseLayout>

@@ -1,0 +1,594 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="RPC & Game Comms · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Networks / RPC & Game Comms</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">RPC 与游戏通信</span><span slot="en">RPC & Game Comms</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">RPC（远程过程调用）让客户端像调用本地函数一样调用远端服务。游戏行业广泛使用 RPC：<b>gRPC</b> 用于后端微服务（匹配/排行榜/背包），<b>Unreal Engine</b> 内置 Server/Client/NetMulticast 三种 RPC 复制机制，实时对战则常用<b>自定义 UDP RPC</b>。下方动画展示一次 RPC 调用的完整流程。</span>
+          <span slot="en">RPC (Remote Procedure Call) lets a client invoke a remote service as if it were a local function. Games use RPC extensively: <b>gRPC</b> for backend microservices (matchmaking/leaderboard/inventory), <b>Unreal Engine</b> ships Server/Client/NetMulticast RPCs for replication, and real-time combat often uses <b>custom UDP RPC</b>. The animation below shows a full RPC call flow.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：RPC 调用流程时序图 -->
+    <div class="glass p-5" data-viz="rpc-sequence">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="rpc-play" class="btn btn-primary">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+          <span data-ui="pause" data-lang="zh" class="hidden">暂停</span><span data-ui="pause" data-lang="en" class="hidden">Pause</span>
+        </button>
+        <button id="rpc-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+        <button id="rpc-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+        <span id="rpc-state" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="rpc-svg" viewBox="0 0 800 380" class="w-full h-96 viz-stage"></svg>
+    </div>
+
+    <!-- RPC 基本原理 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">RPC 基本原理</span><span slot="en">RPC Fundamentals</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">RPC 的核心是<b>透明化</b>远程调用：开发者写 <code>result = client.GetUser(id)</code>，底层自动完成「序列化 → 网络传输 → 反序列化 → 执行 → 返回」。关键组件：<b>Stub（桩）</b>在客户端伪装成本地函数，负责将参数<b>序列化（marshal）</b>为字节流；<b>Skeleton（骨架）</b>在服务端反序列化参数、调用真实实现、再序列化返回值。相比 REST API，RPC 通常用二进制协议（Protobuf/FlatBuffers），开销更低、类型更安全。</span><span slot="en">RPC's core is <b>transparency</b>: you write <code>result = client.GetUser(id)</code> and the machinery handles "serialize → transmit over network → deserialize → execute → return". Key components: the <b>Stub</b> masquerades as a local function on the client, <b>marshaling</b> parameters into a byte stream; the <b>Skeleton</b> on the server deserializes parameters, invokes the real implementation, and marshals the return value. Compared to REST APIs, RPC typically uses binary protocols (Protobuf/FlatBuffers) for lower overhead and stronger typing.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">特性</span><span slot="en">Aspect</span></Bilingual></th><th class="py-2 pr-4">REST API</th><th class="py-2 pr-4">RPC</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">传输协议</span><span slot="en">Transport</span></Bilingual></td><td class="py-2 pr-4">HTTP/1.1 或 HTTP/2</td><td class="py-2 pr-4">TCP/UDP/HTTP/2</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">序列化</span><span slot="en">Serialization</span></Bilingual></td><td class="py-2 pr-4">JSON（文本）</td><td class="py-2 pr-4">Protobuf/FlatBuffers（二进制）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">类型安全</span><span slot="en">Type safety</span></Bilingual></td><td class="py-2 pr-4">运行时校验</td><td class="py-2 pr-4 text-func-green">编译时生成</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">性能</span><span slot="en">Performance</span></Bilingual></td><td class="py-2 pr-4">较高开销（文本解析）</td><td class="py-2 pr-4 text-func-green">低开销（二进制紧凑）</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">适用场景</span><span slot="en">Use case</span></Bilingual></td><td class="py-2 pr-4">公开 API、Web 前端</td><td class="py-2 pr-4">微服务内部、游戏后端</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- gRPC -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">gRPC：游戏后端微服务</span><span slot="en">gRPC: Game Backend Microservices</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">gRPC 基于 <b>HTTP/2</b> 多路复用 + <b>Protocol Buffers</b> 序列化，支持四种调用模式：一元（Unary）、服务端流、客户端流、双向流。游戏后端典型用法：<b>匹配服务</b>（一元：请求匹配→返回房间号）、<b>排行榜</b>（服务端流：一次拉取 Top100）、<b>背包同步</b>（一元：增删道具）。先用 <code>.proto</code> 定义接口，再用 <code>protoc</code> 生成多语言 Stub。</span><span slot="en">gRPC builds on <b>HTTP/2</b> multiplexing + <b>Protocol Buffers</b> serialization, supporting four call patterns: unary, server-streaming, client-streaming, and bidirectional streaming. Typical game backend usage: <b>matchmaking</b> (unary: request → room ID), <b>leaderboard</b> (server-streaming: fetch Top 100 in one call), <b>inventory sync</b> (unary: add/remove items). Define the interface in <code>.proto</code>, then generate multi-language stubs with <code>protoc</code>.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// ========== game.proto ==========
+syntax = "proto3";
+package game;
+
+service MatchService &#123;
+    // 一元 RPC：请求匹配，返回房间号
+    rpc RequestMatch (MatchRequest) returns (MatchResponse);
+    // 服务端流：拉取排行榜
+    rpc GetLeaderboard (PageRequest) returns (stream ScoreEntry);
+&#125;
+
+message MatchRequest &#123;
+    string player_id = 1;
+    int32  rank = 2;          // 当前段位
+    string region = 3;        // 地区: ap/cn/eu/na
+&#125;
+
+message MatchResponse &#123;
+    string room_id = 1;
+    string server_addr = 2;
+    repeated string teammates = 3;
+&#125;
+
+message ScoreEntry &#123;
+    string player_id = 1;
+    int32  score = 2;
+    int32  rank = 3;
+&#125;
+
+// ========== C++ 服务端 ==========
+class MatchServiceImpl final : public MatchService::Service &#123;
+    grpc::Status RequestMatch(grpc::ServerContext* ctx,
+        const MatchRequest* req, MatchResponse* resp) override &#123;
+        // 匹配逻辑：根据段位+地区找房间
+        std::string room = findRoom(req->rank(), req->region());
+        resp->set_room_id(room);
+        resp->set_server_addr("10.0.1." + room);
+        return grpc::Status::OK;
+    &#125;
+&#125;;
+
+// ========== C++ 客户端 ==========
+std::string requestMatch(std::shared_ptr&lt;grpc::Channel&gt; ch,
+                         const std::string&amp; pid, int rank) &#123;
+    auto stub = MatchService::NewStub(ch);
+    MatchRequest req;
+    req.set_player_id(pid);
+    req.set_rank(rank);
+    req.set_region("cn");
+    MatchResponse resp;
+    grpc::ClientContext ctx;
+    auto st = stub->RequestMatch(&amp;ctx, req, &amp;resp);
+    if (st.ok()) return resp.room_id();
+    return "";  // 匹配失败
+&#125;</code></pre>`}
+  py={`<pre><code># ========== Python 服务端（grpcio） ==========
+import grpc
+from concurrent import futures
+import game_pb2, game_pb2_grpc
+
+class MatchServiceServicer(game_pb2_grpc.MatchServiceServicer):
+    def RequestMatch(self, request, context):
+        # 匹配逻辑：根据段位+地区找房间
+        room = find_room(request.rank, request.region)
+        return game_pb2.MatchResponse(
+            room_id=room,
+            server_addr=f"10.0.1.{room}",
+            teammates=["p2", "p3", "p4"],
+        )
+
+    def GetLeaderboard(self, request, context):
+        # 服务端流：逐条推送 Top100
+        for rank, (pid, score) in enumerate(fetch_top100(), 1):
+            yield game_pb2.ScoreEntry(player_id=pid, score=score, rank=rank)
+
+def serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    game_pb2_grpc.add_MatchServiceServicer_to_server(
+        MatchServiceServicer(), server)
+    server.add_insecure_port("[::]:50051")
+    server.start()
+    server.wait_for_termination()
+
+# ========== Python 客户端 ==========
+def request_match(channel, player_id, rank):
+    stub = game_pb2_grpc.MatchServiceStub(channel)
+    req = game_pb2.MatchRequest(
+        player_id=player_id, rank=rank, region="cn")
+    resp = stub.RequestMatch(req)
+    return resp.room_id</code></pre>`}
+      />
+    </section>
+
+    <!-- Unreal Engine RPC -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Unreal Engine RPC：网络复制</span><span slot="en">Unreal Engine RPC: Network Replication</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">Unreal Engine 的网络同步以 <b>Server Authority（服务器权威）</b>为核心：客户端不能直接修改游戏状态，必须通过 RPC 请求服务器执行。三种 RPC 类型：<b class="text-func-amber">Server RPC</b>——客户端调用、服务器执行（如开火请求）；<b class="text-primary-cyan">Client RPC</b>——服务器调用、指定客户端执行（如受到伤害的屏幕特效）；<b class="text-func-green">NetMulticast</b>——服务器调用、所有客户端执行（如爆炸特效）。用 <code>UFUNCTION(Server/Client/NetMulticast)</code> 宏声明。</span><span slot="en">Unreal Engine's networking is built on <b>Server Authority</b>: clients can't directly mutate game state—they must request the server via RPC. Three RPC types: <b class="text-func-amber">Server RPC</b>—called on client, executed on server (e.g., fire request); <b class="text-primary-cyan">Client RPC</b>—called on server, executed on a specific client (e.g., damage VFX); <b class="text-func-green">NetMulticast</b>—called on server, executed on all clients (e.g., explosion VFX). Declared with <code>UFUNCTION(Server/Client/NetMulticast)</code> specifiers.</span></Bilingual></p>
+      <div class="overflow-x-auto mb-4">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">类型</span><span slot="en">Type</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">调用方</span><span slot="en">Caller</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">执行方</span><span slot="en">Executor</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏场景</span><span slot="en">Game scenario</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber">Server RPC</td><td class="py-2 pr-4">Client</td><td class="py-2 pr-4">Server</td><td class="py-2 pr-4"><Bilingual><span slot="zh">请求开火、移动、拾取物品</span><span slot="en">Request fire, move, pick up item</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan">Client RPC</td><td class="py-2 pr-4">Server</td><td class="py-2 pr-4">指定 Client</td><td class="py-2 pr-4"><Bilingual><span slot="zh">受击红屏、个人提示音</span><span slot="en">Damage red-screen, personal notification</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-func-green">NetMulticast</td><td class="py-2 pr-4">Server</td><td class="py-2 pr-4">All Clients</td><td class="py-2 pr-4"><Bilingual><span slot="zh">爆炸特效、全局广播</span><span slot="en">Explosion VFX, global broadcast</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <CodeTabs
+  cpp={`<pre><code>// ========== Unreal Engine RPC 示例（C++） ==========
+// MyWeapon.h
+#pragma once
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "MyWeapon.generated.h"
+
+UCLASS()
+class MYGAME_API AMyWeapon : public AActor &#123;
+    GENERATED_BODY()
+public:
+    // Server RPC：客户端请求开火，服务器验证后执行
+    UFUNCTION(Server, Reliable, WithValidation)
+    void ServerFire(const FVector&amp; TargetLocation);
+
+    // Client RPC：服务器通知某客户端播放伤害特效
+    UFUNCTION(Client, Unreliable)
+    void ClientTakeDamage(int32 Damage, const FVector&amp; FromPos);
+
+    // NetMulticast：服务器广播爆炸特效给所有客户端
+    UFUNCTION(NetMulticast, Unreliable)
+    void MulticastExplosion(const FVector&amp; Pos, float Radius);
+
+    UPROPERTY(Replicated, EditAnywhere)
+    int32 Ammo = 30;  // 服务器权威，自动复制到客户端
+&#125;;
+
+// MyWeapon.cpp
+void AMyWeapon::ServerFire_Implementation(const FVector&amp; TargetLocation) &#123;
+    // 在服务器上执行：验证权限、扣除弹药、判定命中
+    if (Ammo &lt;= 0) return;
+    Ammo--;
+    // 服务器执行射线检测...
+    if (bHit) &#123;
+        // 通知被击中的客户端播放受击特效
+        ClientTakeDamage(Damage, HitLocation);
+        // 广播给所有人：播放命中特效
+        MulticastExplosion(HitLocation, 50.f);
+    &#125;
+&#125;
+
+bool AMyWeapon::ServerFire_Validate(const FVector&amp; TargetLocation) &#123;
+    // 反作弊验证：检查冷却、弹药、权限
+    return Ammo &gt; 0 &amp;&amp; (GetWorld()-&gt;GetTimeSeconds() - LastFireTime) &gt; 0.1f;
+&#125;
+
+void AMyWeapon::ClientTakeDamage_Implementation(int32 Dmg, const FVector&amp; From) &#123;
+    // 仅在目标客户端执行：屏幕红屏、血量 UI 闪烁
+    ShowDamageVignette(Dmg, From);
+&#125;
+
+void AMyWeapon::MulticastExplosion_Implementation(const FVector&amp; Pos, float R) &#123;
+    // 在所有客户端执行：播放粒子特效与音效
+    SpawnExplosionParticle(Pos, R);
+&#125;
+
+// 蓝图中的等价写法：
+// ServerFire  →  "Switch has Authority" →  Authority 分支执行
+// ClientTakeDamage →  "Run on Owning Client"
+// MulticastExplosion →  "Run on Server" + Replicates</code></pre>`}
+  py={`<pre><code># ========== Unreal Python (Blueprint 伪代码) ==========
+# 注意：Unreal 原生不使用 Python 做网络 RPC，
+# 以下为蓝图逻辑的 Python 伪代码表示
+
+# Server RPC：客户端请求开火
+def server_fire(target_location):
+    """在服务器执行：验证+扣弹药+判定命中"""
+    if weapon.ammo &lt;= 0:
+        return
+    weapon.ammo -= 1
+    hit = do_ray_check(target_location)
+    if hit:
+        # Client RPC → 仅目标客户端
+        client_take_damage(hit.player, damage, hit.location)
+        # NetMulticast → 所有客户端
+        multicast_explosion(hit.location, radius=50.0)
+
+# Client RPC：受击红屏
+def client_take_damage(damage, from_pos):
+    """仅目标客户端执行：UI 反馈"""
+    hud.show_damage_vignette(damage, from_pos)
+    audio.play_hit_sound()
+
+# NetMulticast：爆炸特效
+def multicast_explosion(pos, radius):
+    """所有客户端执行：粒子+音效"""
+    spawn_explosion_particle(pos, radius)
+    audio.play_explosion_sound()
+
+# 可靠性说明：
+# Reliable   = 保证到达，保证顺序（如开火、拾取）
+# Unreliable = 尽力而为，可能丢失（如特效、位置插值）</code></pre>`}
+      />
+    </section>
+
+    <!-- 自定义 UDP RPC -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">自定义 UDP RPC：实时对战通信</span><span slot="en">Custom UDP RPC: Real-Time Combat</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">动作游戏（FPS/MOBA）对延迟极度敏感，TCP 的重传和拥塞控制会引入抖动。游戏通常在 <b>UDP</b> 之上自建 RPC 协议，按可靠性分为两类通道：<b class="text-func-red">不可靠通道</b>（位置同步、动画状态——丢失一帧无所谓，下一帧覆盖即可）；<b class="text-func-green">可靠通道</b>（开火命中、技能释放——必须到达，用 ACK + 序号重传）。典型实现：每个 RPC 包带 <code>seq</code> 序号，可靠 RPC 额外等 ACK，超时重传；不可靠 RPC 直接发送不等待。</span><span slot="en">Action games (FPS/MOBA) are latency-sensitive; TCP's retransmission and congestion control cause jitter. Games typically build custom RPC protocols over <b>UDP</b>, splitting into two channels: <b class="text-func-red">unreliable</b> (position sync, animation state—losing one frame is fine, the next overwrites); <b class="text-func-green">reliable</b> (fire hit, skill cast—must arrive, use ACK + sequence retransmission). Typical implementation: each RPC packet carries a <code>seq</code> number; reliable RPCs wait for ACK with timeout retransmit; unreliable RPCs fire-and-forget.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 自定义 UDP RPC 协议（简化版）
+#pragma pack(push, 1)
+struct RpcPacket &#123;
+    uint16_t seq;        // 序号（检测丢包/乱序）
+    uint16_t rpc_id;     // RPC 类型: 0x01=Move 0x02=Fire 0x03=Skill
+    uint8_t  reliable;   // 1=需要ACK  0=不可靠
+    uint8_t  data[56];   // 负载（固定大小，避免分片）
+&#125;;
+#pragma pack(pop)
+
+// 客户端：发送不可靠 RPC（位置同步）
+void sendMoveUDP(int sock, uint16_t seq, Vec3 pos, float yaw) &#123;
+    RpcPacket pkt;
+    pkt.seq = seq;
+    pkt.rpc_id = 0x01;       // Move
+    pkt.reliable = 0;        // 不可靠：发完不等
+    memcpy(pkt.data, &amp;pos, sizeof(pos));
+    memcpy(pkt.data + 12, &amp;yaw, sizeof(yaw));
+    sendto(sock, &amp;pkt, sizeof(pkt), 0, &amp;serverAddr, sizeof(serverAddr));
+    // 不等 ACK，下一帧再发新的位置
+&#125;
+
+// 客户端：发送可靠 RPC（开火）
+void sendFireReliable(int sock, uint16_t&amp; seq, Vec3 target) &#123;
+    RpcPacket pkt;
+    pkt.seq = ++seq;
+    pkt.rpc_id = 0x02;       // Fire
+    pkt.reliable = 1;        // 可靠：需要 ACK
+    memcpy(pkt.data, &amp;target, sizeof(target));
+    // 加入重传队列，启动超时定时器
+    pendingAcks[pkt.seq] = &#123;pkt, GetTimeMs()&#125;;
+    sendto(sock, &amp;pkt, sizeof(pkt), 0, &amp;serverAddr, sizeof(serverAddr));
+&#125;
+
+// 客户端：ACK 检查线程
+void checkRetransmit(int sock) &#123;
+    uint64_t now = GetTimeMs();
+    for (auto&amp; [seq, entry] : pendingAcks) &#123;
+        if (now - entry.sendTime &gt; 100) &#123;  // 100ms 超时
+            // 重传
+            sendto(sock, &amp;entry.pkt, sizeof(entry.pkt),
+                   0, &amp;serverAddr, sizeof(serverAddr));
+            entry.sendTime = now;  // 重置计时
+        &#125;
+    &#125;
+&#125;
+
+// 服务器：接收并分发
+void onPacket(int sock) &#123;
+    RpcPacket pkt;
+    recvfrom(sock, &amp;pkt, sizeof(pkt), 0, nullptr, nullptr);
+    if (pkt.reliable) &#123;
+        sendAck(sock, pkt.seq);  // 回复 ACK
+    &#125;
+    switch (pkt.rpc_id) &#123;
+        case 0x01: onMove(pkt.data); break;   // 位置同步
+        case 0x02: onFire(pkt.data); break;   // 开火处理
+        case 0x03: onSkill(pkt.data); break;  // 技能释放
+    &#125;
+&#125;</code></pre>`}
+  py={`<pre><code>import socket, struct, time, threading
+
+# 自定义 UDP RPC 协议（简化版）
+# 包格式: seq(2) + rpc_id(2) + reliable(1) + data(56) = 61 bytes
+PACK_FMT = "&lt;HHB56s"
+
+class GameRpcClient:
+    def __init__(self, server_addr):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.server = server_addr
+        self.seq = 0
+        self.pending_acks = {}  # seq -> (packet, send_time)
+        self.lock = threading.Lock()
+        # 启动重传线程
+        t = threading.Thread(target=self._retransmit_loop, daemon=True)
+        t.start()
+
+    def send_unreliable(self, rpc_id, data: bytes):
+        """不可靠 RPC：位置同步、动画状态"""
+        self.seq += 1
+        pkt = struct.pack(PACK_FMT, self.seq, rpc_id, 0, data.ljust(56, b'\\x00'))
+        self.sock.sendto(pkt, self.server)  # 发完不等
+
+    def send_reliable(self, rpc_id, data: bytes):
+        """可靠 RPC：开火、技能释放"""
+        self.seq += 1
+        pkt = struct.pack(PACK_FMT, self.seq, rpc_id, 1, data.ljust(56, b'\\x00'))
+        with self.lock:
+            self.pending_acks[self.seq] = (pkt, time.time())
+        self.sock.sendto(pkt, self.server)
+
+    def _retransmit_loop(self):
+        """每 50ms 检查超时未 ACK 的包，重传"""
+        while True:
+            time.sleep(0.05)
+            now = time.time()
+            with self.lock:
+                for seq, (pkt, t) in list(self.pending_acks.items()):
+                    if now - t &gt; 0.1:  # 100ms 超时
+                        self.sock.sendto(pkt, self.server)
+                        self.pending_acks[seq] = (pkt, now)
+
+    def on_ack(self, seq):
+        """收到 ACK，移出重传队列"""
+        with self.lock:
+            self.pending_acks.pop(seq, None)
+
+# 使用示例
+client = GameRpcClient(("10.0.1.5", 7777))
+# 不可靠：每帧发送位置（丢了没关系，下帧覆盖）
+client.send_unreliable(0x01, struct.pack("&lt;fff", x, y, z))
+# 可靠：开火请求（必须到达）
+client.send_reliable(0x02, struct.pack("&lt;fff", tx, ty, tz))</code></pre>`}
+      />
+    </section>
+
+    <!-- 序列化格式对比 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">序列化格式对比</span><span slot="en">Serialization Format Comparison</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">RPC 的性能瓶颈往往在序列化。游戏常用三种格式：<b>Protobuf</b>（Google 出品，需编译生成代码，体积最小）；<b>FlatBuffers</b>（Google 出品，零拷贝反序列化，无需解析，适合游戏内实时通信）；<b>JSON</b>（人类可读，调试方便，但体积大、解析慢）。选型原则：后端微服务用 Protobuf，游戏内帧同步用 FlatBuffers，调试/配置用 JSON。</span><span slot="en">RPC performance bottleneck is often serialization. Three common formats in games: <b>Protobuf</b> (by Google, requires code generation, smallest payload); <b>FlatBuffers</b> (by Google, zero-copy deserialization, no parsing step—ideal for in-game real-time comms); <b>JSON</b> (human-readable, easy debugging, but large and slow). Rule of thumb: Protobuf for backend microservices, FlatBuffers for in-game frame sync, JSON for debugging/config.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">格式</span><span slot="en">Format</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">体积</span><span slot="en">Size</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">反序列化</span><span slot="en">Deserialize</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">类型安全</span><span slot="en">Type safety</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏场景</span><span slot="en">Game use</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">Protobuf</td><td class="py-2 pr-4 text-func-green">最小（二进制）</td><td class="py-2 pr-4">需解析</td><td class="py-2 pr-4 text-func-green">强（编译生成）</td><td class="py-2 pr-4">gRPC 后端微服务</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">FlatBuffers</td><td class="py-2 pr-4">中等</td><td class="py-2 pr-4 text-func-green">零拷贝</td><td class="py-2 pr-4 text-func-green">强（编译生成）</td><td class="py-2 pr-4">游戏内帧同步</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">JSON</td><td class="py-2 pr-4 text-func-red">最大（文本）</td><td class="py-2 pr-4">需解析（慢）</td><td class="py-2 pr-4">弱（运行时）</td><td class="py-2 pr-4">调试/配置/REST</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">MessagePack</td><td class="py-2 pr-4">小（二进制）</td><td class="py-2 pr-4">需解析</td><td class="py-2 pr-4">弱（动态）</td><td class="py-2 pr-4">跨语言轻量 RPC</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 速查表 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">游戏 RPC 选型速查</span><span slot="en">Game RPC Selection Cheat Sheet</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">场景</span><span slot="en">Scenario</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">推荐方案</span><span slot="en">Recommended</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">协议</span><span slot="en">Protocol</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">序列化</span><span slot="en">Serialization</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4"><Bilingual><span slot="zh">后端微服务（匹配/排行）</span><span slot="en">Backend microservices</span></Bilingual></td><td class="py-2 pr-4 text-func-amber">gRPC</td><td class="py-2 pr-4">HTTP/2 + TCP</td><td class="py-2 pr-4">Protobuf</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4"><Bilingual><span slot="zh">UE5 网络复制</span><span slot="en">UE5 replication</span></Bilingual></td><td class="py-2 pr-4 text-primary-cyan">Unreal RPC</td><td class="py-2 pr-4">UDP（内置）</td><td class="py-2 pr-4">UE 内置</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4"><Bilingual><span slot="zh">实时对战（FPS/MOBA）</span><span slot="en">Real-time combat</span></Bilingual></td><td class="py-2 pr-4 text-func-green">自定义 UDP RPC</td><td class="py-2 pr-4">UDP</td><td class="py-2 pr-4">FlatBuffers/自定义</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4"><Bilingual><span slot="zh">大厅聊天/社交</span><span slot="en">Lobby chat/social</span></Bilingual></td><td class="py-2 pr-4">WebSocket</td><td class="py-2 pr-4">TCP（WS）</td><td class="py-2 pr-4">JSON</td></tr>
+            <tr><td class="py-2 pr-4"><Bilingual><span slot="zh">配置/CDN 静态数据</span><span slot="en">Config/CDN static data</span></Bilingual></td><td class="py-2 pr-4">HTTP REST</td><td class="py-2 pr-4">HTTP/2</td><td class="py-2 pr-4">JSON</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">提示：与批次 9 的 TCP/UDP 和批次 10 的 WebSocket/CDN 关联阅读——RPC 是应用层抽象，底层仍依赖传输层协议。图形渲染管线（批次 11）中 GPU 数据传输也涉及类似的序列化思想。</span><span slot="en">Tip: Cross-reference with Batch 9 (TCP/UDP) and Batch 10 (WebSocket/CDN)—RPC is an application-layer abstraction still built on transport protocols. GPU data transfer in the graphics pipeline (Batch 11) involves similar serialization concepts.</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // RPC 调用流程时序图动画
+  // 五条泳道: Client / Client Stub / Network / Server Stub / Server
+  const LANES = [
+    { x: 80,  label: { zh: '客户端', en: 'Client' } },
+    { x: 230, label: { zh: '客户端桩', en: 'Client Stub' } },
+    { x: 400, label: { zh: '网络', en: 'Network' } },
+    { x: 570, label: { zh: '服务端桩', en: 'Server Stub' } },
+    { x: 720, label: { zh: '服务端', en: 'Server' } },
+  ];
+  const TOP = 60, BOT = 340;
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('rpc-svg') as unknown as SVGSVGElement;
+  const stateEl = document.getElementById('rpc-state');
+
+  // 每步: from lane index, to lane index, label, direction(down/right-up)
+  interface Step { from: number; to: number; labelZh: string; labelEn: string; color: string; }
+  const STEPS: Step[] = [
+    { from: 0, to: 1, labelZh: '1. 调用 GetUser(id)', labelEn: '1. Call GetUser(id)', color: '#22D3EE' },
+    { from: 1, to: 2, labelZh: '2. 序列化参数 (marshal)', labelEn: '2. Marshal params', color: '#FBBF24' },
+    { from: 2, to: 3, labelZh: '3. 传输请求字节流', labelEn: '3. Transmit request bytes', color: '#A78BFA' },
+    { from: 3, to: 4, labelZh: '4. 反序列化 + 调用实现', labelEn: '4. Unmarshal + invoke impl', color: '#22C55E' },
+    { from: 4, to: 3, labelZh: '5. 返回结果', labelEn: '5. Return result', color: '#22C55E' },
+    { from: 3, to: 2, labelZh: '6. 序列化返回值', labelEn: '6. Marshal return value', color: '#FBBF24' },
+    { from: 2, to: 1, labelZh: '7. 传输响应字节流', labelEn: '7. Transmit response bytes', color: '#A78BFA' },
+    { from: 1, to: 0, labelZh: '8. 反序列化 + 返回给调用方', labelEn: '8. Unmarshal + return to caller', color: '#22D3EE' },
+  ];
+
+  const COL_BG = 'rgba(148,163,184,0.15)';
+  const COL_LINE = 'rgba(148,163,184,0.3)';
+  const COL_TXT = '#0B1120';
+  const COL_LBL = '#94A3B8';
+
+  let curStepIdx = -1;
+  let frames: { stepIdx: number }[] = [];
+
+  function lang(): 'zh' | 'en' {
+    return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+  }
+
+  function render(stepIdx: number) {
+    curStepIdx = stepIdx;
+    svg.innerHTML = '';
+
+    // 泳道背景 + 生命线
+    for (const lane of LANES) {
+      const rect = document.createElementNS(SVGNS, 'rect');
+      rect.setAttribute('x', String(lane.x - 60));
+      rect.setAttribute('y', String(TOP - 30));
+      rect.setAttribute('width', '120');
+      rect.setAttribute('height', String(BOT - TOP + 60));
+      rect.setAttribute('fill', COL_BG);
+      rect.setAttribute('rx', '8');
+      svg.appendChild(rect);
+
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', String(lane.x)); line.setAttribute('y1', String(TOP));
+      line.setAttribute('x2', String(lane.x)); line.setAttribute('y2', String(BOT));
+      line.setAttribute('stroke', COL_LINE); line.setAttribute('stroke-width', '1.5');
+      line.setAttribute('stroke-dasharray', '4 4');
+      svg.appendChild(line);
+
+      // 泳道标题
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(lane.x)); t.setAttribute('y', String(TOP - 12));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '12');
+      t.setAttribute('font-weight', '600'); t.setAttribute('fill', '#E2E8F0');
+      t.textContent = lang() === 'en' ? lane.label.en : lane.label.zh;
+      svg.appendChild(t);
+    }
+
+    // 已执行的步骤箭头
+    const yStart = TOP + 20;
+    const yStep = (BOT - TOP - 40) / STEPS.length;
+    for (let i = 0; i <= stepIdx && i < STEPS.length; i++) {
+      const s = STEPS[i];
+      const y = yStart + i * yStep;
+      const x1 = LANES[s.from].x;
+      const x2 = LANES[s.to].x;
+      const isActive = i === stepIdx;
+      const color = isActive ? s.color : 'rgba(148,163,184,0.4)';
+
+      // 箭头线
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', String(x1)); line.setAttribute('y1', String(y));
+      line.setAttribute('x2', String(x2)); line.setAttribute('y2', String(y));
+      line.setAttribute('stroke', color);
+      line.setAttribute('stroke-width', isActive ? '2.5' : '1.5');
+      line.setAttribute('marker-end', 'url(#arrowhead)');
+      svg.appendChild(line);
+
+      // 箭头标记（手绘三角形）
+      const dir = x2 > x1 ? 1 : -1;
+      const tri = document.createElementNS(SVGNS, 'polygon');
+      tri.setAttribute('points', `${x2},${y} ${x2 - dir * 8},${y - 5} ${x2 - dir * 8},${y + 5}`);
+      tri.setAttribute('fill', color);
+      svg.appendChild(tri);
+
+      // 步骤标签
+      const midX = (x1 + x2) / 2;
+      const lbl = document.createElementNS(SVGNS, 'text');
+      lbl.setAttribute('x', String(midX)); lbl.setAttribute('y', String(y - 8));
+      lbl.setAttribute('text-anchor', 'middle'); lbl.setAttribute('font-size', '11');
+      lbl.setAttribute('fill', isActive ? color : COL_LBL);
+      if (isActive) lbl.setAttribute('font-weight', '700');
+      lbl.textContent = lang() === 'en' ? s.labelEn : s.labelZh;
+      svg.appendChild(lbl);
+
+      // 激活条（当前步骤的源/目标泳道高亮）
+      if (isActive) {
+        for (const li of [s.from, s.to]) {
+          const bar = document.createElementNS(SVGNS, 'rect');
+          bar.setAttribute('x', String(LANES[li].x - 3));
+          bar.setAttribute('y', String(y - 8));
+          bar.setAttribute('width', '6');
+          bar.setAttribute('height', '16');
+          bar.setAttribute('fill', color);
+          bar.setAttribute('rx', '2');
+          bar.setAttribute('opacity', '0.6');
+          svg.appendChild(bar);
+        }
+      }
+    }
+
+    // 状态文字
+    if (stateEl) {
+      if (stepIdx >= 0 && stepIdx < STEPS.length) {
+        const s = STEPS[stepIdx];
+        stateEl.textContent = lang() === 'en' ? s.labelEn : s.labelZh;
+      } else {
+        stateEl.textContent = lang() === 'en' ? 'Ready' : '就绪';
+      }
+    }
+  }
+
+  function buildFrames() {
+    frames = STEPS.map((_, i) => ({ stepIdx: i }));
+  }
+
+  let idx = 0;
+  let timer: number | null = null;
+
+  function langText(key: string): string {
+    const l = lang();
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${l}"]`);
+    return el ? (el.textContent || '') : '';
+  }
+
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('rpc-play');
+    if (b) b.innerHTML = langText('play');
+  }
+  function rebuild() {
+    stop(); buildFrames(); idx = 0; render(-1); if (stateEl) stateEl.textContent = '';
+  }
+  function advance(): boolean {
+    if (idx < frames.length) { render(frames[idx].stepIdx); idx++; return true; }
+    return false;
+  }
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('rpc-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 800);
+  }
+
+  document.getElementById('rpc-play')?.addEventListener('click', play);
+  document.getElementById('rpc-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('rpc-reset')?.addEventListener('click', rebuild);
+  document.addEventListener('langchange', () => {
+    if (timer === null) { const b = document.getElementById('rpc-play'); if (b) b.innerHTML = langText('play'); }
+    if (curStepIdx >= 0) render(curStepIdx); else render(-1);
+  });
+  rebuild();
+</script>
