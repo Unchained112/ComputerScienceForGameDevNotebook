@@ -11,8 +11,8 @@ import Bilingual from '../../components/Bilingual.astro';
       </h1>
       <p class="text-ink-muted leading-relaxed">
         <Bilingual>
-          <span slot="zh">本页用<b>原生 WebGL2</b>从零搭建一个中等场景——Skybox、地面网格、立方体/球/环面、点光源与方向光。管线被拆为 7 个阶段，每阶段配套真实运行的 canvas 与对应代码。教学风格参考 <a class="text-primary-cyan underline" href="https://webgl2fundamentals.org/">webgl2fundamentals</a>，不使用 Three.js。</span>
-          <span slot="en">This page builds a medium scene with <b>raw WebGL2</b> from scratch — Skybox, ground grid, cube/sphere/torus, point & directional lights. The pipeline is split into 7 stages, each with a live canvas and matching code. Style follows <a class="text-primary-cyan underline" href="https://webgl2fundamentals.org/">webgl2fundamentals</a>, without Three.js.</span>
+          <span slot="zh">实时渲染把 3D 场景变成屏幕像素，要经过顶点输入、矩阵变换、光栅化、片元着色、深度测试等一系列阶段。本页用一个包含天空盒、地面和多个几何体的场景，逐步拆解这条管线——每个阶段都配有可运行的演示与对应代码，可拖拽观察每一步的输出变化。</span>
+          <span slot="en">Real-time rendering turns a 3D scene into screen pixels through a series of stages: vertex input, matrix transform, rasterization, fragment shading, depth testing, and more. This page walks through the pipeline using a scene with a skybox, ground, and multiple shapes — each stage comes with a runnable demo and matching code, drag to observe how each step's output changes.</span>
         </Bilingual>
       </p>
     </header>
@@ -568,6 +568,8 @@ void main() {
       const eye = [Math.sin(rotY.v) * 8, 3, Math.cos(rotY.v) * 8];
       const V = lookAt(eye, [0, 0, 0], [0, 1, 0]);
       const P = perspective(Math.PI / 4, canvas.width / canvas.height, 0.1, 100);
+      // Skybox：用 LEQUAL 让 z=w（最远）的片元能通过深度测试（否则 LESS 下 1.0<1.0 永假，skybox 闪烁）
+      gl.depthFunc(gl.LEQUAL);
       gl.depthMask(false);
       gl.useProgram(skyProg);
       gl.bindVertexArray(vao);
@@ -575,6 +577,8 @@ void main() {
       gl.uniformMatrix4fv(gl.getUniformLocation(skyProg, 'uP'), false, P);
       gl.drawArrays(gl.TRIANGLES, 0, 36);
       gl.depthMask(true);
+      // 几何体：恢复正常 LESS 深度测试
+      gl.depthFunc(gl.LESS);
       gl.useProgram(cubeProg);
       gl.bindVertexArray(vao);
       gl.uniform3fv(gl.getUniformLocation(cubeProg, 'uLightPos'), [5, 5, 5]);

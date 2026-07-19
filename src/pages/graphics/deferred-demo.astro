@@ -50,7 +50,7 @@ import Bilingual from '../../components/Bilingual.astro';
           <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4">RT</th><th class="py-2 pr-4">Format</th><th class="py-2 pr-4"><Bilingual><span slot="zh">字段</span><span slot="en">Fields</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">用途</span><span slot="en">Use</span></Bilingual></th></tr></thead>
           <tbody class="text-ink">
             <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan font-mono">RT0</td><td class="py-2 pr-4 font-mono">RGBA8</td><td class="py-2 pr-4">RGB=Albedo, A=Roughness</td><td class="py-2 pr-4"><Bilingual><span slot="zh">反照率 + 粗糙度</span><span slot="en">albedo + roughness</span></Bilingual></td></tr>
-            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple font-mono">RT1</td><td class="py-2 pr-4 font-mono">RGBA16F</td><td class="py-2 pr-4">RGB=ViewPos, A=Metallic</td><td class="py-2 pr-4"><Bilingual><span slot="zh">视图空间位置 + 金属度</span><span slot="en">view-space pos + metalness</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple font-mono">RT1</td><td class="py-2 pr-4 font-mono">RGBA8</td><td class="py-2 pr-4">RGB=WorldPos (encoded)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">世界空间位置（编码）+ 金属度</span><span slot="en">world-space pos (encoded) + metalness</span></Bilingual></td></tr>
             <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber font-mono">RT2</td><td class="py-2 pr-4 font-mono">RGBA8</td><td class="py-2 pr-4">RGB=Normal</td><td class="py-2 pr-4"><Bilingual><span slot="zh">法线（球面存储）</span><span slot="en">normal (spherical)</span></Bilingual></td></tr>
             <tr><td class="py-2 pr-4 text-func-red font-mono">Depth</td><td class="py-2 pr-4 font-mono">DEPTH24</td><td class="py-2 pr-4">D=LinearDepth</td><td class="py-2 pr-4"><Bilingual><span slot="zh">深度缓冲</span><span slot="en">depth buffer</span></Bilingual></td></tr>
           </tbody>
@@ -134,7 +134,8 @@ uniform float uRoughness;
 uniform float uMetallic;
 void main() {
     GAlbedo   = vec4(uAlbedo, uRoughness);
-    GPosition = vec4(vWorldPos, uMetallic);
+    // World position 范围约 [-10,10]，编码到 [0,1] 适配 RGBA8
+    GPosition = vec4(vWorldPos / 20.0 + 0.5, uMetallic);
     GNormal   = vec4(normalize(vNormal) * 0.5 + 0.5, 1.0);
 }
 
@@ -173,7 +174,8 @@ void main() {
 
     vec3 albedo  = albedoData.rgb;
     float rough  = albedoData.a;
-    vec3 pos     = posData.rgb;
+    // 解码 world position（与 Geometry Pass 的编码对应）
+    vec3 pos     = (posData.rgb - 0.5) * 20.0;
     vec3 normal  = normalData.rgb * 2.0 - 1.0;
 
     // Phong 光照（屏幕空间计算，无几何遍历）
@@ -238,7 +240,8 @@ uniform float uRoughness;
 uniform float uMetallic;
 void main() {
     GAlbedo   = vec4(uAlbedo, uRoughness);
-    GPosition = vec4(vWorldPos, uMetallic);
+    // World position 范围约 [-10,10]，编码到 [0,1]：pos/20+0.5（适配 RGBA8）
+    GPosition = vec4(vWorldPos / 20.0 + 0.5, uMetallic);
     GNormal   = vec4(normalize(vNormal) * 0.5 + 0.5, 1.0);
 }`;
 
@@ -264,8 +267,11 @@ void main() {
     vec4 posData    = texture(uPosTex, vUV);
     vec4 normalData = texture(uNormalTex, vUV);
 
+    // 解码 world position：pos = (rgb - 0.5) * 20（与 Geometry Pass 编码对应）
+    vec3 pos = (posData.rgb - 0.5) * 20.0;
+
     if (uMode == 1) {
-        FragColor = vec4(posData.rgb * 0.15 + 0.5, 1.0);
+        FragColor = vec4(pos * 0.15 + 0.5, 1.0);
     } else if (uMode == 2) {
         FragColor = vec4(normalData.rgb, 1.0);
     } else if (uMode == 3) {
@@ -274,12 +280,11 @@ void main() {
         float r = albedoData.a;
         FragColor = vec4(vec3(r), 1.0);
     } else if (uMode == 5) {
-        float d = length(posData.xyz - uViewPos) / 20.0;
+        float d = length(pos - uViewPos) / 20.0;
         FragColor = vec4(vec3(d), 1.0);
     } else {
         vec3 albedo = albedoData.rgb;
         float rough = albedoData.a;
-        vec3 pos    = posData.rgb;
         vec3 normal = normalData.rgb * 2.0 - 1.0;
         vec3 N = normalize(normal);
         vec3 L = normalize(uLightPos - pos);
@@ -320,12 +325,18 @@ void main() {
     let depthBuf: WebGLRenderbuffer, fb: WebGLFramebuffer;
 
     function rebuildGBuffer(w: number, h: number) {
+      // 释放旧资源（resize 时避免显存泄漏）
+      if (fb) gl.deleteFramebuffer(fb);
+      if (gbufferTex0) gl.deleteTexture(gbufferTex0);
+      if (gbufferTex1) gl.deleteTexture(gbufferTex1);
+      if (gbufferTex2) gl.deleteTexture(gbufferTex2);
+      if (depthBuf) gl.deleteRenderbuffer(depthBuf);
+
+      // 三个 RT 全部用 RGBA8：避免依赖 EXT_color_buffer_float（RGBA16F 作为 RT 必需该扩展，
+      // 否则 framebuffer incomplete，渲染静默失败导致全黑）。
+      // Position 通过 pos/20+0.5 编码到 [0,1]，读取时 (rgb-0.5)*20 解码。
       gbufferTex0 = createTexture(gl, w, h, gl.RGBA8);
-      try {
-        gbufferTex1 = createTexture(gl, w, h, gl.RGBA16F, gl.RGBA, gl.HALF_FLOAT);
-      } catch (e) {
-        gbufferTex1 = createTexture(gl, w, h, gl.RGBA8);
-      }
+      gbufferTex1 = createTexture(gl, w, h, gl.RGBA8);
       gbufferTex2 = createTexture(gl, w, h, gl.RGBA8);
       depthBuf = createDepthBuffer(gl, w, h);
       fb = gl.createFramebuffer() as WebGLFramebuffer;
@@ -335,6 +346,9 @@ void main() {
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.TEXTURE_2D, gbufferTex2, 0);
       gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuf);
       gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
+      if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+        console.error('[deferred-demo] G-Buffer framebuffer incomplete');
+      }
     }
     rebuildGBuffer(canvas.width || 800, canvas.height || 400);
 
@@ -360,7 +374,7 @@ void main() {
     const modeMap: Record<string, number> = { final: 0, position: 1, normal: 2, albedo: 3, roughness: 4, depth: 5 };
     const modeLabels: Record<string, [string, string]> = {
       final: ['最终合成（Phong 光照应用在 G-Buffer）', 'Final (Phong applied to G-Buffer)'],
-      position: ['Position 通道（视图空间位置）', 'Position channel (view-space pos)'],
+      position: ['Position 通道（世界空间位置，已解码）', 'Position channel (world-space pos, decoded)'],
       normal: ['Normal 通道（球面存储 n·0.5+0.5）', 'Normal channel (spherical n·0.5+0.5)'],
       albedo: ['Albedo 通道（表面反照率）', 'Albedo channel (surface reflectance)'],
       roughness: ['Roughness 通道（粗糙度，白=粗糙）', 'Roughness channel (white=rough)'],
