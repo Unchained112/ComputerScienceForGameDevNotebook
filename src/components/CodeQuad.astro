@@ -1,0 +1,118 @@
+---
+/**
+ * CodeQuad.astro — 4 列代码切换器组件（WebGL / OpenGL / D3D12 / Vulkan）
+ *
+ * 用法（通过 props 传入代码字符串，set:html 渲染）:
+ * <CodeQuad
+ *   webgl={`<pre><code>...WebGL2 代码...</code></pre>`}
+ *   opengl={`<pre><code>...OpenGL 代码...</code></pre>`}
+ *   d3d12={`<pre><code>...Direct3D 12 代码...</code></pre>`}
+ *   vulkan={`<pre><code>...Vulkan 代码...</code></pre>`}
+ * />
+ *
+ * 全站共享语言偏好（localStorage 'csnote-apilang'），
+ * CSS 通过 html[data-apilang] 声明式控制显隐（零 FOUC），与 CodeTabs 模式一致。
+ */
+interface Props {
+  webgl: string;
+  opengl: string;
+  d3d12: string;
+  vulkan: string;
+}
+const { webgl, opengl, d3d12, vulkan } = Astro.props;
+---
+<div class="code-quad" data-code-quad>
+  <div class="code-tab-bar">
+    <button class="code-tab" data-apitab="webgl" type="button">WebGL2</button>
+    <button class="code-tab" data-apitab="opengl" type="button">OpenGL</button>
+    <button class="code-tab" data-apitab="d3d12" type="button">D3D12</button>
+    <button class="code-tab" data-apitab="vulkan" type="button">Vulkan</button>
+  </div>
+  <div data-apipanel="webgl" set:html={webgl} />
+  <div data-apipanel="opengl" set:html={opengl} />
+  <div data-apipanel="d3d12" set:html={d3d12} />
+  <div data-apipanel="vulkan" set:html={vulkan} />
+</div>
+
+<style>
+  .code-quad {
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+  .code-tab-bar {
+    display: flex;
+    gap: 0;
+    background: rgba(15, 23, 42, 0.6);
+    border-bottom: 1px solid var(--glass-border, rgba(148, 163, 184, 0.18));
+  }
+  .code-tab {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--c-ink-muted, #94A3B8);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .code-tab:hover {
+    color: var(--c-ink, #E2E8F0);
+    background: rgba(34, 211, 238, 0.06);
+  }
+  html[data-apilang='webgl'] [data-apitab='webgl'],
+  html[data-apilang='opengl'] [data-apitab='opengl'],
+  html[data-apilang='d3d12'] [data-apitab='d3d12'],
+  html[data-apilang='vulkan'] [data-apitab='vulkan'] {
+    color: rgb(var(--c-primary-cyan, 34, 211, 238));
+    border-bottom-color: rgb(var(--c-primary-cyan, 34, 211, 238));
+    background: rgba(34, 211, 238, 0.08);
+  }
+  html:not([data-apilang]) [data-apitab='webgl'] {
+    color: rgb(var(--c-primary-cyan, 34, 211, 238));
+    border-bottom-color: rgb(var(--c-primary-cyan, 34, 211, 238));
+    background: rgba(34, 211, 238, 0.08);
+  }
+  html[data-apilang='webgl'] [data-apipanel='webgl'],
+  html[data-apilang='opengl'] [data-apipanel='opengl'],
+  html[data-apilang='d3d12'] [data-apipanel='d3d12'],
+  html[data-apilang='vulkan'] [data-apipanel='vulkan'] {
+    display: block;
+  }
+  html:not([data-apilang]) [data-apipanel='webgl'] {
+    display: block;
+  }
+  [data-apipanel] {
+    display: none;
+  }
+  [data-apipanel] pre {
+    margin: 0;
+    padding: 1rem;
+    background: var(--code-bg, rgba(15, 23, 42, 0.8));
+    overflow-x: auto;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--c-ink, #E2E8F0);
+  }
+  [data-apipanel] code {
+    font-family: 'JetBrains Mono', monospace;
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    try {
+      var saved = localStorage.getItem('csnote-apilang') || 'webgl';
+      document.documentElement.setAttribute('data-apilang', saved);
+    } catch (e) {}
+    document.addEventListener('click', function (e) {
+      var tab = e.target.closest && e.target.closest('[data-apitab]');
+      if (!tab) return;
+      var lang = tab.getAttribute('data-apitab');
+      try {
+        localStorage.setItem('csnote-apilang', lang);
+        document.documentElement.setAttribute('data-apilang', lang);
+      } catch (err) {}
+    });
+  })();
+</script>

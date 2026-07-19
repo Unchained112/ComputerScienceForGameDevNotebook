@@ -1,0 +1,549 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeQuad from '../../components/CodeQuad.astro';
+---
+<BaseLayout title="Cross-API Pipeline Comparison · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Graphics / Cross-API Comparison</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">跨 API 管线代码对比</span><span slot="en">Cross-API Pipeline Code Comparison</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">同一渲染管线的 5 个关键阶段，并排对比 <b class="text-primary-cyan">WebGL2</b>、<b class="text-primary-cyan">OpenGL</b>、<b class="text-primary-purple">Direct3D 12</b>、<b class="text-func-amber">Vulkan</b> 四个图形 API 的实现。WebGL/OpenGL 是<b>即时模式</b>（每次 draw call 设状态），D3D12/Vulkan 用 <b>Pipeline State Object</b>（PSO）预先固化状态。点击标签切换语言。</span>
+          <span slot="en">Five key stages of the same render pipeline, side-by-side across <b class="text-primary-cyan">WebGL2</b>, <b class="text-primary-cyan">OpenGL</b>, <b class="text-primary-purple">Direct3D 12</b>, and <b class="text-func-amber">Vulkan</b>. WebGL/OpenGL are <b>immediate-mode</b> (state set per draw call); D3D12/Vulkan use <b>Pipeline State Objects</b> (PSOs) baked upfront. Click tabs to switch.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">阶段 1 · 顶点输入</span><span slot="en">Stage 1 · Vertex Input</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">把顶点数据从 CPU 上传到 GPU，并描述属性布局。WebGL2/OpenGL 用 VBO+VAO；D3D12 用 Vertex Buffer View + Root Signature；Vulkan 用 Vertex Input State + Buffer + Memory Allocation。</span><span slot="en">Upload vertex data CPU→GPU and describe attribute layout. WebGL2/OpenGL use VBO+VAO; D3D12 uses Vertex Buffer View + Root Signature; Vulkan uses Vertex Input State + Buffer + Memory Allocation.</span></Bilingual></p>
+      <CodeQuad
+        webgl={`<pre><code>// WebGL2：VBO + VAO
+const vbo = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+gl.bufferData(gl.ARRAY_BUFFER,
+  vertices, gl.STATIC_DRAW);
+
+const ibo = gl.createBuffer();
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,
+  indices, gl.STATIC_DRAW);
+
+// VAO 封装属性绑定状态
+const vao = gl.createVertexArray();
+gl.bindVertexArray(vao);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 3,
+  gl.FLOAT, false, 24, 0);
+gl.enableVertexAttribArray(1);
+gl.vertexAttribPointer(1, 3,
+  gl.FLOAT, false, 24, 12);
+gl.bindVertexArray(null);
+
+// draw 时只需 bindVertexArray
+gl.bindVertexArray(vao);
+gl.drawElements(gl.TRIANGLES,
+  36, gl.UNSIGNED_SHORT, 0);</code></pre>`}
+        opengl={`<pre><code>// OpenGL 4.x：与 WebGL2 几乎一致
+GLuint vbo;
+glGenBuffers(1, &vbo);
+glBindBuffer(GL_ARRAY_BUFFER, vbo);
+glBufferData(GL_ARRAY_BUFFER,
+  sizeof(vertices), vertices,
+  GL_STATIC_DRAW);
+
+// VAO（核心模式必需）
+GLuint vao;
+glGenVertexArrays(1, &vao);
+glBindVertexArray(vao);
+
+glEnableVertexAttribArray(0);
+glVertexAttribPointer(0, 3,
+  GL_FLOAT, GL_FALSE, 24, (void*)0);
+glEnableVertexAttribArray(1);
+glVertexAttribPointer(1, 3,
+  GL_FLOAT, GL_FALSE, 24, (void*)12);
+glBindVertexArray(0);
+
+// draw
+glBindVertexArray(vao);
+glDrawElements(GL_TRIANGLES,
+  36, GL_UNSIGNED_SHORT, 0);</code></pre>`}
+        d3d12={`<pre><code>// D3D12：Vertex Buffer View + Root Signature
+D3D12_RESOURCE_DESC desc = {};
+desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+desc.Width = sizeof(vertices);
+// ... 创建 committed resource
+
+// Vertex Buffer View
+D3D12_VERTEX_BUFFER_VIEW vbv = {};
+vbv.BufferLocation =
+  vbo-&gt;GetGPUVirtualAddress();
+vbv.StrideInBytes = sizeof(Vertex);
+vbv.SizeInBytes = sizeof(vertices);
+
+// IASetVertexBuffers 绑定
+cmdList-&gt;IASetVertexBuffers(0, 1, &vbv);
+
+// 属性布局在 Input Layout (PSO) 中描述
+D3D12_INPUT_ELEMENT_DESC layout[] = {
+  { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,
+    0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+  { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT,
+    0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+};
+// → 传入 PSO Description</code></pre>`}
+        vulkan={`<pre><code>// Vulkan：Vertex Input State + Buffer + Memory Allocation
+VkBufferCreateInfo bci = {};
+bci.size = sizeof(vertices);
+bci.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+VkBuffer vbo;
+vkCreateBuffer(device, &bci, nullptr, &vbo);
+
+// 分配 GPU 显存
+VkMemoryRequirements memReq;
+vkGetBufferMemoryRequirements(
+  device, vbo, &memReq);
+// ... VkAllocateInfo
+vkBindBufferMemory(device, vbo, memory, 0);
+
+// 属性布局：Vertex Input State
+VkVertexInputBindingDescription bind = {};
+bind.binding = 0;
+bind.stride = sizeof(Vertex);
+bind.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+VkVertexInputAttributeDescription attrs[2];
+attrs[0].location = 0;
+attrs[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+attrs[0].offset = 0;
+attrs[1].location = 1;
+attrs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+attrs[1].offset = 12;
+
+// → 在 VkPipelineVertexInputStateCreateInfo 中描述，并入 PSO 创建</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">阶段 2 · 着色器编译</span><span slot="en">Stage 2 · Shader Compilation</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">把 GLSL/HLSL 源代码编译为可执行的 GPU 着色器。WebGL/OpenGL 在运行时编译 GLSL；D3D12 用离线 <code>dxc</code> 编译 HLSL 为 DXIL；Vulkan 用 <code>glslangValidator</code> 编译为 SPIR-V 字节码。</span><span slot="en">Compile GLSL/HLSL source to executable GPU shader. WebGL/OpenGL compile GLSL at runtime; D3D12 uses offline <code>dxc</code> to HLSL→DXIL; Vulkan uses <code>glslangValidator</code> to GLSL→SPIR-V bytecode.</span></Bilingual></p>
+      <CodeQuad
+        webgl={`<pre><code>// WebGL2：运行时编译 GLSL ES 3.0
+const vs = gl.createShader(gl.VERTEX_SHADER);
+gl.shaderSource(vs, vsSource);
+gl.compileShader(vs);
+if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
+  console.error(gl.getShaderInfoLog(vs));
+}
+
+const fs = gl.createShader(gl.FRAGMENT_SHADER);
+gl.shaderSource(fs, fsSource);
+gl.compileShader(fs);
+
+// 链接为 program
+const prog = gl.createProgram();
+gl.attachShader(prog, vs);
+gl.attachShader(prog, fs);
+gl.linkProgram(prog);</code></pre>`}
+        opengl={`<pre><code>// OpenGL 4.x：与 WebGL2 几乎一致
+GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+glShaderSource(vs, 1, &vsSource, nullptr);
+glCompileShader(vs);
+GLint ok;
+glGetShaderiv(vs, GL_COMPILE_STATUS, &ok);
+if (!ok) { /* glGetShaderInfoLog */ }
+
+GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+// ...同上
+
+GLuint prog = glCreateProgram();
+glAttachShader(prog, vs);
+glAttachShader(prog, fs);
+glLinkProgram(prog);
+// glUseProgram(prog);
+
+// 现代 OpenGL 4.1+ 可用
+// glCreateShaderProgramv 一步完成</code></pre>`}
+        d3d12={`<pre><code>// D3D12：离线编译 HLSL→DXIL
+// 命令行：
+//   dxc -T vs_6_0 -E VSMain cube.hlsl -Fo cube_vs.cso
+//   dxc -T ps_6_0 -E PSMain cube.hlsl -Fo cube_ps.cso
+
+// 运行时加载 .cso 字节码
+ComPtr&lt;ID3DBlob&gt; vsBytecode;
+D3DReadFileToBlob(L"cube_vs.cso", &vsBytecode);
+
+// 创建 pipeline state 时直接用字节码
+D3D12_SHADER_BYTECODE vs = {};
+vs.pShaderBytecode = vsBytecode-&gt;GetBufferPointer();
+vs.BytecodeLength = vsBytecode-&gt;GetBufferSize();
+
+// HLSL 着色器源码示例：
+// struct VSIn { float3 pos : POSITION; };
+// float4 VSMain(VSIn i) : SV_POSITION {
+//   return mul(mvp, float4(i.pos, 1));
+// }</code></pre>`}
+        vulkan={`<pre><code>// Vulkan：离线编译 GLSL→SPIR-V
+// 命令行：
+//   glslangValidator -V cube.vert -o cube_vert.spv
+//   glslangValidator -V cube.frag -o cube_frag.spv
+
+// 运行时加载 SPIR-V 字节码
+auto spv = readFile("cube_vert.spv");
+
+VkShaderModuleCreateInfo ci = {};
+ci.codeSize = spv.size();
+ci.pCode = (uint32_t*)spv.data();
+
+VkShaderModule vsModule;
+vkCreateShaderModule(device, &ci, nullptr, &vsModule);
+
+// 创建 pipeline 时引用
+VkPipelineShaderStageCreateInfo vsStage = {};
+vsStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
+vsStage.module = vsModule;
+vsStage.pName = "main";
+
+// 注：Vulkan 不在运行时编译 GLSL
+// （可选 GLSLang 库动态编译）</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">阶段 3 · Pipeline State 对象</span><span slot="en">Stage 3 · Pipeline State Object</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">这是<b>四 API 最大的差异点</b>。WebGL/OpenGL 是<b>即时模式</b>——状态用 <code>glEnable</code>/<code>glUseProgram</code> 设置；D3D12/Vulkan 用 <b>PSO</b>（Pipeline State Object）预先固化所有不可变状态（着色器、混合、深度、拓扑等），draw call 时只需绑定 PSO，驱动开销极低。</span><span slot="en"><b>The biggest difference across the four.</b> WebGL/OpenGL are <b>immediate-mode</b> — state set via <code>glEnable</code>/<code>glUseProgram</code>; D3D12/Vulkan use <b>PSOs</b> baking all immutable state upfront — draw calls just bind a PSO, minimizing driver overhead.</span></Bilingual></p>
+      <CodeQuad
+        webgl={`<pre><code>// WebGL2：无 PSO，即时模式
+// 每次 draw 前手动设置所有状态
+gl.useProgram(program);
+gl.bindVertexArray(vao);
+gl.enable(gl.DEPTH_TEST);
+gl.depthFunc(gl.LESS);
+gl.enable(gl.BLEND);
+gl.blendFunc(gl.SRC_ALPHA,
+  gl.ONE_MINUS_SRC_ALPHA);
+gl.enable(gl.CULL_FACE);
+gl.cullFace(gl.BACK);
+
+// draw
+gl.drawElements(gl.TRIANGLES,
+  count, type, offset);
+
+// 改状态需要重新设置
+// 驱动每次都要验证一致性</code></pre>`}
+        opengl={`<pre><code>// OpenGL 4.x：与 WebGL2 一致，即时模式
+glUseProgram(program);
+glBindVertexArray(vao);
+glEnable(GL_DEPTH_TEST);
+glDepthFunc(GL_LESS);
+glEnable(GL_BLEND);
+glBlendFunc(GL_SRC_ALPHA,
+  GL_ONE_MINUS_SRC_ALPHA);
+
+glDrawElements(GL_TRIANGLES,
+  count, GL_UNSIGNED_SHORT, nullptr);
+
+// OpenGL 4.3+ 引入 DSA
+// (Direct State Access) 减少 bind
+// 但本质仍是即时模式</code></pre>`}
+        d3d12={`<pre><code>// D3D12：PSO 预先固化所有状态
+D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
+desc.pRootSignature = rootSig;
+desc.VS = vsBytecode;
+desc.PS = psBytecode;
+desc.DepthStencilState.DepthEnable = true;
+desc.DepthStencilState.DepthFunc =
+  D3D12_COMPARISON_FUNC_LESS;
+desc.BlendState.RenderTarget[0].BlendEnable = false;
+desc.SampleMask = UINT_MAX;
+desc.PrimitiveTopologyType =
+  D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+desc.SampleDesc.Count = 1;
+
+ComPtr&lt;ID3D12PipelineState&gt; pso;
+device-&gt;CreateGraphicsPipelineState(
+  &desc, IID_PPV_ARGS(&pso));
+
+// draw 时只需 SetPipelineState
+cmdList-&gt;SetPipelineState(pso.Get());
+cmdList-&gt;DrawIndexedInstanced(
+  indexCount, 1, 0, 0, 0);</code></pre>`}
+        vulkan={`<pre><code>// Vulkan：VkPipeline 预先固化所有状态
+VkGraphicsPipelineCreateInfo ci = {};
+ci.stageCount = 2;
+ci.pStages = shaderStages;
+ci.pVertexInputState = &vertexInput;
+ci.pInputAssemblyState = &ia;
+ci.pViewportState = &viewport;
+ci.pRasterizationState = &raster;
+ci.pMultisampleState = &ms;
+ci.pDepthStencilState = &depth;
+ci.pColorBlendState = &blend;
+ci.layout = pipelineLayout;
+ci.renderPass = renderPass;
+
+VkPipeline pipeline;
+vkCreateGraphicsPipelines(
+  device, VK_NULL_HANDLE, 1,
+  &ci, nullptr, &pipeline);
+
+// draw 时绑定
+vkCmdBindPipeline(cmdBuf,
+  VK_PIPELINE_BIND_POINT_GRAPHICS,
+  pipeline);
+vkCmdDrawIndexed(cmdBuf,
+  indexCount, 1, 0, 0, 0);</code></pre>`}
+      />
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">PSO 的<b>本质</b>：把"渲染状态"从 draw call 时移到资源准备时，驱动只需做一次验证。Vulkan 进一步把 PSO 编译为 GPU 原生命令，draw call 几乎零开销。</span><span slot="en"><b>Essence</b> of PSO: move render-state validation from draw-time to setup-time. Vulkan compiles PSOs to native GPU commands — near-zero draw-call overhead.</span></Bilingual></p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">阶段 4 · 资源绑定</span><span slot="en">Stage 4 · Resource Binding</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">把 uniform（MVP 矩阵、纹理、光源参数等）绑定到着色器。WebGL 用 <code>uniform</code>；OpenGL 用 <b>UBO</b>（Uniform Buffer Object）；D3D12 用 <b>Root Descriptor</b> 或 <b>Descriptor Table</b>；Vulkan 用 <b>Descriptor Set</b>。</span><span slot="en">Bind uniforms (MVP matrix, textures, light params) to shaders. WebGL uses <code>uniform</code>; OpenGL uses <b>UBO</b>; D3D12 uses <b>Root Descriptor</b> or <b>Descriptor Table</b>; Vulkan uses <b>Descriptor Set</b>.</span></Bilingual></p>
+      <CodeQuad
+        webgl={`<pre><code>// WebGL2：uniform + UBO
+// 简单 uniform（少量数据）
+const loc = gl.getUniformLocation(
+  program, "uMVP");
+gl.uniformMatrix4fv(loc, false, mvp);
+
+// UBO（结构化数据，推荐）
+const ubo = gl.createBuffer();
+gl.bindBuffer(gl.UNIFORM_BUFFER, ubo);
+gl.bufferData(gl.UNIFORM_BUFFER,
+  mvpData, gl.DYNAMIC_DRAW);
+
+// 着色器中
+// layout(std140, binding = 0)
+// uniform Matrices { mat4 MVP; };
+
+// 绑定到绑定点
+gl.bindBufferBase(gl.UNIFORM_BUFFER,
+  0, ubo);</code></pre>`}
+        opengl={`<pre><code>// OpenGL 4.x：UBO + SSBO
+GLuint ubo;
+glGenBuffers(1, &ubo);
+glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+glBufferData(GL_UNIFORM_BUFFER,
+  sizeof(mat4), nullptr, GL_DYNAMIC_DRAW);
+
+// 着色器中
+// layout(std140, binding = 0)
+// uniform Matrices { mat4 MVP; };
+
+glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
+
+// 更新数据
+glBufferSubData(GL_UNIFORM_BUFFER,
+  0, sizeof(mat4), &mvp);
+
+// SSBO（任意大小，可读写）
+// layout(std430, binding = 1)
+// buffer Lights { Light data[]; };</code></pre>`}
+        d3d12={`<pre><code>// D3D12：Root Signature + CBV
+D3D12_ROOT_PARAMETER params[1];
+params[0].ParameterType =
+  D3D12_ROOT_PARAMETER_TYPE_CBV;
+params[0].Descriptor.ShaderRegister = 0;
+params[0].Descriptor.RegisterSpace = 0;
+params[0].ShaderVisibility =
+  D3D12_SHADER_VISIBILITY_VERTEX;
+
+D3D12_ROOT_SIGNATURE_DESC rsDesc = {};
+rsDesc.NumParameters = 1;
+rsDesc.pParameters = params;
+
+ComPtr&lt;ID3D12RootSignature&gt; rootSig;
+D3D12SerializeRootSignature(&rsDesc,
+  D3D_ROOT_SIGNATURE_VERSION_1_0,
+  &blob, nullptr);
+device-&gt;CreateRootSignature(0,
+  blob-&gt;GetBufferPointer(),
+  blob-&gt;GetBufferSize(),
+  IID_PPV_ARGS(&rootSig));
+
+// draw 时设置
+cmdList-&gt;SetGraphicsRootSignature(rootSig.Get());
+cmdList-&gt;SetGraphicsRootConstantBufferView(
+  0, cbvGpuAddr);</code></pre>`}
+        vulkan={`<pre><code>// Vulkan：Descriptor Set
+VkDescriptorSetLayoutBinding binding = {};
+binding.binding = 0;
+binding.descriptorType =
+  VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+binding.descriptorCount = 1;
+binding.stageFlags =
+  VK_SHADER_STAGE_VERTEX_BIT;
+
+VkDescriptorSetLayoutCreateInfo ci = {};
+ci.bindingCount = 1;
+ci.pBindings = &binding;
+vkCreateDescriptorSetLayout(
+  device, &ci, nullptr, &setLayout);
+
+// 分配 Descriptor Set
+VkDescriptorSetAllocateInfo ai = {};
+ai.descriptorPool = pool;
+ai.setLayoutCount = 1;
+ai.pSetLayouts = &setLayout;
+vkAllocateDescriptorSets(
+  device, &ai, &descSet);
+
+// 写入 UBO 信息
+VkWriteDescriptorSet write = {};
+write.dstSet = descSet;
+write.descriptorType =
+  VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+write.descriptorCount = 1;
+write.pBufferInfo = &bufferInfo;
+vkUpdateDescriptorSets(
+  device, 1, &write, 0, nullptr);
+
+// draw 时绑定
+vkCmdBindDescriptorSets(cmdBuf,
+  VK_PIPELINE_BIND_POINT_GRAPHICS,
+  pipelineLayout, 0, 1, &descSet,
+  0, nullptr);</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">阶段 5 · Draw Call</span><span slot="en">Stage 5 · Draw Call</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">触发实际绘制。所有 API 在这里都很简洁，但<b>前缀工作差异巨大</b>：WebGL/OpenGL 即时模式直接画；D3D12 需先录制命令到 Command List；Vulkan 需先录制到 Command Buffer，再提交到 Queue。</span><span slot="en">Trigger the actual draw. Concise in all APIs, but the <b>preamble differs hugely</b>: WebGL/OpenGL draw immediately; D3D12 records to a Command List first; Vulkan records to a Command Buffer, then submits to a Queue.</span></Bilingual></p>
+      <CodeQuad
+        webgl={`<pre><code>// WebGL2：一行即可
+gl.useProgram(program);
+gl.bindVertexArray(vao);
+gl.uniformMatrix4fv(mvpLoc, false, mvp);
+gl.drawElements(gl.TRIANGLES,
+  36, gl.UNSIGNED_SHORT, 0);
+
+// 实例化
+gl.drawElementsInstanced(
+  gl.TRIANGLES, 36,
+  gl.UNSIGNED_SHORT, 0, count);
+
+// 间接绘制（GPU 驱动）
+gl.drawElementsIndirect(
+  gl.TRIANGLES, gl.UNSIGNED_SHORT,
+  indirectBuffer, 0);</code></pre>`}
+        opengl={`<pre><code>// OpenGL 4.x：与 WebGL2 几乎一致
+glUseProgram(program);
+glBindVertexArray(vao);
+glUniformMatrix4fv(mvpLoc, 1,
+  GL_FALSE, &mvp[0][0]);
+glDrawElements(GL_TRIANGLES,
+  36, GL_UNSIGNED_SHORT, nullptr);
+
+// 多重绘制
+glMultiDrawElements(
+  GL_TRIANGLES, counts,
+  GL_UNSIGNED_SHORT, offsets,
+  drawCount);
+
+// 间接绘制
+glDrawElementsIndirect(
+  GL_TRIANGLES, GL_UNSIGNED_SHORT,
+  indirectBuffer);
+
+// AZDO（Approaching Zero Driver
+// Overhead）模式：
+//   - Persistent mapped buffers
+//   - Bindless textures
+//   - Multi-draw indirect</code></pre>`}
+        d3d12={`<pre><code>// D3D12：录制到 Command List
+cmdAlloc-&gt;Reset();
+cmdList-&gt;Reset(cmdAlloc, pso);
+
+cmdList-&gt;SetGraphicsRootSignature(rootSig);
+cmdList-&gt;IASetVertexBuffers(0, 1, &vbv);
+cmdList-&gt;IASetIndexBuffer(&ibv);
+cmdList-&gt;SetPipelineState(pso);
+cmdList-&gt;SetGraphicsRootConstantBufferView(
+  0, cbvAddr);
+cmdList-&gt;RSSetViewports(1, &viewport);
+cmdList-&gt;RSSetScissorRects(1, &rect);
+cmdList-&gt;ResourceBarrier(1, &barrier);
+
+// 真正的 draw call
+cmdList-&gt;DrawIndexedInstanced(
+  indexCount, instanceCount,
+  startIndex, baseVertex,
+  startInstance);
+
+// 关闭 + 提交到 queue
+cmdList-&gt;Close();
+cmdQueue-&gt;ExecuteCommandLists(
+  1, (ID3D12CommandList**)&cmdList);</code></pre>`}
+        vulkan={`<pre><code>// Vulkan：录制到 Command Buffer
+VkCommandBufferBeginInfo beginInfo = {};
+vkBeginCommandBuffer(cmdBuf, &beginInfo);
+
+vkCmdBeginRenderPass(cmdBuf,
+  &rpInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+vkCmdBindPipeline(cmdBuf,
+  VK_PIPELINE_BIND_POINT_GRAPHICS,
+  pipeline);
+vkCmdBindDescriptorSets(cmdBuf,
+  VK_PIPELINE_BIND_POINT_GRAPHICS,
+  pipelineLayout, 0, 1, &descSet,
+  0, nullptr);
+vkCmdBindVertexBuffers(cmdBuf,
+  0, 1, &vbo, &offset);
+vkCmdBindIndexBuffer(cmdBuf,
+  ibo, 0, VK_INDEX_TYPE_UINT16);
+
+vkCmdSetViewport(cmdBuf, 0, 1, &viewport);
+vkCmdSetScissor(cmdBuf, 0, 1, &scissor);
+
+// 真正的 draw call
+vkCmdDrawIndexed(cmdBuf,
+  indexCount, 1, 0, 0, 0);
+
+vkCmdEndRenderPass(cmdBuf);
+vkEndCommandBuffer(cmdBuf);
+
+VkSubmitInfo submit = {};
+submit.commandBufferCount = 1;
+submit.pCommandBuffers = &cmdBuf;
+vkQueueSubmit(queue, 1, &submit, fence);</code></pre>`}
+      />
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">API 设计哲学对比</span><span slot="en">API Design Philosophy</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">维度</span><span slot="en">Aspect</span></Bilingual></th><th class="py-2 pr-4 text-primary-cyan">WebGL2</th><th class="py-2 pr-4 text-primary-cyan">OpenGL</th><th class="py-2 pr-4 text-primary-purple">D3D12</th><th class="py-2 pr-4 text-func-amber">Vulkan</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">模式</td><td class="py-2 pr-4">即时</td><td class="py-2 pr-4">即时</td><td class="py-2 pr-4">命令录制</td><td class="py-2 pr-4">命令录制</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">状态管理</td><td class="py-2 pr-4">隐式全局状态</td><td class="py-2 pr-4">隐式全局状态</td><td class="py-2 pr-4">PSO 显式固化</td><td class="py-2 pr-4">PSO 显式固化</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">驱动开销</td><td class="py-2 pr-4 text-func-red">高</td><td class="py-2 pr-4 text-func-red">高</td><td class="py-2 pr-4 text-func-green">低</td><td class="py-2 pr-4 text-func-green">极低</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">多线程</td><td class="py-2 pr-4 text-func-red">✗ 单线程</td><td class="py-2 pr-4 text-func-amber">✗（4.6 部分）</td><td class="py-2 pr-4 text-func-green">✓ 多 Command List</td><td class="py-2 pr-4 text-func-green">✓ 多 Command Buffer</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">显存管理</td><td class="py-2 pr-4">驱动托管</td><td class="py-2 pr-4">驱动托管</td><td class="py-2 pr-4">应用显式</td><td class="py-2 pr-4">应用显式</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">同步</td><td class="py-2 pr-4">隐式</td><td class="py-2 pr-4">隐式</td><td class="py-2 pr-4">Fence 显式</td><td class="py-2 pr-4">Semaphore/Fence</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">代码量</td><td class="py-2 pr-4 text-func-green">~50 行</td><td class="py-2 pr-4 text-func-green">~60 行</td><td class="py-2 pr-4 text-func-amber">~300 行</td><td class="py-2 pr-4 text-func-red">~500 行</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">学习曲线</td><td class="py-2 pr-4 text-func-green">平缓</td><td class="py-2 pr-4 text-func-green">平缓</td><td class="py-2 pr-4 text-func-amber">陡峭</td><td class="py-2 pr-4 text-func-red">极陡</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">现代 API（D3D12/Vulkan）的<b>核心思想</b>：把<b>控制权</b>从驱动交还给应用——应用显式管理内存、同步、PSO，换来可预测的极高吞吐。代价是代码量翻 5-10 倍。游戏引擎（UE5/Unity）封装了这些复杂度，让上层开发者用回 OpenGL 风格的简洁 API。</span><span slot="en">Modern APIs' (D3D12/Vulkan) <b>core idea</b>: hand <b>control</b> back from driver to app — explicit memory, sync, PSO, in exchange for predictable high throughput. The cost is 5-10× more code. Game engines (UE5/Unity) wrap this complexity, exposing an OpenGL-style simple API to upper-layer developers.</span></Bilingual></p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">延伸阅读</span><span slot="en">Further Reading</span></Bilingual></h2>
+      <ul class="text-sm text-ink-muted space-y-2 list-disc pl-5">
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/graphics/pipeline-walkthrough">管线逐步拆解</a>：本页每阶段的 WebGL2 实现 + 实时 canvas 演示。</span><span slot="en"><a class="text-primary-cyan underline" href="/graphics/pipeline-walkthrough">Pipeline Walkthrough</a>: WebGL2 implementation of each stage with live canvas.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/shaders">着色器</a>：GLSL/HLSL/SPIR-V 着色语言概述。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/shaders">Shaders</a>: GLSL/HLSL/SPIR-V overview.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh">参考：<a class="text-primary-cyan underline" href="https://webgl2fundamentals.org/">webgl2fundamentals</a> · <a class="text-primary-cyan underline" href="https://learnopengl.com/">learnopengl</a> · <a class="text-primary-cyan underline" href="https://docs.microsoft.com/en-us/windows/win32/direct3d12">Direct3D 12 文档</a> · <a class="text-primary-cyan underline" href="https://vulkan-tutorial.com/">vulkan-tutorial</a></span><span slot="en">References: <a class="text-primary-cyan underline" href="https://webgl2fundamentals.org/">webgl2fundamentals</a> · <a class="text-primary-cyan underline" href="https://learnopengl.com/">learnopengl</a> · <a class="text-primary-cyan underline" href="https://docs.microsoft.com/en-us/windows/win32/direct3d12">Direct3D 12 docs</a> · <a class="text-primary-cyan underline" href="https://vulkan-tutorial.com/">vulkan-tutorial</a></span></Bilingual></li>
+      </ul>
+    </section>
+  </article>
+</BaseLayout>

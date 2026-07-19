@@ -111,6 +111,9 @@ export const outline: OutlineNode[] = [
       { id: 'render-paths', zh: '渲染路径（前向 / 延迟）', en: 'Render Paths (Forward / Deferred)', href: '/topics/render-paths' },
       { id: 'gi', zh: '全局光照（实时 GI）', en: 'Global Illumination', href: '/topics/global-illumination' },
       { id: 'pipeline', zh: '3D 渲染管线', en: '3D Render Pipeline', href: '/graphics/render', viz: 'render3d' },
+      { id: 'pipeline-walkthrough', zh: '管线逐步拆解', en: 'Pipeline Walkthrough', href: '/graphics/pipeline-walkthrough' },
+      { id: 'api-comparison', zh: '跨 API 管线对比', en: 'Cross-API Comparison', href: '/graphics/api-comparison' },
+      { id: 'deferred-demo', zh: '延迟渲染 G-Buffer 演示', en: 'Deferred Rendering Demo', href: '/graphics/deferred-demo' },
     ],
   },
   {

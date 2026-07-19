@@ -1,0 +1,453 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Deferred Rendering Demo · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Graphics / Deferred Demo</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">延迟渲染 G-Buffer 演示</span><span slot="en">Deferred Rendering G-Buffer Demo</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">用 WebGL2 <b>MRT</b>（Multiple Render Targets）实现延迟渲染：一次 Geometry Pass 把<b>位置/法线/反照率/粗糙度/深度</b>写入多个 G-Buffer 纹理，再用一次 Lighting Pass 屏幕空间合成。点击下方按钮切换查看各通道真实 WebGL 输出。</span>
+          <span slot="en">A WebGL2 <b>MRT</b> deferred renderer: one Geometry Pass writes <b>position/normal/albedo/roughness/depth</b> to G-Buffer textures, then a Lighting Pass composites in screen space. Click buttons below to view each channel's real WebGL output.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <button class="btn btn-primary dd-btn dd-active" data-channel="final">
+          <span data-ui="final" data-lang="zh">最终合成</span><span data-ui="final" data-lang="en">Final</span>
+        </button>
+        <button class="btn dd-btn" data-channel="position">
+          <span data-ui="position" data-lang="zh">Position</span><span data-ui="position" data-lang="en">Position</span>
+        </button>
+        <button class="btn dd-btn" data-channel="normal">
+          <span data-ui="normal" data-lang="zh">Normal</span><span data-ui="normal" data-lang="en">Normal</span>
+        </button>
+        <button class="btn dd-btn" data-channel="albedo">
+          <span data-ui="albedo" data-lang="zh">Albedo</span><span data-ui="albedo" data-lang="en">Albedo</span>
+        </button>
+        <button class="btn dd-btn" data-channel="roughness">
+          <span data-ui="roughness" data-lang="zh">Roughness</span><span data-ui="roughness" data-lang="en">Roughness</span>
+        </button>
+        <button class="btn dd-btn" data-channel="depth">
+          <span data-ui="depth" data-lang="zh">Depth</span><span data-ui="depth" data-lang="en">Depth</span>
+        </button>
+      </div>
+      <canvas id="dd-canvas" class="w-full h-80 rounded-xl viz-stage"></canvas>
+      <p id="dd-info" class="text-xs font-mono text-primary-cyan mt-2"></p>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">G-Buffer 布局</span><span slot="en">G-Buffer Layout</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">延迟渲染用 <b>MRT</b> 一次绘制把多个属性写入多个 Render Target。本演示布局：</span><span slot="en">Deferred rendering uses <b>MRT</b> to write multiple attributes to multiple Render Targets in a single draw. This demo's layout:</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4">RT</th><th class="py-2 pr-4">Format</th><th class="py-2 pr-4"><Bilingual><span slot="zh">字段</span><span slot="en">Fields</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">用途</span><span slot="en">Use</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan font-mono">RT0</td><td class="py-2 pr-4 font-mono">RGBA8</td><td class="py-2 pr-4">RGB=Albedo, A=Roughness</td><td class="py-2 pr-4"><Bilingual><span slot="zh">反照率 + 粗糙度</span><span slot="en">albedo + roughness</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple font-mono">RT1</td><td class="py-2 pr-4 font-mono">RGBA16F</td><td class="py-2 pr-4">RGB=ViewPos, A=Metallic</td><td class="py-2 pr-4"><Bilingual><span slot="zh">视图空间位置 + 金属度</span><span slot="en">view-space pos + metalness</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber font-mono">RT2</td><td class="py-2 pr-4 font-mono">RGBA8</td><td class="py-2 pr-4">RGB=Normal</td><td class="py-2 pr-4"><Bilingual><span slot="zh">法线（球面存储）</span><span slot="en">normal (spherical)</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-func-red font-mono">Depth</td><td class="py-2 pr-4 font-mono">DEPTH24</td><td class="py-2 pr-4">D=LinearDepth</td><td class="py-2 pr-4"><Bilingual><span slot="zh">深度缓冲</span><span slot="en">depth buffer</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Geometry Pass 代码</span><span slot="en">Geometry Pass Code</span></Bilingual></h2>
+      <pre id="dd-code-geo" class="bg-[color:var(--code-bg)] rounded-lg p-4 overflow-x-auto text-sm"></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Lighting Pass 代码</span><span slot="en">Lighting Pass Code</span></Bilingual></h2>
+      <pre id="dd-code-light" class="bg-[color:var(--code-bg)] rounded-lg p-4 overflow-x-auto text-sm"></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">前向 vs 延迟性能对比</span><span slot="en">Forward vs Deferred Performance</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">场景</span><span slot="en">Scene</span></Bilingual></th><th class="py-2 pr-4 text-primary-cyan">Forward</th><th class="py-2 pr-4 text-primary-purple">Deferred</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">100 光源 × 100 物体</td><td class="py-2 pr-4 text-func-red">慢（O(N×L)）</td><td class="py-2 pr-4 text-func-green">快（O(P×L)）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">透明物体</td><td class="py-2 pr-4 text-func-green">✓ 支持</td><td class="py-2 pr-4 text-func-red">✗ 需回退</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">MSAA</td><td class="py-2 pr-4 text-func-green">✓ 原生</td><td class="py-2 pr-4 text-func-red">✗ 困难</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">带宽</td><td class="py-2 pr-4 text-func-green">低</td><td class="py-2 pr-4 text-func-amber">高（G-Buffer）</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">详见 <a class="text-primary-cyan underline" href="/topics/render-paths">渲染路径</a> 的概念解析，本页是其可视化补充。</span><span slot="en">See <a class="text-primary-cyan underline" href="/topics/render-paths">Render Paths</a> for the conceptual breakdown; this page is its visual companion.</span></Bilingual></p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">延伸阅读</span><span slot="en">Further Reading</span></Bilingual></h2>
+      <ul class="text-sm text-ink-muted space-y-2 list-disc pl-5">
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/render-paths">渲染路径</a>：前向 vs 延迟的概念性对比。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/render-paths">Render Paths</a>: conceptual comparison of forward vs deferred.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/graphics/pipeline-walkthrough">管线逐步拆解</a>：本场景的前向渲染版本。</span><span slot="en"><a class="text-primary-cyan underline" href="/graphics/pipeline-walkthrough">Pipeline Walkthrough</a>: the forward-rendering version of this scene.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/graphics/api-comparison">跨 API 对比</a>：G-Buffer 写入与光照 Pass 在不同 API 的实现。</span><span slot="en"><a class="text-primary-cyan underline" href="/graphics/api-comparison">Cross-API Comparison</a>: G-Buffer writes & lighting pass across APIs.</span></Bilingual></li>
+      </ul>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .dd-btn { opacity: 0.6; transition: all 0.15s ease; }
+  .dd-btn.dd-active { opacity: 1; box-shadow: 0 0 0 2px rgba(34,211,238,0.4); }
+</style>
+
+<script>
+  import {
+    getWebGL2Context, resizeCanvasToDisplaySize, createProgram, createBuffer, createVAO,
+    createTexture, createDepthBuffer,
+    multiply, perspective, translation, rotationY,
+    CUBE_VERTICES, CUBE_INDICES,
+  } from '../../scripts/webgl-utils';
+
+  const CODE_GEO = `// Geometry Pass：MRT 一次写入 3 个 Render Target
+#version 300 es
+in vec3 aPos;
+in vec3 aNormal;
+uniform mat4 uM, uV, uP;
+out vec3 vWorldPos;
+out vec3 vNormal;
+void main() {
+    vec4 worldPos = uM * vec4(aPos, 1.0);
+    vWorldPos = worldPos.xyz;
+    vNormal = mat3(uM) * aNormal;
+    gl_Position = uP * uV * worldPos;
+}
+
+// 片元着色器：写入 3 个 MRT
+#version 300 es
+layout(location = 0) out vec4 GAlbedo;   // RT0: RGB=albedo, A=roughness
+layout(location = 1) out vec4 GPosition; // RT1: RGB=pos, A=metallic
+layout(location = 2) out vec4 GNormal;   // RT2: RGB=normal
+in vec3 vWorldPos;
+in vec3 vNormal;
+uniform vec3 uAlbedo;
+uniform float uRoughness;
+uniform float uMetallic;
+void main() {
+    GAlbedo   = vec4(uAlbedo, uRoughness);
+    GPosition = vec4(vWorldPos, uMetallic);
+    GNormal   = vec4(normalize(vNormal) * 0.5 + 0.5, 1.0);
+}
+
+// JS：创建带多个颜色附件的 framebuffer
+const fb = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+gl.framebufferTexture2D(gl.FRAMEBUFFER,
+  gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex0, 0);
+gl.framebufferTexture2D(gl.FRAMEBUFFER,
+  gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, tex1, 0);
+gl.framebufferTexture2D(gl.FRAMEBUFFER,
+  gl.COLOR_ATTACHMENT2, gl.TEXTURE_2D, tex2, 0);
+gl.drawBuffers([
+  gl.COLOR_ATTACHMENT0,
+  gl.COLOR_ATTACHMENT1,
+  gl.COLOR_ATTACHMENT2,
+]);
+
+// 一次 draw 写入所有 G-Buffer
+gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+gl.drawElements(gl.TRIANGLES, 36,
+  gl.UNSIGNED_SHORT, 0);`;
+
+  const CODE_LIGHT = `// Lighting Pass：屏幕空间全屏四边形，采样 G-Buffer
+#version 300 es
+in vec2 vUV;
+uniform sampler2D uAlbedoTex;   // RT0
+uniform sampler2D uPosTex;      // RT1
+uniform sampler2D uNormalTex;   // RT2
+uniform vec3 uLightPos, uLightColor, uViewPos;
+out vec4 FragColor;
+void main() {
+    vec4 albedoData = texture(uAlbedoTex, vUV);
+    vec4 posData    = texture(uPosTex, vUV);
+    vec4 normalData = texture(uNormalTex, vUV);
+
+    vec3 albedo  = albedoData.rgb;
+    float rough  = albedoData.a;
+    vec3 pos     = posData.rgb;
+    vec3 normal  = normalData.rgb * 2.0 - 1.0;
+
+    // Phong 光照（屏幕空间计算，无几何遍历）
+    vec3 N = normalize(normal);
+    vec3 L = normalize(uLightPos - pos);
+    vec3 V = normalize(uViewPos - pos);
+    vec3 R = reflect(-L, N);
+
+    vec3 ambient  = 0.15 * albedo;
+    vec3 diffuse  = max(dot(N, L), 0.0) * albedo * uLightColor;
+    vec3 specular = pow(max(dot(R, V), 0.0),
+      mix(8.0, 128.0, 1.0 - rough)) * uLightColor;
+
+    FragColor = vec4(ambient + diffuse + specular, 1.0);
+}
+
+// JS：渲染全屏四边形
+gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+gl.useProgram(lightProgram);
+gl.activeTexture(gl.TEXTURE0);
+gl.bindTexture(gl.TEXTURE_2D, gbufferTex0);
+gl.uniform1i(uAlbedoTexLoc, 0);
+// ... 其他纹理
+gl.drawArrays(gl.TRIANGLES, 0, 6);`;
+
+  const codeGeo = document.querySelector('#dd-code-geo');
+  const codeLight = document.querySelector('#dd-code-light');
+  if (codeGeo) (codeGeo as HTMLElement).textContent = CODE_GEO;
+  if (codeLight) (codeLight as HTMLElement).textContent = CODE_LIGHT;
+
+  const canvas = document.getElementById('dd-canvas') as HTMLCanvasElement;
+  if (!canvas) throw new Error('Canvas not found');
+  const gl = getWebGL2Context(canvas);
+  if (!gl) {
+    const fb = document.createElement('p');
+    fb.textContent = 'WebGL2 not supported / 您的浏览器不支持 WebGL2';
+    fb.className = 'text-center text-func-red p-4';
+    canvas.replaceWith(fb);
+  } else {
+    const VS_GEO = `#version 300 es
+in vec3 aPos;
+in vec3 aNormal;
+uniform mat4 uM, uV, uP;
+out vec3 vWorldPos;
+out vec3 vNormal;
+void main() {
+    vec4 worldPos = uM * vec4(aPos, 1.0);
+    vWorldPos = worldPos.xyz;
+    vNormal = mat3(uM) * aNormal;
+    gl_Position = uP * uV * worldPos;
+}`;
+
+    const FS_GEO = `#version 300 es
+precision highp float;
+layout(location = 0) out vec4 GAlbedo;
+layout(location = 1) out vec4 GPosition;
+layout(location = 2) out vec4 GNormal;
+in vec3 vWorldPos;
+in vec3 vNormal;
+uniform vec3 uAlbedo;
+uniform float uRoughness;
+uniform float uMetallic;
+void main() {
+    GAlbedo   = vec4(uAlbedo, uRoughness);
+    GPosition = vec4(vWorldPos, uMetallic);
+    GNormal   = vec4(normalize(vNormal) * 0.5 + 0.5, 1.0);
+}`;
+
+    const VS_LIGHT = `#version 300 es
+in vec2 aPos;
+out vec2 vUV;
+void main() {
+    vUV = aPos * 0.5 + 0.5;
+    gl_Position = vec4(aPos, 0.0, 1.0);
+}`;
+
+    const FS_VIEW = `#version 300 es
+precision highp float;
+in vec2 vUV;
+uniform sampler2D uAlbedoTex;
+uniform sampler2D uPosTex;
+uniform sampler2D uNormalTex;
+uniform int uMode;
+uniform vec3 uLightPos, uLightColor, uViewPos;
+out vec4 FragColor;
+void main() {
+    vec4 albedoData = texture(uAlbedoTex, vUV);
+    vec4 posData    = texture(uPosTex, vUV);
+    vec4 normalData = texture(uNormalTex, vUV);
+
+    if (uMode == 1) {
+        FragColor = vec4(posData.rgb * 0.15 + 0.5, 1.0);
+    } else if (uMode == 2) {
+        FragColor = vec4(normalData.rgb, 1.0);
+    } else if (uMode == 3) {
+        FragColor = vec4(albedoData.rgb, 1.0);
+    } else if (uMode == 4) {
+        float r = albedoData.a;
+        FragColor = vec4(vec3(r), 1.0);
+    } else if (uMode == 5) {
+        float d = length(posData.xyz - uViewPos) / 20.0;
+        FragColor = vec4(vec3(d), 1.0);
+    } else {
+        vec3 albedo = albedoData.rgb;
+        float rough = albedoData.a;
+        vec3 pos    = posData.rgb;
+        vec3 normal = normalData.rgb * 2.0 - 1.0;
+        vec3 N = normalize(normal);
+        vec3 L = normalize(uLightPos - pos);
+        vec3 V = normalize(uViewPos - pos);
+        vec3 R = reflect(-L, N);
+        vec3 ambient = 0.15 * albedo;
+        vec3 diffuse = max(dot(N, L), 0.0) * albedo * uLightColor;
+        vec3 specular = pow(max(dot(R, V), 0.0), mix(8.0, 128.0, 1.0 - rough)) * uLightColor;
+        FragColor = vec4(ambient + diffuse + specular, 1.0);
+    }
+}`;
+
+    const geoProgram = createProgram(gl, VS_GEO, FS_GEO);
+    const lightProgram = createProgram(gl, VS_LIGHT, FS_VIEW);
+
+    const vbo = createBuffer(gl, CUBE_VERTICES);
+    const ibo = createBuffer(gl, CUBE_INDICES, gl.ELEMENT_ARRAY_BUFFER);
+    const cubeVAO = createVAO(gl);
+    gl.bindVertexArray(cubeVAO);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
+    gl.bindVertexArray(null);
+
+    const quadVerts = new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]);
+    const quadVbo = createBuffer(gl, quadVerts);
+    const quadVAO = createVAO(gl);
+    gl.bindVertexArray(quadVAO);
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadVbo);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
+
+    let gbufferTex0: WebGLTexture, gbufferTex1: WebGLTexture, gbufferTex2: WebGLTexture;
+    let depthBuf: WebGLRenderbuffer, fb: WebGLFramebuffer;
+
+    function rebuildGBuffer(w: number, h: number) {
+      gbufferTex0 = createTexture(gl, w, h, gl.RGBA8);
+      try {
+        gbufferTex1 = createTexture(gl, w, h, gl.RGBA16F, gl.RGBA, gl.HALF_FLOAT);
+      } catch (e) {
+        gbufferTex1 = createTexture(gl, w, h, gl.RGBA8);
+      }
+      gbufferTex2 = createTexture(gl, w, h, gl.RGBA8);
+      depthBuf = createDepthBuffer(gl, w, h);
+      fb = gl.createFramebuffer() as WebGLFramebuffer;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, gbufferTex0, 0);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, gbufferTex1, 0);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.TEXTURE_2D, gbufferTex2, 0);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuf);
+      gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
+    }
+    rebuildGBuffer(canvas.width || 800, canvas.height || 400);
+
+    function lookAt(eye: number[], target: number[], up: number[]): number[] {
+      const z = [eye[0]-target[0], eye[1]-target[1], eye[2]-target[2]];
+      const zl = Math.hypot(z[0], z[1], z[2]) || 1;
+      z[0]/=zl; z[1]/=zl; z[2]/=zl;
+      const x = [up[1]*z[2]-up[2]*z[1], up[2]*z[0]-up[0]*z[2], up[0]*z[1]-up[1]*z[0]];
+      const xl = Math.hypot(x[0], x[1], x[2]) || 1;
+      x[0]/=xl; x[1]/=xl; x[2]/=xl;
+      const y = [z[1]*x[2]-z[2]*x[1], z[2]*x[0]-z[0]*x[2], z[0]*x[1]-z[1]*x[0]];
+      return [x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0, -(x[0]*eye[0]+x[1]*eye[1]+x[2]*eye[2]), -(y[0]*eye[0]+y[1]*eye[1]+y[2]*eye[2]), -(z[0]*eye[0]+z[1]*eye[1]+z[2]*eye[2]), 1];
+    }
+
+    let rotY = 0;
+    let dragging = false, lastX = 0;
+    canvas.style.cursor = 'grab';
+    canvas.addEventListener('pointerdown', (e) => { dragging = true; lastX = e.clientX; canvas.style.cursor = 'grabbing'; });
+    window.addEventListener('pointerup', () => { dragging = false; canvas.style.cursor = 'grab'; });
+    window.addEventListener('pointermove', (e) => { if (dragging) { rotY += (e.clientX - lastX) * 0.01; lastX = e.clientX; } });
+
+    let viewMode = 0;
+    const modeMap: Record<string, number> = { final: 0, position: 1, normal: 2, albedo: 3, roughness: 4, depth: 5 };
+    const modeLabels: Record<string, [string, string]> = {
+      final: ['最终合成（Phong 光照应用在 G-Buffer）', 'Final (Phong applied to G-Buffer)'],
+      position: ['Position 通道（视图空间位置）', 'Position channel (view-space pos)'],
+      normal: ['Normal 通道（球面存储 n·0.5+0.5）', 'Normal channel (spherical n·0.5+0.5)'],
+      albedo: ['Albedo 通道（表面反照率）', 'Albedo channel (surface reflectance)'],
+      roughness: ['Roughness 通道（粗糙度，白=粗糙）', 'Roughness channel (white=rough)'],
+      depth: ['Depth 通道（线性化深度）', 'Depth channel (linearized depth)'],
+    };
+    const infoEl = document.getElementById('dd-info');
+    function updateInfo(ch: string) {
+      if (!infoEl) return;
+      const lang = document.documentElement.getAttribute('data-lang') === 'en' ? 1 : 0;
+      infoEl.textContent = modeLabels[ch][lang];
+    }
+    const btns = document.querySelectorAll('.dd-btn');
+    btns.forEach((b) => b.addEventListener('click', () => {
+      const ch = (b as HTMLElement).dataset.channel || 'final';
+      viewMode = modeMap[ch];
+      btns.forEach((x) => x.classList.remove('dd-active'));
+      b.classList.add('dd-active');
+      updateInfo(ch);
+    }));
+    updateInfo('final');
+
+    document.addEventListener('langchange', () => {
+      const active = document.querySelector('.dd-btn.dd-active') as HTMLElement | null;
+      if (active) updateInfo(active.dataset.channel || 'final');
+    });
+
+    const objects = [
+      { offset: [-2.5, 0, 0], albedo: [0.9, 0.3, 0.3], rough: 0.3 },
+      { offset: [0, 0, 0],    albedo: [0.3, 0.9, 0.5], rough: 0.5 },
+      { offset: [2.5, 0, 0],  albedo: [0.3, 0.5, 0.9], rough: 0.7 },
+    ];
+
+    function render() {
+      requestAnimationFrame(render);
+      if (!dragging) rotY += 0.003;
+      if (resizeCanvasToDisplaySize(canvas)) rebuildGBuffer(canvas.width, canvas.height);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+
+      const eye = [Math.sin(rotY) * 7, 3, Math.cos(rotY) * 7];
+      const V = lookAt(eye, [0, 0, 0], [0, 1, 0]);
+      const P = perspective(Math.PI / 4, canvas.width / canvas.height, 0.1, 100);
+
+      // 1. Geometry Pass
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      gl.enable(gl.DEPTH_TEST);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.useProgram(geoProgram);
+      gl.bindVertexArray(cubeVAO);
+      gl.uniformMatrix4fv(gl.getUniformLocation(geoProgram, 'uV'), false, V);
+      gl.uniformMatrix4fv(gl.getUniformLocation(geoProgram, 'uP'), false, P);
+      objects.forEach((obj, i) => {
+        const M = multiply(translation(obj.offset[0], obj.offset[1], obj.offset[2]), rotationY(rotY * 2 + i));
+        gl.uniformMatrix4fv(gl.getUniformLocation(geoProgram, 'uM'), false, M);
+        gl.uniform3fv(gl.getUniformLocation(geoProgram, 'uAlbedo'), obj.albedo);
+        gl.uniform1f(gl.getUniformLocation(geoProgram, 'uRoughness'), obj.rough);
+        gl.uniform1f(gl.getUniformLocation(geoProgram, 'uMetallic'), 0.5);
+        gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+      });
+
+      // 2. Lighting Pass
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.disable(gl.DEPTH_TEST);
+      gl.clearColor(0.05, 0.08, 0.13, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.useProgram(lightProgram);
+      gl.bindVertexArray(quadVAO);
+
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, gbufferTex0);
+      gl.uniform1i(gl.getUniformLocation(lightProgram, 'uAlbedoTex'), 0);
+
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, gbufferTex1);
+      gl.uniform1i(gl.getUniformLocation(lightProgram, 'uPosTex'), 1);
+
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, gbufferTex2);
+      gl.uniform1i(gl.getUniformLocation(lightProgram, 'uNormalTex'), 2);
+
+      gl.uniform1i(gl.getUniformLocation(lightProgram, 'uMode'), viewMode);
+      gl.uniform3fv(gl.getUniformLocation(lightProgram, 'uLightPos'), [5, 5, 5]);
+      gl.uniform3fv(gl.getUniformLocation(lightProgram, 'uLightColor'), [1, 0.9, 0.8]);
+      gl.uniform3fv(gl.getUniformLocation(lightProgram, 'uViewPos'), eye);
+
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+    render();
+  }
+</script>

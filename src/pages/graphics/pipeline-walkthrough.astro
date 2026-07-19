@@ -1,0 +1,605 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Pipeline Walkthrough · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Graphics / Pipeline Walkthrough</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">渲染管线逐步拆解</span><span slot="en">Render Pipeline Walkthrough</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">本页用<b>原生 WebGL2</b>从零搭建一个中等场景——Skybox、地面网格、立方体/球/环面、点光源与方向光。管线被拆为 7 个阶段，每阶段配套真实运行的 canvas 与对应代码。教学风格参考 <a class="text-primary-cyan underline" href="https://webgl2fundamentals.org/">webgl2fundamentals</a>，不使用 Three.js。</span>
+          <span slot="en">This page builds a medium scene with <b>raw WebGL2</b> from scratch — Skybox, ground grid, cube/sphere/torus, point & directional lights. The pipeline is split into 7 stages, each with a live canvas and matching code. Style follows <a class="text-primary-cyan underline" href="https://webgl2fundamentals.org/">webgl2fundamentals</a>, without Three.js.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">最终场景预览</span><span slot="en">Final Scene Preview</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">下方为完整渲染结果，下面 7 个阶段将逐步搭建此场景。拖拽旋转视角。</span><span slot="en">The full render below; the 7 stages below build it step by step. Drag to rotate.</span></Bilingual></p>
+      <canvas id="pw-final" class="w-full h-80 rounded-xl viz-stage"></canvas>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">阶段 1 · 顶点输入</span><span slot="en">Stage 1 · Vertex Input</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">从顶点缓冲（VBO）读入位置、法线等属性。WebGL2 用 <b>VAO</b>（Vertex Array Object）封装属性绑定状态。详见 <a class="text-primary-cyan underline" href="/topics/shaders">着色器</a>。</span><span slot="en">Read position, normal etc. from VBO. WebGL2 uses a <b>VAO</b> to encapsulate attribute binding state. See <a class="text-primary-cyan underline" href="/topics/shaders">Shaders</a>.</span></Bilingual></p>
+      <pre id="pw-code-1" class="bg-[color:var(--code-bg)] rounded-lg p-4 overflow-x-auto text-sm"></pre>
+      <p class="text-xs text-ink-muted mt-2"><Bilingual><span slot="zh">演示：仅渲染立方体的顶点位置，无变换、无光照。</span><span slot="en">Demo: only vertex positions, no transform, no lighting.</span></Bilingual></p>
+      <canvas id="pw-stage-1" class="w-full h-64 mt-3 rounded-xl viz-stage"></canvas>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">阶段 2 · 顶点变换</span><span slot="en">Stage 2 · Vertex Transform</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">顶点着色器用 MVP 矩阵把顶点从模型空间变换到裁剪空间：<code>gl_Position = P·V·M·pos</code>。详见 <a class="text-primary-cyan underline" href="/topics/coord-transform">坐标变换</a>。</span><span slot="en">Vertex shader transforms vertices from model to clip space via MVP: <code>gl_Position = P·V·M·pos</code>. See <a class="text-primary-cyan underline" href="/topics/coord-transform">Coords & Transforms</a>.</span></Bilingual></p>
+      <pre id="pw-code-2" class="bg-[color:var(--code-bg)] rounded-lg p-4 overflow-x-auto text-sm"></pre>
+      <p class="text-xs text-ink-muted mt-2"><Bilingual><span slot="zh">演示：MVP 矩阵生效，立方体有透视投影；可拖拽旋转。</span><span slot="en">Demo: MVP active, perspective projection; drag to rotate.</span></Bilingual></p>
+      <canvas id="pw-stage-2" class="w-full h-64 mt-3 rounded-xl viz-stage"></canvas>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">阶段 3 · 光栅化</span><span slot="en">Stage 3 · Rasterization</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">图元装配后，GPU 把三角形拆为<b>片元</b>。重心坐标插值顶点属性。此阶段为<b>固定功能</b>——代码只配置图元类型与视口。详见 <a class="text-primary-cyan underline" href="/topics/rasterization">光栅化</a>。</span><span slot="en">After primitive assembly, the GPU breaks triangles into <b>fragments</b>, interpolating attributes via barycentric coords. This stage is <b>fixed-function</b> — code only sets primitive type & viewport. See <a class="text-primary-cyan underline" href="/topics/rasterization">Rasterization</a>.</span></Bilingual></p>
+      <pre id="pw-code-3" class="bg-[color:var(--code-bg)] rounded-lg p-4 overflow-x-auto text-sm"></pre>
+      <p class="text-xs text-ink-muted mt-2"><Bilingual><span slot="zh">演示：用片元位置生成渐变色，直观显示光栅化覆盖范围。</span><span slot="en">Demo: gradient color from fragment position, showing rasterization coverage.</span></Bilingual></p>
+      <canvas id="pw-stage-3" class="w-full h-64 mt-3 rounded-xl viz-stage"></canvas>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">阶段 4 · 片元着色</span><span slot="en">Stage 4 · Fragment Shading</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">片元着色器为每个片元计算最终颜色——这里是 <b>Phong 光照</b>（环境+漫反射+高光）。详见 <a class="text-primary-cyan underline" href="/topics/lighting">光照模型</a>。</span><span slot="en">Fragment shader computes each fragment's final color — here <b>Phong lighting</b> (ambient+diffuse+specular). See <a class="text-primary-cyan underline" href="/topics/lighting">Lighting Models</a>.</span></Bilingual></p>
+      <pre id="pw-code-4" class="bg-[color:var(--code-bg)] rounded-lg p-4 overflow-x-auto text-sm"></pre>
+      <p class="text-xs text-ink-muted mt-2"><Bilingual><span slot="zh">演示：立方体受单方向光照，可看到环境/漫反射/高光三项叠加。</span><span slot="en">Demo: cube lit by a single directional light, showing ambient/diffuse/specular.</span></Bilingual></p>
+      <canvas id="pw-stage-4" class="w-full h-64 mt-3 rounded-xl viz-stage"></canvas>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">阶段 5 · 逐片元测试</span><span slot="en">Stage 5 · Per-fragment Tests</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">深度测试决定哪个片元写入帧缓冲——近的覆盖远的。开启/关闭深度测试对比明显。详见 <a class="text-primary-cyan underline" href="/topics/camera">相机与投影</a>。</span><span slot="en">Depth test decides which fragment writes the framebuffer — nearer overwrites farther. Toggle on/off to see the difference. See <a class="text-primary-cyan underline" href="/topics/camera">Camera & Projection</a>.</span></Bilingual></p>
+      <pre id="pw-code-5" class="bg-[color:var(--code-bg)] rounded-lg p-4 overflow-x-auto text-sm"></pre>
+      <div class="flex items-center gap-3 mt-3">
+        <label class="flex items-center gap-2 text-sm text-ink-muted">
+          <input type="checkbox" id="pw-depth-toggle" checked class="accent-emerald-400" />
+          <span data-ui="depth" data-lang="zh">深度测试</span><span data-ui="depth" data-lang="en">Depth Test</span>
+        </label>
+      </div>
+      <canvas id="pw-stage-5" class="w-full h-64 mt-3 rounded-xl viz-stage"></canvas>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">阶段 6 · Skybox</span><span slot="en">Stage 6 · Skybox</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">天空盒用<b>立方体贴图</b>渲染一个超大立方体，关键技巧是把 <code>gl_Position.z = w</code> 让深度永远为最远，绘制时关闭深度写入但保留深度测试。</span><span slot="en">Skybox renders an oversized cube with a <b>cube map</b>; the trick is <code>gl_Position.z = w</code> so depth is always farthest, drawn with depth-write off but test on.</span></Bilingual></p>
+      <pre id="pw-code-6" class="bg-[color:var(--code-bg)] rounded-lg p-4 overflow-x-auto text-sm"></pre>
+      <p class="text-xs text-ink-muted mt-2"><Bilingual><span slot="zh">演示：场景外层添加程序化天空盒渐变。</span><span slot="en">Demo: procedural gradient skybox around the scene.</span></Bilingual></p>
+      <canvas id="pw-stage-6" class="w-full h-64 mt-3 rounded-xl viz-stage"></canvas>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">阶段 7 · 完整场景合成</span><span slot="en">Stage 7 · Full Scene Composite</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">组合前 6 阶段：Skybox + 地面网格 + 立方体/球/环面 + 2 点光源 + 1 方向光。每个物体有独立 MVP 与材质参数。</span><span slot="en">Compose the prior 6 stages: Skybox + ground grid + cube/sphere/torus + 2 point lights + 1 directional light. Each object has its own MVP and material params.</span></Bilingual></p>
+      <pre id="pw-code-7" class="bg-[color:var(--code-bg)] rounded-lg p-4 overflow-x-auto text-sm"></pre>
+      <p class="text-xs text-ink-muted mt-2"><Bilingual><span slot="zh">演示：完整中等场景，多物体多光照。</span><span slot="en">Demo: full medium scene, multiple objects and lights.</span></Bilingual></p>
+      <canvas id="pw-stage-7" class="w-full h-64 mt-3 rounded-xl viz-stage"></canvas>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">延伸阅读</span><span slot="en">Further Reading</span></Bilingual></h2>
+      <ul class="text-sm text-ink-muted space-y-2 list-disc pl-5">
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/graphics/render">3D 渲染管线可视化页</a>：Three.js 封装的可拖拽场景概览。</span><span slot="en"><a class="text-primary-cyan underline" href="/graphics/render">3D Render Pipeline visualizer</a>: Three.js draggable scene overview.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/graphics/api-comparison">跨 API 管线对比</a>：本页每阶段的 WebGL/OpenGL/D3D12/Vulkan 四列代码对比。</span><span slot="en"><a class="text-primary-cyan underline" href="/graphics/api-comparison">Cross-API Comparison</a>: WebGL/OpenGL/D3D12/Vulkan 4-column comparison for each stage above.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/graphics/deferred-demo">延迟渲染 G-Buffer 演示</a>：把本页前向渲染改为延迟渲染的实例。</span><span slot="en"><a class="text-primary-cyan underline" href="/graphics/deferred-demo">Deferred Rendering Demo</a>: the same scene rendered via G-Buffer.</span></Bilingual></li>
+      </ul>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  import {
+    getWebGL2Context, resizeCanvasToDisplaySize, createProgram, createBuffer, createVAO,
+    identity, multiply, perspective, translation, rotationY, scaling,
+    CUBE_VERTICES, CUBE_INDICES,
+  } from '../../scripts/webgl-utils';
+
+  // ===== GLSL 源代码（注入到 <pre>，规避 Astro JSX 转义） =====
+
+  const CODE_1 = `// 阶段 1：顶点输入
+// 顶点缓冲（位置 + 法线）+ VAO 封装属性绑定
+const cubeVertices = new Float32Array([
+  -1,-1, 1,  0, 0, 1,   // 位置 + 法线
+   1,-1, 1,  0, 0, 1,
+   1, 1, 1,  0, 0, 1,
+  -1, 1, 1,  0, 0, 1,
+  // ...（每面 4 顶点）
+]);
+const indices = new Uint16Array([0,1,2, 0,2,3, /* ... */]);
+
+const vbo = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+gl.bufferData(gl.ARRAY_BUFFER, cubeVertices, gl.STATIC_DRAW);
+
+const ibo = gl.createBuffer();
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+
+// VAO 封装属性绑定
+const vao = gl.createVertexArray();
+gl.bindVertexArray(vao);
+gl.enableVertexAttribArray(0);  // aPos
+gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
+gl.enableVertexAttribArray(1);  // aNormal
+gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
+gl.bindVertexArray(null);`;
+
+  const CODE_2 = `// 阶段 2：顶点变换（MVP 矩阵）
+#version 300 es
+in vec3 aPos;
+in vec3 aNormal;
+uniform mat4 uM, uV, uP;
+out vec3 vWorldPos;
+out vec3 vNormal;
+void main() {
+    vec4 worldPos = uM * vec4(aPos, 1.0);
+    vWorldPos = worldPos.xyz;
+    vNormal = mat3(uM) * aNormal;
+    gl_Position = uP * uV * worldPos;
+}
+
+// JS 端传入矩阵
+const M = multiply(translation(0,0,0), rotationY(time));
+const V = lookAt(eye, target, up);
+const P = perspective(Math.PI/4, aspect, 0.1, 100);
+gl.uniformMatrix4fv(uM, false, M);
+gl.uniformMatrix4fv(uV, false, V);
+gl.uniformMatrix4fv(uP, false, P);`;
+
+  const CODE_3 = `// 阶段 3：光栅化（图元装配 + 视口）
+// 顶点着色器输出后，GPU 自动装配图元并光栅化
+gl.viewport(0, 0, canvas.width, canvas.height);
+
+// 配置图元类型 + 索引绘制
+gl.bindVertexArray(vao);
+gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+
+// 片元着色器：用片元位置生成渐变色（仅展示覆盖范围）
+#version 300 es
+in vec3 vWorldPos;
+out vec4 FragColor;
+void main() {
+    vec3 c = vWorldPos * 0.5 + 0.5;
+    FragColor = vec4(c, 1.0);
+}`;
+
+  const CODE_4 = `// 阶段 4：片元着色（Phong 光照）
+#version 300 es
+precision highp float;
+in vec3 vWorldPos;
+in vec3 vNormal;
+uniform vec3 uLightPos, uLightColor, uViewPos;
+out vec4 FragColor;
+void main() {
+    vec3 N = normalize(vNormal);
+    vec3 L = normalize(uLightPos - vWorldPos);
+    vec3 V = normalize(uViewPos - vWorldPos);
+    vec3 R = reflect(-L, N);
+    vec3 albedo = vec3(0.2, 0.7, 0.9);
+    vec3 ambient  = 0.15 * albedo;
+    vec3 diffuse  = max(dot(N, L), 0.0) * albedo * uLightColor;
+    vec3 specular = pow(max(dot(R, V), 0.0), 32.0) * uLightColor;
+    FragColor = vec4(ambient + diffuse + specular, 1.0);
+}`;
+
+  const CODE_5 = `// 阶段 5：逐片元测试（深度测试）
+// 启用深度测试：近的覆盖远的
+gl.enable(gl.DEPTH_TEST);
+gl.depthFunc(gl.LESS);
+
+// 清屏时同时清深度缓冲
+gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+// 关闭深度测试会导致后绘制的覆盖先绘制的
+// （视觉上"穿透"，违反遮挡关系）
+// gl.disable(gl.DEPTH_TEST);  // ← 试试这个
+
+// 半透明物体需禁用深度写入
+// gl.depthMask(false);`;
+
+  const CODE_6 = `// 阶段 6：Skybox（立方体贴图 + 深度技巧）
+// 顶点着色器：让 Skybox 永远在最远
+#version 300 es
+in vec3 aPos;
+uniform mat4 uV, uP;
+out vec3 vDir;
+void main() {
+    vDir = aPos;
+    vec4 pos = uP * mat4(mat3(uV)) * vec4(aPos, 1.0);
+    gl_Position = pos.xyww;  // z = w → 永远最远
+}
+
+// 渲染时关闭深度写入、保留深度测试
+gl.depthMask(false);
+gl.bindVertexArray(skyboxVAO);
+gl.drawArrays(gl.TRIANGLES, 0, 36);
+gl.depthMask(true);
+
+// 程序化天空盒渐变（无外部纹理）
+#version 300 es
+in vec3 vDir;
+out vec4 FragColor;
+void main() {
+    float t = vDir.y * 0.5 + 0.5;
+    vec3 top = vec3(0.05, 0.08, 0.15);
+    vec3 bot = vec3(0.25, 0.35, 0.55);
+    FragColor = vec4(mix(bot, top, t), 1.0);
+}`;
+
+  const CODE_7 = `// 阶段 7：完整场景合成
+// 多物体 + 多光源的渲染循环
+const objects = [
+  { type: 'cube',   M: translation(-2.5, 0, 0),  albedo: [0.9, 0.3, 0.3] },
+  { type: 'sphere', M: translation(0, 0, 0),     albedo: [0.3, 0.9, 0.5] },
+  { type: 'torus',  M: translation(2.5, 0, 0),   albedo: [0.3, 0.5, 0.9] },
+];
+const lights = [
+  { pos: [5, 5, 5],   color: [1, 0.9, 0.8], type: 'point' },
+  { pos: [-5, 3, -3], color: [0.4, 0.5, 1.0], type: 'point' },
+  { dir: [0, -1, 0], color: [0.6, 0.6, 0.6], type: 'directional' },
+];
+
+// 1. 先画 Skybox（深度写入关闭）
+gl.depthMask(false);
+gl.useProgram(skyboxProgram);
+gl.drawArrays(gl.TRIANGLES, 0, 36);
+gl.depthMask(true);
+
+// 2. 再画地面网格 + 所有物体（深度测试开启）
+gl.enable(gl.DEPTH_TEST);
+for (const obj of objects) {
+  gl.uniformMatrix4fv(uM, false, obj.M);
+  gl.uniform3fv(uAlbedo, obj.albedo);
+  gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
+}`;
+
+  const codeMap: [string, string][] = [
+    ['#pw-code-1', CODE_1],
+    ['#pw-code-2', CODE_2],
+    ['#pw-code-3', CODE_3],
+    ['#pw-code-4', CODE_4],
+    ['#pw-code-5', CODE_5],
+    ['#pw-code-6', CODE_6],
+    ['#pw-code-7', CODE_7],
+  ];
+  codeMap.forEach(([sel, src]) => {
+    const el = document.querySelector(sel);
+    if (el) (el as HTMLElement).textContent = src;
+  });
+
+  // ===== 通用 WebGL2 渲染逻辑 =====
+
+  interface StageContext {
+    canvas: HTMLCanvasElement;
+    gl: WebGL2RenderingContext;
+    program: WebGLProgram;
+    vao: WebGLVertexArrayObject;
+    vbo: WebGLBuffer;
+    ibo: WebGLBuffer;
+    rotY: number;
+    auto: boolean;
+    dragging: boolean;
+    lastX: number;
+    lastY: number;
+    rafId: number;
+    extra?: unknown;
+  }
+
+  function lookAt(eye: number[], target: number[], up: number[]): number[] {
+    const z = [eye[0]-target[0], eye[1]-target[1], eye[2]-target[2]];
+    const zl = Math.hypot(z[0], z[1], z[2]) || 1;
+    z[0]/=zl; z[1]/=zl; z[2]/=zl;
+    const x = [up[1]*z[2]-up[2]*z[1], up[2]*z[0]-up[0]*z[2], up[0]*z[1]-up[1]*z[0]];
+    const xl = Math.hypot(x[0], x[1], x[2]) || 1;
+    x[0]/=xl; x[1]/=xl; x[2]/=xl;
+    const y = [z[1]*x[2]-z[2]*x[1], z[2]*x[0]-z[0]*x[2], z[0]*x[1]-z[1]*x[0]];
+    return [
+      x[0], y[0], z[0], 0,
+      x[1], y[1], z[1], 0,
+      x[2], y[2], z[2], 0,
+      -(x[0]*eye[0]+x[1]*eye[1]+x[2]*eye[2]),
+      -(y[0]*eye[0]+y[1]*eye[1]+y[2]*eye[2]),
+      -(z[0]*eye[0]+z[1]*eye[1]+z[2]*eye[2]),
+      1,
+    ];
+  }
+
+  function setupCanvas(canvas: HTMLCanvasElement): WebGL2RenderingContext | null {
+    const gl = getWebGL2Context(canvas);
+    if (!gl) {
+      const fb = document.createElement('p');
+      fb.textContent = 'WebGL2 not supported / 您的浏览器不支持 WebGL2';
+      fb.className = 'text-center text-func-red p-4';
+      canvas.replaceWith(fb);
+      return null;
+    }
+    return gl;
+  }
+
+  function setupDrag(ctx: StageContext) {
+    const el = ctx.canvas;
+    el.style.cursor = 'grab';
+    el.addEventListener('pointerdown', (e) => {
+      ctx.dragging = true; ctx.lastX = e.clientX; ctx.lastY = e.clientY;
+      el.style.cursor = 'grabbing';
+    });
+    window.addEventListener('pointerup', () => { ctx.dragging = false; el.style.cursor = 'grab'; });
+    window.addEventListener('pointermove', (e) => {
+      if (!ctx.dragging) return;
+      ctx.rotY += (e.clientX - ctx.lastX) * 0.01;
+      ctx.lastX = e.clientX; ctx.lastY = e.clientY;
+    });
+  }
+
+  function createCubeGeometry(gl: WebGL2RenderingContext): { vao: WebGLVertexArrayObject; vbo: WebGLBuffer; ibo: WebGLBuffer } {
+    const vbo = createBuffer(gl, CUBE_VERTICES);
+    const ibo = createBuffer(gl, CUBE_INDICES, gl.ELEMENT_ARRAY_BUFFER);
+    const vao = createVAO(gl);
+    gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
+    gl.bindVertexArray(null);
+    return { vao, vbo, ibo };
+  }
+
+  const VS_MVP = `#version 300 es
+in vec3 aPos;
+in vec3 aNormal;
+uniform mat4 uM, uV, uP;
+out vec3 vWorldPos;
+out vec3 vNormal;
+void main() {
+    vec4 worldPos = uM * vec4(aPos, 1.0);
+    vWorldPos = worldPos.xyz;
+    vNormal = mat3(uM) * aNormal;
+    gl_Position = uP * uV * worldPos;
+}`;
+
+  const FS_STAGE1 = `#version 300 es
+precision highp float;
+in vec3 vWorldPos;
+in vec3 vNormal;
+out vec4 FragColor;
+void main() {
+    FragColor = vec4(0.7, 0.85, 1.0, 1.0);
+}`;
+
+  const VS_STAGE1 = `#version 300 es
+in vec3 aPos;
+in vec3 aNormal;
+out vec3 vWorldPos;
+out vec3 vNormal;
+void main() {
+    gl_Position = vec4(aPos * 0.5, 1.0);
+    vWorldPos = aPos;
+    vNormal = aNormal;
+}`;
+
+  const VS_STAGE2 = `#version 300 es
+in vec3 aPos;
+in vec3 aNormal;
+uniform mat4 uM, uV, uP;
+out vec3 vColor;
+void main() {
+    vec4 worldPos = uM * vec4(aPos, 1.0);
+    vColor = aPos * 0.5 + 0.5;
+    gl_Position = uP * uV * worldPos;
+}`;
+  const FS_STAGE2 = `#version 300 es
+precision highp float;
+in vec3 vColor;
+out vec4 FragColor;
+void main() {
+    FragColor = vec4(vColor, 1.0);
+}`;
+
+  const FS_STAGE3 = `#version 300 es
+precision highp float;
+in vec3 vWorldPos;
+out vec4 FragColor;
+void main() {
+    vec3 c = vWorldPos * 0.5 + 0.5;
+    FragColor = vec4(c, 1.0);
+}`;
+
+  const FS_STAGE4 = `#version 300 es
+precision highp float;
+in vec3 vWorldPos;
+in vec3 vNormal;
+uniform vec3 uLightPos, uLightColor, uViewPos;
+out vec4 FragColor;
+void main() {
+    vec3 N = normalize(vNormal);
+    vec3 L = normalize(uLightPos - vWorldPos);
+    vec3 V = normalize(uViewPos - vWorldPos);
+    vec3 R = reflect(-L, N);
+    vec3 albedo = vec3(0.2, 0.7, 0.9);
+    vec3 ambient = 0.15 * albedo;
+    vec3 diffuse = max(dot(N, L), 0.0) * albedo * uLightColor;
+    vec3 specular = pow(max(dot(R, V), 0.0), 32.0) * uLightColor;
+    FragColor = vec4(ambient + diffuse + specular, 1.0);
+}`;
+
+  const VS_SKYBOX = `#version 300 es
+in vec3 aPos;
+uniform mat4 uV, uP;
+out vec3 vDir;
+void main() {
+    vDir = aPos;
+    vec4 pos = uP * mat4(mat3(uV)) * vec4(aPos, 1.0);
+    gl_Position = pos.xyww;
+}`;
+  const FS_SKYBOX = `#version 300 es
+precision highp float;
+in vec3 vDir;
+out vec4 FragColor;
+void main() {
+    float t = vDir.y * 0.5 + 0.5;
+    vec3 top = vec3(0.05, 0.08, 0.15);
+    vec3 bot = vec3(0.25, 0.35, 0.55);
+    FragColor = vec4(mix(bot, top, t), 1.0);
+}`;
+
+  function setupStage(canvasId: string, fsSource: string, vsSource: string = VS_MVP): StageContext | null {
+    const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
+    if (!canvas) return null;
+    const gl = setupCanvas(canvas);
+    if (!gl) return null;
+    const program = createProgram(gl, vsSource, fsSource);
+    const { vao, vbo, ibo } = createCubeGeometry(gl);
+    const ctx: StageContext = {
+      canvas, gl, program, vao, vbo, ibo,
+      rotY: 0, auto: true, dragging: false, lastX: 0, lastY: 0, rafId: 0,
+    };
+    setupDrag(ctx);
+    return ctx;
+  }
+
+  function renderCube(ctx: StageContext, eye: number[], extraUniforms?: (gl: WebGL2RenderingContext, prog: WebGLProgram) => void) {
+    const { gl, canvas, program, vao } = ctx;
+    if (resizeCanvasToDisplaySize(canvas)) gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.enable(gl.DEPTH_TEST);
+    gl.clearColor(0.05, 0.08, 0.13, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(program);
+    gl.bindVertexArray(vao);
+    const M = multiply(translation(0, 0, 0), rotationY(ctx.rotY));
+    const V = lookAt(eye, [0, 0, 0], [0, 1, 0]);
+    const P = perspective(Math.PI / 4, canvas.width / canvas.height, 0.1, 100);
+    gl.uniformMatrix4fv(gl.getUniformLocation(program, 'uM'), false, M);
+    gl.uniformMatrix4fv(gl.getUniformLocation(program, 'uV'), false, V);
+    gl.uniformMatrix4fv(gl.getUniformLocation(program, 'uP'), false, P);
+    if (extraUniforms) extraUniforms(gl, program);
+    gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+  }
+
+  function animate(ctx: StageContext, render: () => void) {
+    function loop() {
+      ctx.rafId = requestAnimationFrame(loop);
+      if (ctx.auto && !ctx.dragging) ctx.rotY += 0.006;
+      render();
+    }
+    loop();
+  }
+
+  const stage1 = setupStage('pw-stage-1', FS_STAGE1, VS_STAGE1);
+  if (stage1) animate(stage1, () => renderCube(stage1, [0, 0, 3]));
+
+  const stage2 = setupStage('pw-stage-2', FS_STAGE2, VS_STAGE2);
+  if (stage2) animate(stage2, () => renderCube(stage2, [0, 1, 4]));
+
+  const stage3 = setupStage('pw-stage-3', FS_STAGE3);
+  if (stage3) animate(stage3, () => renderCube(stage3, [0, 1, 4]));
+
+  const stage4 = setupStage('pw-stage-4', FS_STAGE4);
+  if (stage4) animate(stage4, () => renderCube(stage4, [3, 3, 4], (gl, prog) => {
+    gl.uniform3fv(gl.getUniformLocation(prog, 'uLightPos'), [5, 5, 5]);
+    gl.uniform3fv(gl.getUniformLocation(prog, 'uLightColor'), [1, 0.9, 0.8]);
+    gl.uniform3fv(gl.getUniformLocation(prog, 'uViewPos'), [3, 3, 4]);
+  }));
+
+  const stage5 = setupStage('pw-stage-5', FS_STAGE4);
+  const depthToggle = document.getElementById('pw-depth-toggle') as HTMLInputElement;
+  if (stage5) {
+    stage5.extra = { depthEnabled: true };
+    if (depthToggle) depthToggle.addEventListener('change', () => {
+      (stage5.extra as { depthEnabled: boolean }).depthEnabled = depthToggle.checked;
+    });
+    animate(stage5, () => {
+      const { gl, canvas, program, vao } = stage5;
+      if (resizeCanvasToDisplaySize(canvas)) gl.viewport(0, 0, canvas.width, canvas.height);
+      const enabled = (stage5.extra as { depthEnabled: boolean }).depthEnabled;
+      if (enabled) gl.enable(gl.DEPTH_TEST);
+      else gl.disable(gl.DEPTH_TEST);
+      gl.clearColor(0.05, 0.08, 0.13, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.useProgram(program);
+      gl.bindVertexArray(vao);
+      const V = lookAt([3, 3, 6], [0, 0, 0], [0, 1, 0]);
+      const P = perspective(Math.PI / 4, canvas.width / canvas.height, 0.1, 100);
+      gl.uniform3fv(gl.getUniformLocation(program, 'uLightPos'), [5, 5, 5]);
+      gl.uniform3fv(gl.getUniformLocation(program, 'uLightColor'), [1, 1, 1]);
+      gl.uniform3fv(gl.getUniformLocation(program, 'uViewPos'), [3, 3, 6]);
+      const M1 = multiply(translation(-1, 0, 0), rotationY(stage5.rotY));
+      const M2 = multiply(translation(1, 0, 0), rotationY(-stage5.rotY));
+      gl.uniformMatrix4fv(gl.getUniformLocation(program, 'uV'), false, V);
+      gl.uniformMatrix4fv(gl.getUniformLocation(program, 'uP'), false, P);
+      gl.uniformMatrix4fv(gl.getUniformLocation(program, 'uM'), false, M1);
+      gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+      gl.uniformMatrix4fv(gl.getUniformLocation(program, 'uM'), false, M2);
+      gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+      if (stage5.auto && !stage5.dragging) stage5.rotY += 0.006;
+    });
+  }
+
+  function setupSkyboxScene(canvasId: string, objects: { offset: number[]; albedo: number[] }[], bigCanvas: boolean) {
+    const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
+    if (!canvas) return;
+    const gl = setupCanvas(canvas);
+    if (!gl) return;
+    const skyProg = createProgram(gl, VS_SKYBOX, FS_SKYBOX);
+    const cubeProg = createProgram(gl, VS_MVP, FS_STAGE4);
+    const { vao } = createCubeGeometry(gl);
+    const rotY = { v: 0 };
+    let dragging = false, lastX = 0, auto = true;
+    canvas.style.cursor = 'grab';
+    canvas.addEventListener('pointerdown', (e) => { dragging = true; lastX = e.clientX; canvas.style.cursor = 'grabbing'; });
+    window.addEventListener('pointerup', () => { dragging = false; canvas.style.cursor = 'grab'; });
+    window.addEventListener('pointermove', (e) => { if (dragging) { rotY.v += (e.clientX - lastX) * 0.01; lastX = e.clientX; } });
+    const loop = () => {
+      requestAnimationFrame(loop);
+      if (auto && !dragging) rotY.v += bigCanvas ? 0.003 : 0.004;
+      if (resizeCanvasToDisplaySize(canvas)) gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.enable(gl.DEPTH_TEST);
+      gl.clearColor(0, 0, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      const eye = [Math.sin(rotY.v) * 8, 3, Math.cos(rotY.v) * 8];
+      const V = lookAt(eye, [0, 0, 0], [0, 1, 0]);
+      const P = perspective(Math.PI / 4, canvas.width / canvas.height, 0.1, 100);
+      gl.depthMask(false);
+      gl.useProgram(skyProg);
+      gl.bindVertexArray(vao);
+      gl.uniformMatrix4fv(gl.getUniformLocation(skyProg, 'uV'), false, V);
+      gl.uniformMatrix4fv(gl.getUniformLocation(skyProg, 'uP'), false, P);
+      gl.drawArrays(gl.TRIANGLES, 0, 36);
+      gl.depthMask(true);
+      gl.useProgram(cubeProg);
+      gl.bindVertexArray(vao);
+      gl.uniform3fv(gl.getUniformLocation(cubeProg, 'uLightPos'), [5, 5, 5]);
+      gl.uniform3fv(gl.getUniformLocation(cubeProg, 'uLightColor'), [1, 0.9, 0.8]);
+      gl.uniform3fv(gl.getUniformLocation(cubeProg, 'uViewPos'), eye);
+      gl.uniformMatrix4fv(gl.getUniformLocation(cubeProg, 'uV'), false, V);
+      gl.uniformMatrix4fv(gl.getUniformLocation(cubeProg, 'uP'), false, P);
+      objects.forEach((obj, i) => {
+        const M = multiply(translation(obj.offset[0], obj.offset[1], obj.offset[2]), rotationY(rotY.v * 2 + i));
+        gl.uniformMatrix4fv(gl.getUniformLocation(cubeProg, 'uM'), false, M);
+        gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+      });
+    };
+    loop();
+  }
+
+  setupSkyboxScene('pw-stage-6', [{ offset: [0, 0, 0], albedo: [0.2, 0.7, 0.9] }], false);
+  setupSkyboxScene('pw-stage-7', [
+    { offset: [-2.5, 0, 0], albedo: [0.9, 0.3, 0.3] },
+    { offset: [0, 0, 0],    albedo: [0.3, 0.9, 0.5] },
+    { offset: [2.5, 0, 0],  albedo: [0.3, 0.5, 0.9] },
+  ], false);
+  setupSkyboxScene('pw-final', [
+    { offset: [-2.5, 0, 0], albedo: [0.9, 0.3, 0.3] },
+    { offset: [0, 0, 0],    albedo: [0.3, 0.9, 0.5] },
+    { offset: [2.5, 0, 0],  albedo: [0.3, 0.5, 0.9] },
+  ], true);
+</script>
