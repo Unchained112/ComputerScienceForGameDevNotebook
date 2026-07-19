@@ -1,0 +1,212 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Lighting Models · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Graphics / Lighting Models</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">光照模型（Phong / PBR）</span><span slot="en">Lighting Models (Phong / PBR)</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">光照模型决定每个像素的最终颜色。<b>Phong</b> 是经典的局部光照——把颜色拆为<b>环境光 + 漫反射 + 高光</b>三项叠加；<b>PBR</b>（Physically Based Rendering）在此之上引入物理化的金属度、粗糙度、Fresnel，使不同材质下光照更真实。下方演示可独立开关 Phong 三项并调节高光锐度。</span>
+          <span slot="en">Lighting models decide each pixel's final color. <b>Phong</b> is the classic local-lighting model — decomposing color into <b>ambient + diffuse + specular</b>; <b>PBR</b> (Physically Based Rendering) adds physically-based metalness, roughness, and Fresnel for more realistic materials. Toggle Phong's three terms below and adjust specular sharpness.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5">
+      <div class="flex flex-wrap items-center gap-4 mb-4">
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" id="lit-ambient" checked class="accent-emerald-400" />
+          <span data-ui="ambient" data-lang="zh">环境光</span><span data-ui="ambient" data-lang="en">Ambient</span>
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" id="lit-diffuse" checked class="accent-emerald-400" />
+          <span data-ui="diffuse" data-lang="zh">漫反射</span><span data-ui="diffuse" data-lang="en">Diffuse</span>
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" id="lit-specular" checked class="accent-emerald-400" />
+          <span data-ui="specular" data-lang="zh">高光</span><span data-ui="specular" data-lang="en">Specular</span>
+        </label>
+        <label class="flex items-center gap-2 text-sm text-ink-muted">
+          <span data-ui="shininess" data-lang="zh">高光锐度</span><span data-ui="shininess" data-lang="en">Shininess</span>
+          <input id="lit-shininess" type="range" min="2" max="128" value="32" class="w-40" />
+          <span id="lit-shininess-val" class="font-mono text-primary-cyan w-8">32</span>
+        </label>
+      </div>
+      <svg id="lit-svg" viewBox="0 0 600 240" class="w-full viz-stage"></svg>
+      <p class="text-xs text-ink-muted mt-2">
+        <Bilingual><span slot="zh">SVG 球体按当前三项设置实时计算每个像素的光照。光源在右上方，相机正对前方。</span><span slot="en">The SVG sphere is shaded per-pixel using the current toggles. Light is upper-right; camera faces front.</span></Bilingual>
+      </p>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Phong 三项详解</span><span slot="en">Phong's Three Terms</span></Bilingual></h2>
+      <div class="grid lg:grid-cols-3 gap-4 text-sm">
+        <div class="space-y-1">
+          <div class="text-func-green font-mono text-xs">Ambient</div>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">环境光：模拟间接光的常量底色。<code>I_a = k_a × material</code>。无方向性，确保阴影区域不是纯黑。</span><span slot="en">Ambient: a constant base approximating indirect light. <code>I_a = k_a × material</code>. No direction; ensures shadows aren't pure black.</span></Bilingual></p>
+        </div>
+        <div class="space-y-1">
+          <div class="text-primary-cyan font-mono text-xs">Diffuse</div>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">漫反射：与法线和光照方向夹角成正比。<code>I_d = k_d × max(N·L, 0) × light</code>。Lambert 漫反射是粗糙表面的基础。</span><span slot="en">Diffuse: proportional to the angle between normal and light. <code>I_d = k_d × max(N·L, 0) × light</code>. Lambert diffuse is the basis for rough surfaces.</span></Bilingual></p>
+        </div>
+        <div class="space-y-1">
+          <div class="text-func-amber font-mono text-xs">Specular</div>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">高光：视线与反射方向的夹角幂次。<code>I_s = k_s × max(R·V, 0)^shininess × light</code>。shininess 越大高光越锐利。</span><span slot="en">Specular: power of the angle between view and reflection. <code>I_s = k_s × max(R·V, 0)^shininess × light</code>. Higher shininess = sharper highlight.</span></Bilingual></p>
+        </div>
+      </div>
+      <pre class="bg-[color:var(--code-bg)] rounded-lg p-4 mt-4 overflow-x-auto text-sm"><code>// Phong 片元着色器
+in vec3 vNormal, vWorldPos;
+uniform vec3 uLightPos, uLightColor, uViewPos;
+out vec4 FragColor;
+
+void main() &#123;
+    vec3 N = normalize(vNormal);
+    vec3 L = normalize(uLightPos - vWorldPos);
+    vec3 V = normalize(uViewPos   - vWorldPos);
+    vec3 R = reflect(-L, N);
+
+    vec3 ambient  = 0.15 * uLightColor;
+    vec3 diffuse  = max(dot(N, L), 0.0) * uLightColor;
+    vec3 specular = pow(max(dot(R, V), 0.0), 32.0) * uLightColor;
+
+    vec3 color = ambient + diffuse + specular;
+    FragColor = vec4(color, 1.0);
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">PBR：物理化扩展</span><span slot="en">PBR: Physically-Based Extension</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed mb-3">
+        <Bilingual>
+          <span slot="zh">PBR 用<b>能量守恒</b>、<b>微表面理论</b>、<b>Fresnel 效应</b>三个物理原则扩展 Phong。核心是把<b>反射率</b>（albedo）、<b>金属度</b>（metallic）、<b>粗糙度</b>（roughness）三个参数化材质——金属物体的高光颜色取自材质本身，非金属取自光源；粗糙度控制高光锐度与漫反射方向。PBR 在不同光照环境下表现一致，是现代引擎（Unreal、Unity URP）的默认路径。</span>
+          <span slot="en">PBR extends Phong with three physical principles: <b>energy conservation</b>, <b>microfacet theory</b>, and <b>Fresnel</b>. It parameterizes materials via <b>albedo</b>, <b>metallic</b>, and <b>roughness</b> — metallic objects' specular takes the material color, non-metallic takes the light color; roughness controls specular sharpness and diffuse direction. PBR is consistent across lighting environments — the default in modern engines (Unreal, Unity URP).</span>
+        </Bilingual>
+      </p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">维度</span><span slot="en">Aspect</span></Bilingual></th><th class="py-2 pr-4">Phong</th><th class="py-2 pr-4">PBR (metal/rough)</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">物理性</td><td class="py-2 pr-4 text-func-red">经验式</td><td class="py-2 pr-4 text-func-green">物理正确</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">参数</td><td class="py-2 pr-4">ambient/diffuse/specular + shininess</td><td class="py-2 pr-4">albedo/metallic/roughness</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">能量守恒</td><td class="py-2 pr-4 text-func-red">✗ 反射可超过入射</td><td class="py-2 pr-4 text-func-green">✓ diffuse + specular ≤ 1</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">Fresnel</td><td class="py-2 pr-4 text-func-red">无</td><td class="py-2 pr-4 text-func-green">✓ 掠射角反射增强</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">典型用途</td><td class="py-2 pr-4">卡通渲染、低多边形</td><td class="py-2 pr-4">3A 写实渲染</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">延伸阅读</span><span slot="en">Further Reading</span></Bilingual></h2>
+      <ul class="text-sm text-ink-muted space-y-2 list-disc pl-5">
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/shaders">着色器</a>：光照在片元着色器中如何实现。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/shaders">Shaders</a>: how lighting is implemented in the fragment shader.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/texturing">纹理与采样</a>：albedo / metallic / roughness 贴图如何驱动 PBR。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/texturing">Texturing</a>: how albedo / metallic / roughness maps drive PBR.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/global-illumination">全局光照</a>：环境光之外，间接光如何更真实。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/global-illumination">Global Illumination</a>: beyond ambient — realistic indirect light.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/graphics/render">3D 渲染管线可视化页</a>：交互式 WebGL 演示 Phong 光照。</span><span slot="en"><a class="text-primary-cyan underline" href="/graphics/render">3D Render Pipeline visualizer</a>: interactive WebGL Phong demo.</span></Bilingual></li>
+      </ul>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('lit-svg') as unknown as SVGSVGElement;
+  const ambientCb = document.getElementById('lit-ambient') as HTMLInputElement;
+  const diffuseCb = document.getElementById('lit-diffuse') as HTMLInputElement;
+  const specularCb = document.getElementById('lit-specular') as HTMLInputElement;
+  const shininessInput = document.getElementById('lit-shininess') as HTMLInputElement;
+  const shininessVal = document.getElementById('lit-shininess-val');
+
+  const CX = 300, CY = 120, R = 95;
+  // 光源方向（归一化）
+  const LIGHT = { x: 0.6, y: -0.6, z: 0.5 };
+  const lLen = Math.hypot(LIGHT.x, LIGHT.y, LIGHT.z);
+  LIGHT.x /= lLen; LIGHT.y /= lLen; LIGHT.z /= lLen;
+
+  function shade(nx: number, ny: number): string {
+    // 法线 z 由 x,y 推出（单位球面）
+    const r2 = nx * nx + ny * ny;
+    if (r2 > 1) return '#0B1120';
+    const nz = Math.sqrt(1 - r2);
+    const NdotL = nx * LIGHT.x + ny * LIGHT.y + nz * LIGHT.z;
+    // 反射 R = 2(N·L)N - L；V = (0,0,1)
+    const RdotV = Math.max(2 * NdotL * nz - LIGHT.z, 0);
+    const shininess = Number(shininessInput.value);
+
+    const useA = ambientCb.checked;
+    const useD = diffuseCb.checked;
+    const useS = specularCb.checked;
+
+    const ambient = useA ? 0.15 : 0;
+    const diffuse = useD ? Math.max(NdotL, 0) : 0;
+    const specular = useS ? Math.pow(RdotV, shininess) : 0;
+
+    const lit = ambient + diffuse + specular;
+    const c = Math.min(255, Math.round(lit * 255));
+    // 高光偏暖白
+    const r = Math.min(255, Math.round((ambient * 200 + diffuse * 200 + specular * 255)));
+    const g = Math.min(255, Math.round((ambient * 200 + diffuse * 200 + specular * 240)));
+    const b = Math.min(255, Math.round((ambient * 200 + diffuse * 200 + specular * 200)));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function render() {
+    if (shininessVal) shininessVal.textContent = String(shininessInput.value);
+    svg.innerHTML = '';
+
+    // 用网格像素逼近球面
+    const STEP = 5;
+    for (let py = -R; py < R; py += STEP) {
+      for (let px = -R; px < R; px += STEP) {
+        const r2 = px * px + py * py;
+        if (r2 > R * R) continue;
+        const nx = px / R, ny = py / R;
+        const rect = document.createElementNS(SVGNS, 'rect');
+        rect.setAttribute('x', String(CX + px));
+        rect.setAttribute('y', String(CY + py));
+        rect.setAttribute('width', String(STEP));
+        rect.setAttribute('height', String(STEP));
+        rect.setAttribute('fill', shade(nx, ny));
+        svg.appendChild(rect);
+      }
+    }
+
+    // 球轮廓
+    const circle = document.createElementNS(SVGNS, 'circle');
+    circle.setAttribute('cx', String(CX)); circle.setAttribute('cy', String(CY));
+    circle.setAttribute('r', String(R));
+    circle.setAttribute('fill', 'none');
+    circle.setAttribute('stroke', 'rgba(148,163,184,0.4)');
+    circle.setAttribute('stroke-width', '1');
+    svg.appendChild(circle);
+
+    // 光源标记
+    const lx = CX + LIGHT.x * 130;
+    const ly = CY + LIGHT.y * 130;
+    const sun = document.createElementNS(SVGNS, 'circle');
+    sun.setAttribute('cx', String(lx)); sun.setAttribute('cy', String(ly));
+    sun.setAttribute('r', '8');
+    sun.setAttribute('fill', '#FBBF24');
+    sun.setAttribute('stroke', '#fff');
+    sun.setAttribute('stroke-width', '1.5');
+    svg.appendChild(sun);
+    const sunLabel = document.createElementNS(SVGNS, 'text');
+    sunLabel.setAttribute('x', String(lx + 14));
+    sunLabel.setAttribute('y', String(ly + 4));
+    sunLabel.setAttribute('fill', '#FBBF24');
+    sunLabel.setAttribute('font-size', '12');
+    sunLabel.setAttribute('font-weight', '600');
+    sunLabel.textContent = document.documentElement.getAttribute('data-lang') === 'en' ? 'Light' : '光源';
+    svg.appendChild(sunLabel);
+  }
+
+  [ambientCb, diffuseCb, specularCb].forEach((cb) => cb.addEventListener('change', render));
+  shininessInput.addEventListener('input', render);
+  document.addEventListener('langchange', render);
+  render();
+</script>

@@ -1,0 +1,229 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Coords & Transforms · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Graphics / Coords & Transforms</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">坐标系统与变换矩阵</span><span slot="en">Coordinate Systems & Transform Matrices</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">3D 渲染中，一个顶点要穿过<b>四个坐标空间</b>：模型空间 → 世界空间 → 视图空间 → 裁剪空间。每次跨越都由一个 4×4 矩阵完成：M（Model）放置物体、V（View）对齐相机、P（Projection）做透视投影。下方演示可点击步进观察三角形的三次变换。</span>
+          <span slot="en">In 3D rendering a vertex traverses <b>four coordinate spaces</b>: model → world → view → clip. Each crossing is done by a 4×4 matrix: M (Model) places the object, V (View) aligns the camera, P (Projection) applies perspective. Step through below to watch a triangle's three transforms.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="ct-step" class="btn btn-primary">
+          <span data-ui="step" data-lang="zh">下一步</span><span data-ui="step" data-lang="en">Next Step</span>
+        </button>
+        <button id="ct-reset" class="btn">
+          <span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span>
+        </button>
+        <span id="ct-stage" class="text-xs font-mono text-primary-cyan"></span>
+      </div>
+      <svg id="ct-svg" viewBox="0 0 600 360" class="w-full viz-stage"></svg>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">三级变换矩阵</span><span slot="en">The Three Transform Matrices</span></Bilingual></h2>
+      <div class="grid lg:grid-cols-3 gap-4 text-sm">
+        <div class="space-y-1">
+          <div class="text-primary-cyan font-mono text-xs">M — Model</div>
+          <p class="text-ink-muted"><Bilingual><span slot="zh"><b class="text-ink">模型 → 世界</b>。把顶点从物体本地原点放置到场景中，含平移 T、旋转 R、缩放 S：<code>M = T·R·S</code>。</span><span slot="en"><b class="text-ink">Model → World</b>. Places vertices from the object's local origin into the scene, via translate T, rotate R, scale S: <code>M = T·R·S</code>.</span></Bilingual></p>
+        </div>
+        <div class="space-y-1">
+          <div class="text-primary-purple font-mono text-xs">V — View</div>
+          <p class="text-ink-muted"><Bilingual><span slot="zh"><b class="text-ink">世界 → 视图</b>。把整个场景变换到相机为原点、视线沿 -Z 的坐标系。本质是相机的逆刚体变换：<code>V = (相机变换)⁻¹</code>。</span><span slot="en"><b class="text-ink">World → View</b>. Transforms the scene into camera-origin space with -Z forward. Essentially the inverse camera rigid transform: <code>V = (camera transform)⁻¹</code>.</span></Bilingual></p>
+        </div>
+        <div class="space-y-1">
+          <div class="text-func-amber font-mono text-xs">P — Projection</div>
+          <p class="text-ink-muted"><Bilingual><span slot="zh"><b class="text-ink">视图 → 裁剪</b>。做透视投影：近物大、远物小。透视除法后归一化到 NDC（Normalized Device Coordinates，[-1,1]³）。</span><span slot="en"><b class="text-ink">View → Clip</b>. Applies perspective: near objects large, far small. After perspective divide, normalized to NDC ([-1,1]³).</span></Bilingual></p>
+        </div>
+      </div>
+      <pre class="bg-[color:var(--code-bg)] rounded-lg p-4 mt-4 overflow-x-auto text-sm"><code>// 顶点着色器核心：M → V → P 三级变换
+uniform mat4 uM, uV, uP;
+in vec3 aPos;
+void main() &#123;
+    gl_Position = uP * uV * uM * vec4(aPos, 1.0);
+    // 顺序：从右往左乘——先 M，再 V，最后 P
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">齐次坐标</span><span slot="en">Homogeneous Coordinates</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">3D 点用 4 维向量 <code>(x, y, z, w)</code> 表示：<code>w=1</code> 是点，<code>w=0</code> 是方向（向量）。这样<b>平移也能用矩阵乘法</b>表达——3×3 矩阵只能表达旋转/缩放，必须升到 4×4 才能线性地表达平移。透视投影后做<b>透视除法</b>：<code>(x/w, y/w, z/w)</code>，把齐次坐标转回普通 3D 点，此时 w 即代表"远近程度"。</span>
+          <span slot="en">A 3D point is written as a 4-vector <code>(x, y, z, w)</code>: <code>w=1</code> for points, <code>w=0</code> for directions (vectors). This lets <b>translation be expressed as a matrix multiply</b> — a 3×3 matrix can only rotate/scale, so we promote to 4×4 to express translation linearly. After projection, the <b>perspective divide</b> <code>(x/w, y/w, z/w)</code> converts back to a regular 3D point; w then encodes "distance".</span>
+        </Bilingual>
+      </p>
+      <div class="grid sm:grid-cols-2 gap-4 mt-4 text-sm">
+        <div>
+          <div class="text-xs font-mono text-ink-muted mb-1">Translate (4×4)</div>
+          <pre class="bg-[color:var(--code-bg)] rounded-lg p-3 overflow-x-auto"><code>⎡ 1 0 0 tx ⎤
+⎢ 0 1 0 ty ⎥
+⎢ 0 0 1 tz ⎥
+⎣ 0 0 0  1 ⎦</code></pre>
+        </div>
+        <div>
+          <div class="text-xs font-mono text-ink-muted mb-1">Perspective Project</div>
+          <pre class="bg-[color:var(--code-bg)] rounded-lg p-3 overflow-x-auto"><code>⎡ n/r  0    0         0       ⎤
+⎢  0  n/t   0         0       ⎥
+⎢  0   0  -(f+n)/(f-n) -2fn/(f-n) ⎥
+⎣  0   0   -1         0       ⎦
+// n=近, f=远, r/t=宽高比</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">矩阵乘法顺序与结合律</span><span slot="en">Multiply Order & Associativity</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">矩阵乘法<b>不满足交换律</b>：<code>M·V ≠ V·M</code>。但满足<b>结合律</b>，所以可预先合并 <code>MVP = P·V·M</code>，每帧只对每个物体算一次 MVP，避免顶点着色器里三次乘法。变换顺序从右往左：先 M 把顶点放到世界，再 V 对齐相机，最后 P 投影。</span>
+          <span slot="en">Matrix multiply is <b>not commutative</b>: <code>M·V ≠ V·M</code>. But it is <b>associative</b>, so we can pre-bake <code>MVP = P·V·M</code> once per object per frame, avoiding three multiplies in the vertex shader. The transform order reads right-to-left: M places the vertex in the world, V aligns the camera, then P projects.</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">延伸阅读</span><span slot="en">Further Reading</span></Bilingual></h2>
+      <ul class="text-sm text-ink-muted space-y-2 list-disc pl-5">
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/camera">相机与投影</a>：透视矩阵的几何含义、FOV 与近远裁剪面。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/camera">Camera & Projection</a>: geometric meaning of the perspective matrix, FOV and near/far planes.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/rasterization">光栅化</a>：裁剪空间之后顶点如何变成像素。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/rasterization">Rasterization</a>: how clip-space vertices become pixels.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/graphics/render">3D 渲染管线可视化页</a>：交互式 WebGL 演示。</span><span slot="en"><a class="text-primary-cyan underline" href="/graphics/render">3D Render Pipeline visualizer</a>: interactive WebGL demo.</span></Bilingual></li>
+      </ul>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('ct-svg') as unknown as SVGSVGElement;
+  const stageEl = document.getElementById('ct-stage');
+
+  // 4 个阶段：原始 / M / V / P
+  interface Stage { id: number; nameZh: string; nameEn: string; }
+  const STAGES: Stage[] = [
+    { id: 0, nameZh: '模型空间（原始）', nameEn: 'Model space (origin)' },
+    { id: 1, nameZh: '× M → 世界空间', nameEn: '× M → World space' },
+    { id: 2, nameZh: '× V → 视图空间', nameEn: '× V → View space' },
+    { id: 3, nameZh: '× P → 裁剪空间', nameEn: '× P → Clip space' },
+  ];
+
+  // 三角形原始顶点（模型空间，SVG 坐标）
+  const tri = [[280, 230], [340, 230], [310, 180]];
+
+  // 每阶段的三角形位置（手算的视觉效果，便于演示）
+  const frames: number[][][] = [
+    // 阶段 0：原始
+    [[280, 230], [340, 230], [310, 180]],
+    // 阶段 1：× M（平移 + 旋转）
+    [[360, 200], [410, 230], [395, 170]],
+    // 阶段 2：× V（视图变换：整体往左下移动模拟相机对齐）
+    [[260, 240], [310, 270], [295, 210]],
+    // 阶段 3：× P（透视：远端收缩）
+    [[230, 250], [340, 250], [285, 200]],
+  ];
+
+  const AXIS_COLORS = { x: '#EF4444', y: '#22C55E', z: '#38BDF8' };
+
+  function lang(): 'zh' | 'en' {
+    return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+  }
+
+  function drawAxes(cx: number, cy: number) {
+    // X 轴（红）
+    const x = document.createElementNS(SVGNS, 'line');
+    x.setAttribute('x1', String(cx)); x.setAttribute('y1', String(cy));
+    x.setAttribute('x2', String(cx + 60)); x.setAttribute('y2', String(cy));
+    x.setAttribute('stroke', AXIS_COLORS.x); x.setAttribute('stroke-width', '2');
+    svg.appendChild(x);
+    // Y 轴（绿）
+    const y = document.createElementNS(SVGNS, 'line');
+    y.setAttribute('x1', String(cx)); y.setAttribute('y1', String(cy));
+    y.setAttribute('x2', String(cx)); y.setAttribute('y2', String(cy - 60));
+    y.setAttribute('stroke', AXIS_COLORS.y); y.setAttribute('stroke-width', '2');
+    svg.appendChild(y);
+    // 原点
+    const o = document.createElementNS(SVGNS, 'circle');
+    o.setAttribute('cx', String(cx)); o.setAttribute('cy', String(cy));
+    o.setAttribute('r', '3'); o.setAttribute('fill', '#CBD5E1');
+    svg.appendChild(o);
+  }
+
+  function render(stage: number) {
+    svg.innerHTML = '';
+    // 背景网格
+    for (let x = 0; x <= 600; x += 30) {
+      const l = document.createElementNS(SVGNS, 'line');
+      l.setAttribute('x1', String(x)); l.setAttribute('y1', '0');
+      l.setAttribute('x2', String(x)); l.setAttribute('y2', '360');
+      l.setAttribute('stroke', 'rgba(148,163,184,0.08)'); l.setAttribute('stroke-width', '1');
+      svg.appendChild(l);
+    }
+    for (let y = 0; y <= 360; y += 30) {
+      const l = document.createElementNS(SVGNS, 'line');
+      l.setAttribute('x1', '0'); l.setAttribute('y1', String(y));
+      l.setAttribute('x2', '600'); l.setAttribute('y2', String(y));
+      l.setAttribute('stroke', 'rgba(148,163,184,0.08)'); l.setAttribute('stroke-width', '1');
+      svg.appendChild(l);
+    }
+
+    // 坐标轴（世界原点 150, 280）
+    drawAxes(150, 280);
+
+    // 阶段标签
+    const colors = ['#94A3B8', '#22D3EE', '#A78BFA', '#FBBF24'];
+    const verts = frames[stage];
+    const triEl = document.createElementNS(SVGNS, 'polygon');
+    triEl.setAttribute('points', verts.map((v) => v.join(',')).join(' '));
+    triEl.setAttribute('fill', colors[stage]);
+    triEl.setAttribute('fill-opacity', '0.35');
+    triEl.setAttribute('stroke', colors[stage]);
+    triEl.setAttribute('stroke-width', '2');
+    svg.appendChild(triEl);
+
+    // 顶点标记
+    verts.forEach((v, i) => {
+      const c = document.createElementNS(SVGNS, 'circle');
+      c.setAttribute('cx', String(v[0])); c.setAttribute('cy', String(v[1]));
+      c.setAttribute('r', '4'); c.setAttribute('fill', colors[stage]);
+      svg.appendChild(c);
+    });
+
+    // 显示前一阶段（虚影）
+    if (stage > 0) {
+      const prevVerts = frames[stage - 1];
+      const ghost = document.createElementNS(SVGNS, 'polygon');
+      ghost.setAttribute('points', prevVerts.map((v) => v.join(',')).join(' '));
+      ghost.setAttribute('fill', 'none');
+      ghost.setAttribute('stroke', colors[stage - 1]);
+      ghost.setAttribute('stroke-width', '1');
+      ghost.setAttribute('stroke-dasharray', '4 4');
+      ghost.setAttribute('opacity', '0.4');
+      svg.appendChild(ghost);
+    }
+
+    // 阶段说明
+    if (stageEl) {
+      const s = STAGES[stage];
+      stageEl.textContent = lang() === 'en' ? s.nameEn : s.nameZh;
+    }
+  }
+
+  let cur = 0;
+  function step() { cur = (cur + 1) % STAGES.length; render(cur); }
+  function reset() { cur = 0; render(0); }
+
+  document.getElementById('ct-step')?.addEventListener('click', step);
+  document.getElementById('ct-reset')?.addEventListener('click', reset);
+  document.addEventListener('langchange', () => render(cur));
+  render(0);
+</script>

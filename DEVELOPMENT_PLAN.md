@@ -111,7 +111,7 @@
 - `rpc`（RPC 与游戏通信）：远程过程调用原理（Stub/序列化/传输）；gRPC（HTTP/2 + Protobuf）游戏后端微服务；Unreal Engine 三种 RPC（Server/Client/NetMulticast）；自定义 UDP RPC（可靠/不可靠通道）；序列化格式对比（Protobuf vs FlatBuffers vs JSON）；RPC 调用流程时序图交互。
 - `cdn`（CDN 与联机优化）：边缘缓存、就近接入；游戏联机中的延迟优化（与 netcode 关联）。
 
-### 批次 11 · 图形学基础（全 7 页）
+### 批次 11 · 图形学基础（全 9 页）
 - `graphics`（图形学概览）：实时 vs 离线渲染管线总览（可链接 `/graphics/render` 可视化页）。
 - `coord-transform`（坐标与变换矩阵）：Model/View/Projection 矩阵演示；齐次坐标。
 - `rasterization`（光栅化）：三角形遍历、重心坐标插值动画。
@@ -119,6 +119,8 @@
 - `texturing`（纹理与采样）：UV 映射、双线性/三线性滤波、mipmap。
 - `shaders`（着色器）：顶点/片元着色器职责；一段最小 GLSL 示例。
 - `camera`（相机与投影）：透视 vs 正交投影；视锥与裁剪。
+- `render-paths`（渲染路径：前向 vs 延迟）：前向渲染多 Pass 光照循环 vs 延迟渲染 G-Buffer 合成；性能/带宽取舍、透明度处理、MSAA 兼容性；Forward+ / Cluster Forward 前瞻简介。
+- `global-illumination`（全局光照）：直接光 vs 间接光（漫反射/镜面反射 GI）；实时 GI 技术谱系——屏幕空间（SSAO / SSDGI / SSGI）、体素化（VXGI / LPV / SDF GI）、 irradiance 字段（DDGI / Probe-based）、光追（RTGI / Path Tracing）；光栅化 GI 与光追 GI 对比；Lumen / RTGI 简述。
 
 ### 批次 12 · 编程语言·概览与 C++（6 页）
 - `languages`（编程语言概览）：命令式/函数式/OOP 范式对比；各语言定位。
@@ -157,7 +159,7 @@
 | 8 | 计算机结构·存储/指令/总线/GPU | 4 | 已完成 |
 | 9 | 网络·模型与传输 | 4 | 已完成 |
 | 10 | 网络·应用层与 RPC | 4 | 已完成 |
-| 11 | 图形学基础（全） | 7 | 待开发 |
+| 11 | 图形学基础（全） | 9 | 已完成 |
 | 12 | 编程语言·概览与 C++ | 6 | 待开发 |
 | 13 | 编程语言·Python | 3 | 待开发 |
 | 14 | 数据库（全） | 8 | 待开发 |

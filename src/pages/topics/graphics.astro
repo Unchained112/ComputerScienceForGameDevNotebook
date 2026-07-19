@@ -1,0 +1,114 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Graphics Fundamentals · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Graphics / Overview</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">图形学基础概览</span><span slot="en">Graphics Fundamentals Overview</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">计算机图形学研究<b>如何用数字生成、变换、显示图像</b>。游戏与实时渲染聚焦光栅化管线——把 3D 场景沿一系列矩阵变换映射到 2D 像素，并用光照模型与纹理合成最终颜色。本主题串起坐标系、光栅化、光照、纹理、着色器、相机、渲染路径与全局光照，构成实时图形学的完整知识链。</span>
+          <span slot="en">Computer graphics studies <b>how to generate, transform, and display images digitally</b>. Games and real-time rendering focus on the rasterization pipeline — matrix-transforming a 3D scene into 2D pixels, then composing final color via lighting models and textures. This topic threads coordinates, rasterization, lighting, texturing, shaders, camera, render paths, and global illumination into a complete real-time graphics chain.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">实时 vs 离线渲染</span><span slot="en">Real-time vs Offline Rendering</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed mb-3">
+        <Bilingual>
+          <span slot="zh">图形学按计算时机分为两大范式。游戏实时渲染追求<b class="text-func-green">每秒 60+ 帧</b>，靠 GPU 光栅化把可见像素快速着色——速度快但近似（光照多为局部、阴影贴图有限）。电影离线渲染追求<b class="text-primary-purple">物理正确</b>，用路径追踪累计每像素光线路径——质量极高但单帧耗时数分钟到数小时。两者正随 RTX/DLSS 等硬件光追与 AI 重建逐步融合。</span>
+          <span slot="en">Graphics splits by compute timing. Real-time rendering in games targets <b class="text-func-green">60+ FPS</b>, relying on GPU rasterization to shade visible pixels fast — quick but approximate (local lighting, limited shadow maps). Offline rendering for film targets <b class="text-primary-purple">physical correctness</b>, path-tracing every pixel's light paths — stunning quality but minutes to hours per frame. The two are merging via RTX/DLSS hardware ray tracing and AI reconstruction.</span>
+        </Bilingual>
+      </p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">维度</span><span slot="en">Aspect</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">实时渲染</span><span slot="en">Real-time</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">离线渲染</span><span slot="en">Offline</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">目标帧率</td><td class="py-2 pr-4 text-func-green">30–240 FPS</td><td class="py-2 pr-4 text-func-amber">分钟–小时/帧</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">核心算法</td><td class="py-2 pr-4">光栅化 + 局部光照</td><td class="py-2 pr-4">路径追踪 / 辐射度</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">光照近似</td><td class="py-2 pr-4 text-func-red">局部（直接光为主）</td><td class="py-2 pr-4 text-func-green">全局（无限次反弹）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">抗锯齿</td><td class="py-2 pr-4">MSAA / TAA / DLSS</td><td class="py-2 pr-4">超采样（每像素多采样）</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">代表场景</td><td class="py-2 pr-4">游戏、VR、交互应用</td><td class="py-2 pr-4">电影、动画、建筑可视化</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">渲染管线全景</span><span slot="en">The Render Pipeline at a Glance</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed mb-3">
+        <Bilingual>
+          <span slot="zh">实时渲染把一个 3D 物体变成屏幕像素，需穿过<b>五大阶段</b>：顶点输入 → 顶点变换（MVP 矩阵）→ 光栅化（三角形→片元）→ 片元着色（光照+纹理）→ 逐片元测试（深度/模板/混合）。每个阶段都可编程或固定功能，由 GPU 并行执行。完整可视化演示见 <a class="text-primary-cyan underline" href="/graphics/render">3D 渲染管线可视化页</a>。</span>
+          <span slot="en">Real-time rendering turns a 3D object into screen pixels via <b>five stages</b>: vertex input → vertex transform (MVP) → rasterization (triangle→fragment) → fragment shading (lighting+texture) → per-fragment tests (depth/stencil/blend). Each stage is programmable or fixed-function, executed in parallel by the GPU. See the <a class="text-primary-cyan underline" href="/graphics/render">3D Render Pipeline visualizer</a> for a full demo.</span>
+        </Bilingual>
+      </p>
+      <ol class="text-sm text-ink-muted space-y-2 list-decimal pl-5">
+        <li><Bilingual><span slot="zh"><b class="text-ink">顶点输入</b>：从顶点缓冲读入位置、法线、UV 等属性 → 详见 <a class="text-primary-cyan underline" href="/topics/shaders">着色器</a>。</span><span slot="en"><b class="text-ink">Vertex input</b>: read position/normal/UV from vertex buffers → see <a class="text-primary-cyan underline" href="/topics/shaders">Shaders</a>.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><b class="text-ink">顶点变换</b>：M（模型）→V（视图）→P（投影）三级矩阵 → 详见 <a class="text-primary-cyan underline" href="/topics/coord-transform">坐标与变换矩阵</a>。</span><span slot="en"><b class="text-ink">Vertex transform</b>: M (model) → V (view) → P (projection) → see <a class="text-primary-cyan underline" href="/topics/coord-transform">Coords & Transforms</a>.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><b class="text-ink">光栅化</b>：三角形拆为片元，重心坐标插值属性 → 详见 <a class="text-primary-cyan underline" href="/topics/rasterization">光栅化</a>。</span><span slot="en"><b class="text-ink">Rasterization</b>: triangles to fragments via barycentric interpolation → see <a class="text-primary-cyan underline" href="/topics/rasterization">Rasterization</a>.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><b class="text-ink">片元着色</b>：Phong/PBR 光照 + 纹理采样决定像素颜色 → 详见 <a class="text-primary-cyan underline" href="/topics/lighting">光照模型</a>、<a class="text-primary-cyan underline" href="/topics/texturing">纹理与采样</a>。</span><span slot="en"><b class="text-ink">Fragment shading</b>: Phong/PBR lighting + texture sampling → see <a class="text-primary-cyan underline" href="/topics/lighting">Lighting</a> & <a class="text-primary-cyan underline" href="/topics/texturing">Texturing</a>.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><b class="text-ink">逐片元测试</b>：深度/模板/混合决定是否写入帧缓冲 → 详见 <a class="text-primary-cyan underline" href="/topics/camera">相机与投影</a>。</span><span slot="en"><b class="text-ink">Per-fragment tests</b>: depth/stencil/blend decide framebuffer writes → see <a class="text-primary-cyan underline" href="/topics/camera">Camera & Projection</a>.</span></Bilingual></li>
+      </ol>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">主题知识地图</span><span slot="en">Topic Knowledge Map</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">下列子页面构成图形学的完整学习路径，建议按顺序阅读。前 6 页是基础概念，后 2 页是渲染路径选择与全局光照增强。</span><span slot="en">The subpages below form a complete learning path — read in order. The first six are fundamentals; the last two cover render-path choices and global illumination.</span></Bilingual></p>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <a href="/topics/coord-transform" class="glass p-4 hover:border-[color:var(--accent)] transition">
+          <div class="text-primary-cyan text-sm font-mono">01</div>
+          <div class="font-semibold mt-1"><Bilingual><span slot="zh">坐标系统与变换矩阵</span><span slot="en">Coords & Transforms</span></Bilingual></div>
+          <div class="text-xs text-ink-muted mt-1"><Bilingual><span slot="zh">Model/View/Projection 矩阵；齐次坐标。</span><span slot="en">Model/View/Projection matrices; homogeneous coords.</span></Bilingual></div>
+        </a>
+        <a href="/topics/rasterization" class="glass p-4 hover:border-[color:var(--accent)] transition">
+          <div class="text-primary-cyan text-sm font-mono">02</div>
+          <div class="font-semibold mt-1"><Bilingual><span slot="zh">光栅化</span><span slot="en">Rasterization</span></Bilingual></div>
+          <div class="text-xs text-ink-muted mt-1"><Bilingual><span slot="zh">三角形遍历；重心坐标插值。</span><span slot="en">Triangle traversal; barycentric interpolation.</span></Bilingual></div>
+        </a>
+        <a href="/topics/lighting" class="glass p-4 hover:border-[color:var(--accent)] transition">
+          <div class="text-primary-cyan text-sm font-mono">03</div>
+          <div class="font-semibold mt-1"><Bilingual><span slot="zh">光照模型（Phong / PBR）</span><span slot="en">Lighting Models</span></Bilingual></div>
+          <div class="text-xs text-ink-muted mt-1"><Bilingual><span slot="zh">环境/漫反射/高光；金属度/粗糙度。</span><span slot="en">Ambient/diffuse/specular; metalness/roughness.</span></Bilingual></div>
+        </a>
+        <a href="/topics/texturing" class="glass p-4 hover:border-[color:var(--accent)] transition">
+          <div class="text-primary-cyan text-sm font-mono">04</div>
+          <div class="font-semibold mt-1"><Bilingual><span slot="zh">纹理与采样</span><span slot="en">Texturing</span></Bilingual></div>
+          <div class="text-xs text-ink-muted mt-1"><Bilingual><span slot="zh">UV 映射；双线性/三线性滤波；mipmap。</span><span slot="en">UV mapping; bilinear/trilinear filtering; mipmap.</span></Bilingual></div>
+        </a>
+        <a href="/topics/shaders" class="glass p-4 hover:border-[color:var(--accent)] transition">
+          <div class="text-primary-cyan text-sm font-mono">05</div>
+          <div class="font-semibold mt-1"><Bilingual><span slot="zh">着色器（顶点/片元）</span><span slot="en">Shaders</span></Bilingual></div>
+          <div class="text-xs text-ink-muted mt-1"><Bilingual><span slot="zh">GPU 可编程阶段；最小 GLSL 示例。</span><span slot="en">Programmable GPU stages; minimal GLSL.</span></Bilingual></div>
+        </a>
+        <a href="/topics/camera" class="glass p-4 hover:border-[color:var(--accent)] transition">
+          <div class="text-primary-cyan text-sm font-mono">06</div>
+          <div class="font-semibold mt-1"><Bilingual><span slot="zh">相机与投影</span><span slot="en">Camera & Projection</span></Bilingual></div>
+          <div class="text-xs text-ink-muted mt-1"><Bilingual><span slot="zh">透视 vs 正交；视锥与裁剪。</span><span slot="en">Perspective vs orthographic; frustum & clipping.</span></Bilingual></div>
+        </a>
+        <a href="/topics/render-paths" class="glass p-4 hover:border-[color:var(--accent)] transition">
+          <div class="text-primary-cyan text-sm font-mono">07</div>
+          <div class="font-semibold mt-1"><Bilingual><span slot="zh">渲染路径（前向 / 延迟）</span><span slot="en">Render Paths</span></Bilingual></div>
+          <div class="text-xs text-ink-muted mt-1"><Bilingual><span slot="zh">Forward vs Deferred；性能/带宽取舍。</span><span slot="en">Forward vs Deferred; performance/bandwidth tradeoffs.</span></Bilingual></div>
+        </a>
+        <a href="/topics/global-illumination" class="glass p-4 hover:border-[color:var(--accent)] transition">
+          <div class="text-primary-cyan text-sm font-mono">08</div>
+          <div class="font-semibold mt-1"><Bilingual><span slot="zh">全局光照（实时 GI）</span><span slot="en">Global Illumination</span></Bilingual></div>
+          <div class="text-xs text-ink-muted mt-1"><Bilingual><span slot="zh">SSAO/VXGI/DDGI/RTGI；Lumen 简述。</span><span slot="en">SSAO/VXGI/DDGI/RTGI; Lumen overview.</span></Bilingual></div>
+        </a>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">延伸阅读</span><span slot="en">Further Reading</span></Bilingual></h2>
+      <ul class="text-sm text-ink-muted space-y-2 list-disc pl-5">
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/graphics/render">3D 渲染管线可视化页</a>：交互式 WebGL 演示，可拖拽观察 MVP 变换与 Phong 光照。</span><span slot="en"><a class="text-primary-cyan underline" href="/graphics/render">3D Render Pipeline visualizer</a>: interactive WebGL demo with draggable MVP transforms and Phong lighting.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/gpu">GPU 架构</a>：GPU 为图形渲染而生——SIMT 执行模型、Warp 调度、与渲染管线的对应关系。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/gpu">GPU Architecture</a>: the GPU was built for rendering — SIMT model, warp scheduling, and how they map to the pipeline.</span></Bilingual></li>
+      </ul>
+    </section>
+  </article>
+</BaseLayout>

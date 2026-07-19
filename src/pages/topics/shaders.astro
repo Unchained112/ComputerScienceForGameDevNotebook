@@ -1,0 +1,132 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Shaders · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Graphics / Shaders</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">着色器（顶点 / 片元）</span><span slot="en">Shaders (Vertex / Fragment)</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">着色器是运行在 GPU 上的<b>小型并行程序</b>，是现代图形管线中可编程的核心。最常用的两类：<b class="text-primary-cyan">顶点着色器</b>对每个顶点做矩阵变换，<b class="text-primary-purple">片元着色器</b>对每个像素计算最终颜色。它们都遵循 SIMT 模型——一份代码并行执行于千万顶点/像素。</span>
+          <span slot="en">Shaders are <b>tiny parallel programs on the GPU</b> — the programmable core of the modern graphics pipeline. The two most common: <b class="text-primary-cyan">vertex shader</b> transforms each vertex, <b class="text-primary-purple">fragment shader</b> computes each pixel's final color. Both follow SIMT — one program runs across millions of vertices/pixels in parallel.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">顶点 vs 片元着色器</span><span slot="en">Vertex vs Fragment Shader</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">维度</span><span slot="en">Aspect</span></Bilingual></th><th class="py-2 pr-4 text-primary-cyan"><Bilingual><span slot="zh">顶点着色器</span><span slot="en">Vertex Shader</span></Bilingual></th><th class="py-2 pr-4 text-primary-purple"><Bilingual><span slot="zh">片元着色器</span><span slot="en">Fragment Shader</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">输入</td><td class="py-2 pr-4">顶点属性（位置、法线、UV、颜色）</td><td class="py-2 pr-4">插值后的片元属性（位置、法线、UV）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">核心职责</td><td class="py-2 pr-4">MVP 矩阵变换 → 输出裁剪空间坐标</td><td class="py-2 pr-4">光照 + 纹理采样 → 输出像素颜色</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">输出</td><td class="py-2 pr-4"><code>gl_Position</code>（必填）+ varying</td><td class="py-2 pr-4"><code>FragColor</code> / <code>out vec4</code></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">执行频率</td><td class="py-2 pr-4">每个顶点一次</td><td class="py-2 pr-4">每个片元一次（数量远大于顶点）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">开销敏感度</td><td class="py-2 pr-4 text-func-green">相对低</td><td class="py-2 pr-4 text-func-red">极高（屏幕 2M+ 像素）</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">典型用途</td><td class="py-2 pr-4">骨骼动画、顶点位移、LOD</td><td class="py-2 pr-4">Phong/PBR 光照、特效、后处理</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">两者之间由<b>光栅化</b>衔接：顶点着色器输出位置 → 光栅化生成片元并对属性做<b>重心坐标插值</b> → 片元着色器接收插值结果。详见 <a class="text-primary-cyan underline" href="/topics/rasterization">光栅化</a>。</span><span slot="en">Connected by <b>rasterization</b>: vertex shader outputs positions → rasterizer emits fragments with <b>barycentric-interpolated</b> attributes → fragment shader receives them. See <a class="text-primary-cyan underline" href="/topics/rasterization">Rasterization</a>.</span></Bilingual></p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">最小 GLSL 示例</span><span slot="en">Minimal GLSL Example</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">下面是一对最简的顶点 + 片元着色器，实现 MVP 变换 + Phong 光照。GLSL（OpenGL Shading Language）是类 C 语法，<code>uniform</code> 是 CPU 传入的全局参数，<code>in/out</code> 是阶段间的数据流，<code>varying</code> 风格属性会被光栅化器自动插值。</span><span slot="en">A minimal vertex + fragment pair implementing MVP transform + Phong lighting. GLSL (OpenGL Shading Language) is C-like; <code>uniform</code> is a CPU-fed global, <code>in/out</code> are inter-stage data, and varying-style attributes are auto-interpolated by the rasterizer.</span></Bilingual></p>
+
+      <div class="space-y-4">
+        <div>
+          <div class="text-xs font-mono text-primary-cyan mb-1">vertex.glsl</div>
+          <pre class="bg-[color:var(--code-bg)] rounded-lg p-4 overflow-x-auto text-sm"><code>#version 330 core
+// 顶点着色器：把顶点从模型空间变换到裁剪空间
+uniform mat4 uM, uV, uP;       // CPU 传入的 MVP 矩阵
+uniform mat3 uNormalMatrix;    // 法线矩阵 = (M^-1)^T
+
+in vec3 aPos;                  // 顶点位置（来自顶点缓冲）
+in vec3 aNormal;               // 顶点法线
+in vec2 aUV;                   // 纹理坐标
+
+out vec3 vWorldPos;            // 输出给片元着色器（光栅化会插值）
+out vec3 vNormal;
+out vec2 vUV;
+
+void main() &#123;
+    vec4 worldPos = uM * vec4(aPos, 1.0);
+    vWorldPos = worldPos.xyz;
+    vNormal   = normalize(uNormalMatrix * aNormal);
+    vUV       = aUV;
+    gl_Position = uP * uV * worldPos;   // 必须输出裁剪空间坐标
+&#125;</code></pre>
+        </div>
+
+        <div>
+          <div class="text-xs font-mono text-primary-purple mb-1">fragment.glsl</div>
+          <pre class="bg-[color:var(--code-bg)] rounded-lg p-4 overflow-x-auto text-sm"><code>#version 330 core
+// 片元着色器：Phong 光照 + 纹理采样
+in vec3 vWorldPos;
+in vec3 vNormal;
+in vec2 vUV;
+
+uniform vec3  uLightPos, uLightColor, uViewPos;
+uniform sampler2D uDiffuseTex;
+
+out vec4 FragColor;
+
+void main() &#123;
+    vec3 N = normalize(vNormal);
+    vec3 L = normalize(uLightPos - vWorldPos);
+    vec3 V = normalize(uViewPos   - vWorldPos);
+    vec3 R = reflect(-L, N);
+
+    vec3 albedo = texture(uDiffuseTex, vUV).rgb;
+
+    // Phong 三项
+    vec3 ambient  = 0.15 * albedo;
+    vec3 diffuse  = max(dot(N, L), 0.0) * albedo * uLightColor;
+    vec3 specular = pow(max(dot(R, V), 0.0), 32.0) * uLightColor;
+
+    FragColor = vec4(ambient + diffuse + specular, 1.0);
+&#125;</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">管线中的位置</span><span slot="en">Position in the Pipeline</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed mb-3">
+        <Bilingual>
+          <span slot="zh">现代图形管线（OpenGL/Vulkan/D3D12）的可编程阶段远不止顶点与片元。完整列表还包括<b>曲面细分</b>（Tessellation）、<b>几何着色器</b>（Geometry）、<b>计算着色器</b>（Compute，独立于图形管线，用于物理、AI、后处理）。每多一个可编程阶段，灵活性提升，但开销也增加。</span>
+          <span slot="en">Modern pipelines (OpenGL/Vulkan/D3D12) have more programmable stages than just vertex & fragment. The full list includes <b>tessellation</b>, <b>geometry shader</b>, and <b>compute shader</b> (independent of the graphics pipeline, used for physics/AI/post-processing). Each added stage increases flexibility — and overhead.</span>
+        </Bilingual>
+      </p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">阶段</span><span slot="en">Stage</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">可编程</span><span slot="en">Programmable</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">输入</span><span slot="en">Input</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">用途</span><span slot="en">Purpose</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">Vertex Shader</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4">顶点属性</td><td class="py-2 pr-4">MVP 变换、骨骼动画</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">Tessellation</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4">patch</td><td class="py-2 pr-4">细分曲面（LOD）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">Geometry Shader</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4">图元</td><td class="py-2 pr-4">增删图元、阴影体</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">Rasterization</td><td class="py-2 pr-4 text-func-red">✗ 固定功能</td><td class="py-2 pr-4">图元</td><td class="py-2 pr-4">生成片元、插值属性</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">Fragment Shader</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4">插值属性</td><td class="py-2 pr-4">光照、纹理、特效</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">Compute Shader</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4">任意</td><td class="py-2 pr-4">通用 GPGPU 计算</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">延伸阅读</span><span slot="en">Further Reading</span></Bilingual></h2>
+      <ul class="text-sm text-ink-muted space-y-2 list-disc pl-5">
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/graphics/render">3D 渲染管线可视化页</a>：可拖拽 WebGL 演示，实时查看顶点 + 片元着色器在场景中的效果。</span><span slot="en"><a class="text-primary-cyan underline" href="/graphics/render">3D Render Pipeline visualizer</a>: draggable WebGL demo showing vertex + fragment shaders in action.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/lighting">光照模型</a>：Phong 三项的数学推导与 PBR 扩展。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/lighting">Lighting Models</a>: math behind Phong's three terms and the PBR extension.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/texturing">纹理与采样</a>：<code>sampler2D</code>、UV 与 mipmap 的工作机制。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/texturing">Texturing</a>: how <code>sampler2D</code>, UV, and mipmap work.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/gpu">GPU 架构</a>：着色器如何映射到 Warp、SIMT 并行执行模型。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/gpu">GPU Architecture</a>: how shaders map to warps and the SIMT parallel model.</span></Bilingual></li>
+      </ul>
+    </section>
+  </article>
+</BaseLayout>

@@ -108,6 +108,8 @@ export const outline: OutlineNode[] = [
       { id: 'texture', zh: '纹理与采样', en: 'Texturing', href: '/topics/texturing' },
       { id: 'shader', zh: '着色器（顶点/片元）', en: 'Shaders', href: '/topics/shaders' },
       { id: 'camera', zh: '相机与投影', en: 'Camera & Projection', href: '/topics/camera' },
+      { id: 'render-paths', zh: '渲染路径（前向 / 延迟）', en: 'Render Paths (Forward / Deferred)', href: '/topics/render-paths' },
+      { id: 'gi', zh: '全局光照（实时 GI）', en: 'Global Illumination', href: '/topics/global-illumination' },
       { id: 'pipeline', zh: '3D 渲染管线', en: '3D Render Pipeline', href: '/graphics/render', viz: 'render3d' },
     ],
   },

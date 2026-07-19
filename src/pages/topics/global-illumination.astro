@@ -1,0 +1,122 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Global Illumination · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Graphics / Global Illumination</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">全局光照（实时 GI）</span><span slot="en">Global Illumination (Real-time GI)</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">直接光只照亮"被光源照到的表面"，而真实世界里光会<b>多次反弹</b>——红墙把光反射到白色物体，地面反射天光形成环境光。这种间接光照称为<b>全局光照</b>（GI）。离线渲染用路径追踪可精确求解，实时渲染受帧率约束只能近似——技术谱系从屏幕空间、体素化、irradiance 字段到光追，逐级逼近真实。</span>
+          <span slot="en">Direct light only illuminates "surfaces the light hits". Real light <b>bounces multiple times</b> — a red wall reflects light onto a white object; the ground reflects sky light as ambient. This indirect lighting is <b>Global Illumination</b> (GI). Offline rendering solves it exactly via path tracing; real-time rendering, frame-rate bound, only approximates — techniques range from screen-space, voxelized, irradiance fields to ray tracing, each closer to reality.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">直接光 vs 间接光</span><span slot="en">Direct vs Indirect Light</span></Bilingual></h2>
+      <div class="grid sm:grid-cols-2 gap-4 text-sm">
+        <div class="space-y-2">
+          <div class="text-primary-cyan font-semibold"><Bilingual><span slot="zh">直接光 (Direct)</span><span slot="en">Direct</span></Bilingual></div>
+          <ul class="text-ink-muted space-y-1 list-disc pl-4">
+            <li><Bilingual><span slot="zh">从光源直接到达表面</span><span slot="en">From light source to surface directly</span></Bilingual></li>
+            <li><Bilingual><span slot="zh">阴影区为纯黑（除环境光常量）</span><span slot="en">Shadows are pure black (except ambient)</span></Bilingual></li>
+            <li><Bilingual><span slot="zh">局部光照模型（Phong/PBR）即可</span><span slot="en">Local lighting models (Phong/PBR) suffice</span></Bilingual></li>
+            <li><Bilingual><span slot="zh">实时简单，O(N×L)</span><span slot="en">Real-time easy, O(N×L)</span></Bilingual></li>
+          </ul>
+        </div>
+        <div class="space-y-2">
+          <div class="text-primary-purple font-semibold"><Bilingual><span slot="zh">间接光 (Indirect / GI)</span><span slot="en">Indirect / GI</span></Bilingual></div>
+          <ul class="text-ink-muted space-y-1 list-disc pl-4">
+            <li><Bilingual><span slot="zh">从表面反射到表面（多次反弹）</span><span slot="en">Surface-to-surface bounces</span></Bilingual></li>
+            <li><Bilingual><span slot="zh">阴影区有真实颜色泄漏</span><span slot="en">Real color bleeding in shadows</span></Bilingual></li>
+            <li><Bilingual><span slot="zh">漫反射 GI（柔和）vs 镜面反射 GI（caustics）</span><span slot="en">Diffuse GI (soft) vs specular GI (caustics)</span></Bilingual></li>
+            <li><Bilingual><span slot="zh">实时计算困难，需近似</span><span slot="en">Hard to compute in real-time; needs approximation</span></Bilingual></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">实时 GI 技术谱系</span><span slot="en">Real-time GI Techniques Spectrum</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">按数据来源与计算方式分为四类——屏幕空间、体素化、irradiance 字段、光追，质量与开销依次提升。</span><span slot="en">By data source & compute: four families — screen-space, voxelized, irradiance fields, ray-traced — quality and cost rise in order.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">技术</span><span slot="en">Technique</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">原理</span><span slot="en">Principle</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">质量</span><span slot="en">Quality</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">开销</span><span slot="en">Cost</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan font-mono">SSAO</td><td class="py-2 pr-4 text-ink-muted">屏幕空间近似遮蔽——只产生柔和阴影</td><td class="py-2 pr-4 text-func-red">低（仅暗化角部）</td><td class="py-2 pr-4 text-func-green">极低</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan font-mono">SSGI / SSDGI</td><td class="py-2 pr-4 text-ink-muted">屏幕空间光线追踪反弹</td><td class="py-2 pr-4 text-func-amber">中（受屏幕数据限制）</td><td class="py-2 pr-4 text-func-amber">中</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple font-mono">VXGI</td><td class="py-2 pr-4 text-ink-muted">体素化场景，圆锥追踪反弹</td><td class="py-2 pr-4 text-func-amber">中</td><td class="py-2 pr-4 text-func-amber">中高</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple font-mono">LPV</td><td class="py-2 pr-4 text-ink-muted">Light Propagation Volume：3D 网格传播光</td><td class="py-2 pr-4 text-func-amber">中</td><td class="py-2 pr-4 text-func-amber">中</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple font-mono">SDF GI</td><td class="py-2 pr-4 text-ink-muted">用距离场追踪反弹</td><td class="py-2 pr-4 text-func-green">较高</td><td class="py-2 pr-4 text-func-amber">中</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber font-mono">DDGI</td><td class="py-2 pr-4 text-ink-muted">动态探针网格 + irradiance 字段</td><td class="py-2 pr-4 text-func-green">较高</td><td class="py-2 pr-4 text-func-amber">中</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber font-mono">Probe-based</td><td class="py-2 pr-4 text-ink-muted">反射探针 / 烘焙 irradiance 探针</td><td class="py-2 pr-4 text-func-amber">中静态</td><td class="py-2 pr-4 text-func-green">低</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-red font-mono">RTGI</td><td class="py-2 pr-4 text-ink-muted">硬件光追全局光照</td><td class="py-2 pr-4 text-func-green">高（物理正确）</td><td class="py-2 pr-4 text-func-red">高</td></tr>
+            <tr><td class="py-2 pr-4 text-func-red font-mono">Path Tracing</td><td class="py-2 pr-4 text-ink-muted">完整路径追踪（含镜面 caustics）</td><td class="py-2 pr-4 text-func-green">最高</td><td class="py-2 pr-4 text-func-red">极高（仅离线）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">四类技术详解</span><span slot="en">Four Families Explained</span></Bilingual></h2>
+      <div class="space-y-4 text-sm">
+        <div>
+          <div class="text-primary-cyan font-semibold mb-1"><Bilingual><span slot="zh">屏幕空间 (Screen Space)</span><span slot="en">Screen Space</span></Bilingual></div>
+          <p class="text-ink-muted leading-relaxed"><Bilingual><span slot="zh">仅用屏幕已有像素数据反推间接光。<b>SSAO</b>（屏幕空间环境光遮蔽）采样深度缓冲找角部做暗化——快但仅近似遮蔽；<b>SSGI/SSDGI</b> 进一步在屏幕空间做光线追踪反弹。<b>局限</b>：屏幕外的反弹信息丢失，镜头转动会出现"破裂"。</span><span slot="en">Uses only screen pixels to infer indirect light. <b>SSAO</b> samples depth buffer to darken corners — fast but only approximates occlusion; <b>SSGI/SSDGI</b> traces bounces in screen space. <b>Limit</b>: off-screen info is lost; camera moves cause "cracking".</span></Bilingual></p>
+        </div>
+        <div>
+          <div class="text-primary-purple font-semibold mb-1"><Bilingual><span slot="zh">体素化 (Voxelized)</span><span slot="en">Voxelized</span></Bilingual></div>
+          <p class="text-ink-muted leading-relaxed"><Bilingual><span slot="zh">把场景预体素化为 3D 网格，在体素空间做光线追踪。<b>VXGI</b> 用圆锥追踪近似漫反射；<b>LPV</b>（Light Propagation Volume）把光在 3D 网格中迭代传播；<b>SDF GI</b> 用距离场加速光线行进。比屏幕空间更稳定（无破裂），但体素分辨率与精度有取舍。</span><span slot="en">Voxelize the scene into a 3D grid and trace rays in voxel space. <b>VXGI</b> cone-traces for diffuse; <b>LPV</b> iteratively propagates light through a 3D grid; <b>SDF GI</b> uses signed distance fields to accelerate ray marching. More stable than screen-space (no cracking), but trades voxel resolution vs precision.</span></Bilingual></p>
+        </div>
+        <div>
+          <div class="text-func-amber font-semibold mb-1"><Bilingual><span slot="zh">Irradiance 字段 (Irradiance Fields)</span><span slot="en">Irradiance Fields</span></Bilingual></div>
+          <p class="text-ink-muted leading-relaxed"><Bilingual><span slot="zh">在场景中布置一组探针，每个探针记录该点的<b>球面入射辐照度</b>。<b>DDGI</b>（Dynamic Diffuse GI）动态更新探针网格，探针用光线追踪采样周围表面后做卷积插值；运行时片元根据位置插值附近探针的 irradiance。<b>优势</b>：质量与开销平衡好，UE5 Lumen 默认采用此思路。</span><span slot="en">Place probes throughout the scene, each recording spherical incoming irradiance. <b>DDGI</b> (Dynamic Diffuse GI) updates a probe grid dynamically — probes ray-trace surrounding surfaces, convolve, and interpolate; at runtime, fragments interpolate nearby probes' irradiance by position. <b>Strength</b>: balances quality vs cost — UE5 Lumen uses this approach.</span></Bilingual></p>
+        </div>
+        <div>
+          <div class="text-func-red font-semibold mb-1"><Bilingual><span slot="zh">光追 (Ray Traced)</span><span slot="en">Ray Traced</span></Bilingual></div>
+          <p class="text-ink-muted leading-relaxed"><Bilingual><span slot="zh">借助 RTX/RDNA2 硬件光追核心，对每个像素发射次级光线模拟一次或多次反弹。<b>RTGI</b> 给出最接近离线渲染的结果；<b>Path Tracing</b> 是完整路径追踪，质量最高但开销太大，仅用于离线或 DLSS 3 加速的"路径追踪模式"。光追 GI 仍需降噪（Denoiser）才能实时运行。</span><span slot="en">With RTX/RDNA2 hardware ray-tracing cores, each pixel shoots secondary rays simulating one or more bounces. <b>RTGI</b> is closest to offline quality; <b>Path Tracing</b> is the complete algorithm — highest quality but too costly, used offline or in DLSS 3-accelerated "path tracing mode". RTGI still needs denoising for real-time.</span></Bilingual></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">光栅化 GI vs 光追 GI</span><span slot="en">Rasterized GI vs Ray-Traced GI</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">维度</span><span slot="en">Aspect</span></Bilingual></th><th class="py-2 pr-4 text-primary-purple"><Bilingual><span slot="zh">光栅化 GI</span><span slot="en">Rasterized GI</span></Bilingual></th><th class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">光追 GI</span><span slot="en">Ray-Traced GI</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">硬件需求</td><td class="py-2 pr-4 text-func-green">普通 GPU</td><td class="py-2 pr-4 text-func-amber">需 RTX/RDNA2 光追核心</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">反射准确性</td><td class="py-2 pr-4 text-func-red">近似（屏幕/体素限制）</td><td class="py-2 pr-4 text-func-green">物理正确</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">动态场景</td><td class="py-2 pr-4 text-func-green">支持（DDGI 等）</td><td class="py-2 pr-4 text-func-green">支持</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">镜面 caustics</td><td class="py-2 pr-4 text-func-red">✗ 无法</td><td class="py-2 pr-4 text-func-green">✓ 可（Path Tracing）</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">性能开销</td><td class="py-2 pr-4 text-func-green">低-中</td><td class="py-2 pr-4 text-func-red">高</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Lumen 与现代 GI 实践</span><span slot="en">Lumen & Modern GI Practice</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">UE5 的 <b>Lumen</b> 是当前最知名的实时 GI 系统，采用<b>混合方案</b>：默认用 <b>SSGI + DDGI 探针网格</b> 处理漫反射 GI；有 RTX 硬件时升级到 <b>RTGI</b>。它自动适配硬件——同套 API 在不同 GPU 上跑不同后端，开发者无需关心。Unity 的 <b>Enlighten</b>（烘焙 GI）+ <b>Realtime GI</b> 也走类似思路。未来方向是<b>路径追踪 + AI 降噪 + 超分重建</b>，让实时渲染逐步逼近离线质量。</span>
+          <span slot="en">UE5's <b>Lumen</b> is the best-known real-time GI system, using a <b>hybrid scheme</b>: by default <b>SSGI + DDGI probes</b> for diffuse GI; with RTX hardware it upgrades to <b>RTGI</b>. It auto-adapts — same API, different backend per GPU, transparent to developers. Unity's <b>Enlighten</b> (baked GI) + <b>Realtime GI</b> follows a similar approach. The future is <b>path tracing + AI denoising + super-resolution</b>, bringing real-time rendering ever closer to offline quality.</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">延伸阅读</span><span slot="en">Further Reading</span></Bilingual></h2>
+      <ul class="text-sm text-ink-muted space-y-2 list-disc pl-5">
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/lighting">光照模型</a>：GI 是对 Phong "环境光"那项的物理化扩展。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/lighting">Lighting</a>: GI is the physical extension of Phong's "ambient" term.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/render-paths">渲染路径</a>：GI 通常作为延迟/前向渲染的额外 pass 叠加。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/render-paths">Render Paths</a>: GI is typically an extra pass on top of deferred/forward.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/graphics">图形学概览</a>：GI 在图形学知识链中的位置。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/graphics">Graphics Overview</a>: where GI sits in the graphics chain.</span></Bilingual></li>
+      </ul>
+    </section>
+  </article>
+</BaseLayout>

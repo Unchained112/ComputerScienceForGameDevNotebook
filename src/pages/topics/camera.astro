@@ -1,0 +1,258 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Camera & Projection · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Graphics / Camera & Projection</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">相机与投影</span><span slot="en">Camera & Projection</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">相机决定了<b>看到什么</b>，投影决定了<b>怎么看到</b>。3D 渲染中相机由三要素定义：<b>位置</b>、<b>朝向</b>（look 方向 + up 向量）、<b>视锥</b>（FOV + 近远裁剪面）。下方演示可拖动 FOV 滑块观察透视视锥的变化，并对比透视 vs 正交投影。</span>
+          <span slot="en">The camera determines <b>what is seen</b>; projection determines <b>how it is seen</b>. A 3D camera is defined by three things: <b>position</b>, <b>orientation</b> (look direction + up vector), and the <b>view frustum</b> (FOV + near/far planes). Drag the FOV slider below to watch the perspective frustum change, and compare perspective vs orthographic.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5">
+      <div class="flex flex-wrap items-center gap-4 mb-4">
+        <label class="flex items-center gap-2 text-sm text-ink-muted">
+          <span>FOV</span>
+          <input id="cam-fov" type="range" min="20" max="120" value="60" class="w-48" />
+          <span id="cam-fov-val" class="font-mono text-primary-cyan w-12">60°</span>
+        </label>
+        <label class="flex items-center gap-2 text-sm text-ink-muted">
+          <select id="cam-mode" class="btn !py-1.5"></select>
+        </label>
+      </div>
+      <svg id="cam-svg" viewBox="0 0 600 320" class="w-full viz-stage"></svg>
+      <p class="text-xs text-ink-muted mt-2">
+        <Bilingual><span slot="zh">黄色视锥示意相机视野；近裁剪面（绿）与远裁剪面（红）之间为可见区域。物体在视锥外会被<b>视锥剔除</b>。</span><span slot="en">Yellow frustum marks the camera's view; between the near plane (green) and far plane (red) is the visible volume. Anything outside is <b>frustum-culled</b>.</span></Bilingual>
+      </p>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">透视 vs 正交投影</span><span slot="en">Perspective vs Orthographic</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">维度</span><span slot="en">Aspect</span></Bilingual></th><th class="py-2 pr-4 text-primary-cyan"><Bilingual><span slot="zh">透视投影</span><span slot="en">Perspective</span></Bilingual></th><th class="py-2 pr-4 text-primary-purple"><Bilingual><span slot="zh">正交投影</span><span slot="en">Orthographic</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">近大远小</td><td class="py-2 pr-4 text-func-green">✓ 有</td><td class="py-2 pr-4 text-func-red">✗ 无</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">平行线</td><td class="py-2 pr-4">相交于灭点</td><td class="py-2 pr-4">保持平行</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">w 分量</td><td class="py-2 pr-4">w = -z（与深度相关）</td><td class="py-2 pr-4">w = 1（恒为 1）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">适用场景</td><td class="py-2 pr-4">3D 游戏、第一人称</td><td class="py-2 pr-4">2D UI、CAD、等距游戏</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">代表游戏</td><td class="py-2 pr-4">大多数 3A 3D 游戏</td><td class="py-2 pr-4">暗黑破坏神、星露谷</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">视锥与裁剪面</span><span slot="en">View Frustum & Clipping Planes</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">视锥是相机的可见空间——一个被 6 个平面截断的金字塔：<b>近裁剪面</b>、<b>远裁剪面</b>、上、下、左、右。物体必须在视锥内才会被渲染。近裁剪面太近会导致<b>深度冲突</b>（Z-fighting）——两个相近表面的深度值因精度不足而闪烁。远裁剪面太远会浪费填充率，但能避免远处物体突然弹出。平衡近远比是关键——通常近面 0.1、远面 1000。</span>
+          <span slot="en">The frustum is the camera's visible volume — a pyramid truncated by 6 planes: <b>near</b>, <b>far</b>, top, bottom, left, right. Only objects inside are rendered. A too-near near plane causes <b>Z-fighting</b> — two close surfaces flicker due to insufficient depth precision. A too-far far plane wastes fill rate but avoids distant objects popping in. Balancing the near/far ratio is key — typically near 0.1, far 1000.</span>
+        </Bilingual>
+      </p>
+      <pre class="bg-[color:var(--code-bg)] rounded-lg p-4 mt-3 overflow-x-auto text-sm"><code>// 透视投影矩阵（OpenGL 风格）
+// fovy: 垂直 FOV, aspect: 宽/高, n: 近, f: 远
+mat4 perspective(float fovy, float aspect, float n, float f) &#123;
+    float t = 1.0 / tan(fovy / 2.0);
+    return mat4(
+        t / aspect, 0,  0,                  0,
+        0,         t,  0,                  0,
+        0,         0,  -(f+n)/(f-n),       -2*f*n/(f-n),
+        0,         0,  -1,                  0
+    );
+&#125;
+// 经透视除法后 z 范围 [-1, 1]（NDC），非线性分布——近处精度高，远处精度低</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">视锥剔除</span><span slot="en">Frustum Culling</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">把整个场景每个物体逐顶点测试是否在视锥内代价过高。优化做法：用每个物体的<b>包围球</b>（Bounding Sphere）或<b>AABB</b>（Axis-Aligned Bounding Box）做粗筛——只需检测包围体与 6 个视锥平面的关系。若包围体完全在某平面外侧，物体被剔除；若完全在内部，所有顶点直接通过；若部分相交，则保留并交给后续逐顶点裁剪。游戏引擎中常见的<b>层次包围体</b>（BVH）进一步加速这一过程。</span>
+          <span slot="en">Testing every vertex of every object against the frustum is too costly. The optimization: use each object's <b>bounding sphere</b> or <b>AABB</b> (Axis-Aligned Bounding Box) for a coarse test — check the bounding volume against the 6 frustum planes. If fully outside any plane, the object is culled; if fully inside, all vertices pass; if partially intersecting, keep it for per-vertex clipping. Engines typically accelerate this with a <b>BVH</b> (Bounding Volume Hierarchy).</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">延伸阅读</span><span slot="en">Further Reading</span></Bilingual></h2>
+      <ul class="text-sm text-ink-muted space-y-2 list-disc pl-5">
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/coord-transform">坐标变换</a>：投影矩阵 P 在 MVP 链中的作用。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/coord-transform">Coords & Transforms</a>: the role of the P matrix in the MVP chain.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/render-paths">渲染路径</a>：相机视野如何被光栅化与着色。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/render-paths">Render Paths</a>: how the camera's view is rasterized and shaded.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/graphics/render">3D 渲染管线可视化页</a>：可拖拽 WebGL 演示相机视角。</span><span slot="en"><a class="text-primary-cyan underline" href="/graphics/render">3D Render Pipeline visualizer</a>: draggable WebGL demo with camera view.</span></Bilingual></li>
+      </ul>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('cam-svg') as unknown as SVGSVGElement;
+  const fovInput = document.getElementById('cam-fov') as HTMLInputElement;
+  const fovVal = document.getElementById('cam-fov-val');
+  const modeSel = document.getElementById('cam-mode') as HTMLSelectElement;
+
+  const CAM_X = 540, CAM_Y = 160;
+  const NEAR_DIST = 80;
+  const FAR_DIST = 480;
+
+  function lang(): 'zh' | 'en' {
+    return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+  }
+
+  function fovToHalfHeight(fovDeg: number, dist: number, isPerspective: boolean): number {
+    if (!isPerspective) return 90;
+    const rad = (fovDeg * Math.PI) / 180;
+    return Math.tan(rad / 2) * dist;
+  }
+
+  function render() {
+    const fov = Number(fovInput.value);
+    const isPersp = modeSel.value === 'perspective';
+    if (fovVal) fovVal.textContent = `${fov}°`;
+
+    svg.innerHTML = '';
+
+    const bg = document.createElementNS(SVGNS, 'rect');
+    bg.setAttribute('x', '0'); bg.setAttribute('y', '0');
+    bg.setAttribute('width', '600'); bg.setAttribute('height', '320');
+    bg.setAttribute('fill', 'rgba(15,23,42,0.4)');
+    svg.appendChild(bg);
+
+    const nearH = fovToHalfHeight(fov, NEAR_DIST, isPersp);
+    const farH = isPersp ? fovToHalfHeight(fov, FAR_DIST, isPersp) : nearH;
+
+    const nearLeftX = CAM_X - NEAR_DIST;
+    const farLeftX = CAM_X - FAR_DIST;
+    const nearTopY = CAM_Y - nearH, nearBotY = CAM_Y + nearH;
+    const farTopY = CAM_Y - farH, farBotY = CAM_Y + farH;
+
+    const frustum = document.createElementNS(SVGNS, 'polygon');
+    frustum.setAttribute('points', `${nearLeftX},${nearTopY} ${farLeftX},${farTopY} ${farLeftX},${farBotY} ${nearLeftX},${nearBotY}`);
+    frustum.setAttribute('fill', 'rgba(251,191,36,0.12)');
+    frustum.setAttribute('stroke', '#FBBF24');
+    frustum.setAttribute('stroke-width', '1.5');
+    svg.appendChild(frustum);
+
+    const viewLine = document.createElementNS(SVGNS, 'line');
+    viewLine.setAttribute('x1', String(CAM_X)); viewLine.setAttribute('y1', String(CAM_Y));
+    viewLine.setAttribute('x2', String(farLeftX)); viewLine.setAttribute('y2', String(CAM_Y));
+    viewLine.setAttribute('stroke', '#94A3B8');
+    viewLine.setAttribute('stroke-width', '1');
+    viewLine.setAttribute('stroke-dasharray', '3 3');
+    svg.appendChild(viewLine);
+
+    const near = document.createElementNS(SVGNS, 'line');
+    near.setAttribute('x1', String(nearLeftX)); near.setAttribute('y1', String(nearTopY));
+    near.setAttribute('x2', String(nearLeftX)); near.setAttribute('y2', String(nearBotY));
+    near.setAttribute('stroke', '#22C55E');
+    near.setAttribute('stroke-width', '3');
+    svg.appendChild(near);
+
+    const far = document.createElementNS(SVGNS, 'line');
+    far.setAttribute('x1', String(farLeftX)); far.setAttribute('y1', String(farTopY));
+    far.setAttribute('x2', String(farLeftX)); far.setAttribute('y2', String(farBotY));
+    far.setAttribute('stroke', '#EF4444');
+    far.setAttribute('stroke-width', '3');
+    svg.appendChild(far);
+
+    [[nearTopY, farTopY], [nearBotY, farBotY]].forEach(([y1, y2]) => {
+      const l = document.createElementNS(SVGNS, 'line');
+      l.setAttribute('x1', String(nearLeftX)); l.setAttribute('y1', String(y1));
+      l.setAttribute('x2', String(farLeftX)); l.setAttribute('y2', String(y2));
+      l.setAttribute('stroke', '#FBBF24');
+      l.setAttribute('stroke-width', '1');
+      svg.appendChild(l);
+    });
+
+    const camIcon = document.createElementNS(SVGNS, 'circle');
+    camIcon.setAttribute('cx', String(CAM_X)); camIcon.setAttribute('cy', String(CAM_Y));
+    camIcon.setAttribute('r', '6');
+    camIcon.setAttribute('fill', '#22D3EE');
+    camIcon.setAttribute('stroke', '#fff');
+    camIcon.setAttribute('stroke-width', '2');
+    svg.appendChild(camIcon);
+
+    const labels = [
+      { x: CAM_X + 8, y: CAM_Y - 10, t: lang() === 'en' ? 'Camera' : '相机', fill: '#22D3EE', anchor: '' },
+      { x: nearLeftX, y: nearTopY - 8, t: lang() === 'en' ? 'Near' : '近裁剪面', fill: '#22C55E', anchor: 'middle' },
+      { x: farLeftX, y: farTopY - 8, t: lang() === 'en' ? 'Far' : '远裁剪面', fill: '#EF4444', anchor: 'middle' },
+    ];
+    labels.forEach((l) => {
+      const txt = document.createElementNS(SVGNS, 'text');
+      txt.setAttribute('x', String(l.x)); txt.setAttribute('y', String(l.y));
+      txt.setAttribute('fill', l.fill);
+      txt.setAttribute('font-size', '12');
+      txt.setAttribute('font-weight', '600');
+      if (l.anchor) txt.setAttribute('text-anchor', l.anchor);
+      txt.textContent = l.t;
+      svg.appendChild(txt);
+    });
+
+    const obj = document.createElementNS(SVGNS, 'rect');
+    const objX = CAM_X - 280;
+    obj.setAttribute('x', String(objX - 12));
+    obj.setAttribute('y', String(CAM_Y - 25));
+    obj.setAttribute('width', '24'); obj.setAttribute('height', '50');
+    obj.setAttribute('fill', '#A78BFA');
+    obj.setAttribute('opacity', '0.7');
+    svg.appendChild(obj);
+    const objLabel = document.createElementNS(SVGNS, 'text');
+    objLabel.setAttribute('x', String(objX));
+    objLabel.setAttribute('y', String(CAM_Y + 50));
+    objLabel.setAttribute('fill', '#A78BFA');
+    objLabel.setAttribute('font-size', '11');
+    objLabel.setAttribute('text-anchor', 'middle');
+    objLabel.textContent = lang() === 'en' ? 'Object' : '物体';
+    svg.appendChild(objLabel);
+
+    const culled = document.createElementNS(SVGNS, 'rect');
+    culled.setAttribute('x', String(CAM_X - 480 - 12));
+    culled.setAttribute('y', String(CAM_Y - 100));
+    culled.setAttribute('width', '24'); culled.setAttribute('height', '24');
+    culled.setAttribute('fill', 'rgba(239,68,68,0.3)');
+    culled.setAttribute('stroke', '#EF4444');
+    culled.setAttribute('stroke-dasharray', '3 2');
+    svg.appendChild(culled);
+    const culledLabel = document.createElementNS(SVGNS, 'text');
+    culledLabel.setAttribute('x', String(CAM_X - 480));
+    culledLabel.setAttribute('y', String(CAM_Y - 108));
+    culledLabel.setAttribute('fill', '#EF4444');
+    culledLabel.setAttribute('font-size', '11');
+    culledLabel.setAttribute('text-anchor', 'middle');
+    culledLabel.textContent = lang() === 'en' ? 'Culled' : '已剔除';
+    svg.appendChild(culledLabel);
+  }
+
+  fovInput.addEventListener('input', render);
+  modeSel.addEventListener('change', render);
+  document.addEventListener('langchange', render);
+
+  // 填充投影模式下拉
+  function fillModeOptions() {
+    const en = document.documentElement.getAttribute('data-lang') === 'en';
+    const opts: [string, string, string][] = [
+      ['perspective', en ? 'Perspective' : '透视', en ? 'Perspective' : '透视'],
+      ['orthographic', en ? 'Orthographic' : '正交', en ? 'Orthographic' : '正交'],
+    ];
+    modeSel.innerHTML = '';
+    const cur = modeSel.value || 'perspective';
+    opts.forEach(([v, label]) => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = label;
+      modeSel.appendChild(o);
+    });
+    modeSel.value = cur;
+  }
+  fillModeOptions();
+  document.addEventListener('langchange', fillModeOptions);
+  render();
+</script>

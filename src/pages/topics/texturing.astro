@@ -1,0 +1,270 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Texturing · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Graphics / Texturing</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">纹理与采样</span><span slot="en">Texturing & Sampling</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">纹理是贴在 3D 表面上的 2D 图像——它把"颜色"从几何体上解放出来，让简单三角形能呈现丰富细节。核心机制是<b>UV 映射</b>（每个顶点对应纹理上的一个 2D 坐标）与<b>采样滤波</b>（如何从纹理图取像素颜色）。下方演示可切换最近邻 / 双线性 / 三线性滤波观察差异。</span>
+          <span slot="en">Textures are 2D images wrapped on 3D surfaces — freeing "color" from geometry so simple triangles show rich detail. The core is <b>UV mapping</b> (each vertex maps to a 2D texture coordinate) and <b>sampling filters</b> (how to fetch texel color). Toggle nearest / bilinear / trilinear below to see the difference.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5">
+      <div class="flex flex-wrap items-center gap-4 mb-4">
+        <label class="flex items-center gap-2 text-sm text-ink-muted">
+          <span data-ui="filter" data-lang="zh">滤波</span><span data-ui="filter" data-lang="en">Filter</span>
+          <select id="tex-mode" class="btn !py-1.5">
+            <option value="nearest">最近邻 / Nearest</option>
+            <option value="bilinear" selected>双线性 / Bilinear</option>
+            <option value="trilinear">三线性 / Trilinear</option>
+          </select>
+        </label>
+        <label class="flex items-center gap-2 text-sm text-ink-muted">
+          <span data-ui="zoom" data-lang="zh">放大区域</span><span data-ui="zoom" data-lang="en">Zoom Region</span>
+          <input id="tex-zoom" type="range" min="4" max="20" value="10" class="w-40" />
+        </label>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <div class="text-xs font-mono text-ink-muted mb-1"><Bilingual><span slot="zh">原始纹理 (8×8)</span><span slot="en">Source Texture (8×8)</span></Bilingual></div>
+          <svg id="tex-src-svg" viewBox="0 0 320 320" class="w-full viz-stage"></svg>
+        </div>
+        <div>
+          <div class="text-xs font-mono text-primary-cyan mb-1"><Bilingual><span slot="zh">放大采样结果</span><span slot="en">Upscaled Sample Result</span></Bilingual></div>
+          <svg id="tex-dst-svg" viewBox="0 0 320 320" class="w-full viz-stage"></svg>
+        </div>
+      </div>
+      <p class="text-xs text-ink-muted mt-2">
+        <Bilingual><span slot="zh">左侧为 8×8 纹理原图，右侧把白色框选区域放大显示，按当前滤波方式采样。</span><span slot="en">Left: 8×8 source texture. Right: the white selection box zoomed in, sampled by the current filter.</span></Bilingual>
+      </p>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">UV 映射</span><span slot="en">UV Mapping</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">UV 是纹理上的二维坐标，范围 <code>[0,1]²</code>——每个顶点除位置外还附带一个 <code>(u, v)</code>。光栅化时<b>重心坐标插值</b>把顶点的 UV 平滑过渡到每个片元，片元着色器再用 <code>texture(sampler, uv)</code> 取颜色。UV 映射是<b>建模</b>阶段的工作——把 3D 表面"展开"到 2D 平面（如立方体展开、球面投影），不同映射会产生不同纹理拉伸效果。</span>
+          <span slot="en">UV is the 2D coordinate on a texture, range <code>[0,1]²</code> — each vertex carries a <code>(u, v)</code> alongside position. Rasterization <b>barycentrically interpolates</b> vertex UVs across fragments, and the fragment shader fetches color via <code>texture(sampler, uv)</code>. UV mapping is done at <b>modeling</b> time — unwrapping the 3D surface onto 2D (cube unwrap, sphere projection); different mappings cause different stretching.</span>
+        </Bilingual>
+      </p>
+      <pre class="bg-[color:var(--code-bg)] rounded-lg p-4 mt-3 overflow-x-auto text-sm"><code>// 顶点着色器：把 UV 传给片元（光栅化器自动插值）
+in vec2 aUV;
+out vec2 vUV;
+void main() &#123;
+    vUV = aUV;
+    gl_Position = uP * uV * uM * vec4(aPos, 1.0);
+&#125;
+
+// 片元着色器：用插值后的 UV 采样纹理
+in vec2 vUV;
+uniform sampler2D uDiffuseTex;
+out vec4 FragColor;
+void main() &#123;
+    vec4 texColor = texture(uDiffuseTex, vUV);   // GPU 自动按滤波方式采样
+    FragColor = texColor;
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">采样滤波对比</span><span slot="en">Sampling Filters Compared</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">滤波</span><span slot="en">Filter</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">采样数</span><span slot="en">Samples</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">效果</span><span slot="en">Result</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">开销</span><span slot="en">Cost</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">Nearest</td><td class="py-2 pr-4">1</td><td class="py-2 pr-4 text-func-amber">块状像素感（复古风）</td><td class="py-2 pr-4 text-func-green">最低</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">Bilinear</td><td class="py-2 pr-4">4</td><td class="py-2 pr-4 text-func-green">平滑插值</td><td class="py-2 pr-4">低</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">Trilinear</td><td class="py-2 pr-4">8（两层 mipmap）</td><td class="py-2 pr-4 text-func-green">无 mipmap 切换闪烁</td><td class="py-2 pr-4 text-func-amber">中</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Mipmap 金字塔</span><span slot="en">Mipmap Pyramid</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">远处物体在屏幕上只占几个像素，若直接从原图采样会因<b>欠采样</b>出现摩尔纹与闪烁。<b>Mipmap</b> 预先生成 1/2、1/4、1/8 … 直到 1×1 的多级金字塔，采样时按片元在屏幕的大小选择合适层级——远处用低分辨率、近处用高分辨率，兼顾质量与带宽。三线性滤波在两个相邻层级各做双线性后线性混合，消除层级切换的接缝。</span>
+          <span slot="en">Distant objects occupy only a few pixels on screen; sampling the original texture causes <b>aliasing</b> (moire, flicker). <b>Mipmap</b> pre-generates a pyramid of 1/2, 1/4, 1/8 … down to 1×1 levels, choosing the appropriate level per fragment by its screen size — low-res for far, high-res for near, balancing quality and bandwidth. Trilinear filtering does bilinear on two adjacent levels then linearly blends them, removing the seam between levels.</span>
+        </Bilingual>
+      </p>
+      <div class="grid grid-cols-5 gap-2 mt-4">
+        {[64, 32, 16, 8, 4].map((size, i) => (
+          <div class="text-center">
+            <div class={`bg-accent-gradient mx-auto rounded`} style={`width: ${size}px; height: ${size}px; opacity: ${1 - i * 0.18};`}></div>
+            <div class="text-xs text-ink-muted mt-1 font-mono">{size}px</div>
+          </div>
+        ))}
+      </div>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">Mipmap 总开销仅增加 1/3（每级面积为上一级 1/4，总和 <code>1 + 1/4 + 1/16 + … ≈ 4/3</code>），但极大改善了远处纹理质量。</span><span slot="en">Mipmaps cost only 1/3 extra memory (each level is 1/4 the previous, <code>1 + 1/4 + 1/16 + … ≈ 4/3</code>), but massively improve distant-texture quality.</span></Bilingual></p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">延伸阅读</span><span slot="en">Further Reading</span></Bilingual></h2>
+      <ul class="text-sm text-ink-muted space-y-2 list-disc pl-5">
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/shaders">着色器</a>：<code>sampler2D</code> 在片元着色器中的用法。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/shaders">Shaders</a>: using <code>sampler2D</code> in the fragment shader.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/rasterization">光栅化</a>：UV 如何随重心坐标插值。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/rasterization">Rasterization</a>: how UVs interpolate via barycentric coords.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/lighting">光照模型</a>：albedo 贴图如何驱动 PBR 光照。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/lighting">Lighting</a>: how albedo maps drive PBR lighting.</span></Bilingual></li>
+      </ul>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const srcSvg = document.getElementById('tex-src-svg') as unknown as SVGSVGElement;
+  const dstSvg = document.getElementById('tex-dst-svg') as unknown as SVGSVGElement;
+  const modeSel = document.getElementById('tex-mode') as HTMLSelectElement;
+  const zoomInput = document.getElementById('tex-zoom') as HTMLInputElement;
+
+  // 8×8 纹理：渐变 + 棋盘格
+  const TEX = 8;
+  const tex: string[][] = [];
+  for (let y = 0; y < TEX; y++) {
+    const row: string[] = [];
+    for (let x = 0; x < TEX; x++) {
+      const checker = (x + y) % 2 === 0;
+      const r = checker ? 239 : 56;
+      const g = checker ? 68 : 189;
+      const b = checker ? 68 : 248;
+      row.push(`rgb(${r},${g},${b})`);
+    }
+    tex.push(row);
+  }
+
+  // 放大窗口对应的纹理区域（左上 2×2 像素被放大）
+  const SRC_X = 2, SRC_Y = 2, SRC_W = 3, SRC_H = 3;
+
+  function sampleNearest(u: number, v: number): string {
+    const tx = Math.min(TEX - 1, Math.floor(u * TEX));
+    const ty = Math.min(TEX - 1, Math.floor(v * TEX));
+    return tex[ty][tx];
+  }
+
+  function sampleBilinear(u: number, v: number): string {
+    const fx = u * TEX - 0.5;
+    const fy = v * TEX - 0.5;
+    const x0 = Math.max(0, Math.min(TEX - 1, Math.floor(fx)));
+    const y0 = Math.max(0, Math.min(TEX - 1, Math.floor(fy)));
+    const x1 = Math.min(TEX - 1, x0 + 1);
+    const y1 = Math.min(TEX - 1, y0 + 1);
+    const tx = fx - Math.floor(fx);
+    const ty = fy - Math.floor(fy);
+    const c = (col: string) => {
+      const m = col.match(/\d+/g)!;
+      return [Number(m[0]), Number(m[1]), Number(m[2])];
+    };
+    const c00 = c(tex[y0][x0]), c10 = c(tex[y0][x1]);
+    const c01 = c(tex[y1][x0]), c11 = c(tex[y1][x1]);
+    const r = Math.round(c00[0] * (1 - tx) * (1 - ty) + c10[0] * tx * (1 - ty) + c01[0] * (1 - tx) * ty + c11[0] * tx * ty);
+    const g = Math.round(c00[1] * (1 - tx) * (1 - ty) + c10[1] * tx * (1 - ty) + c01[1] * (1 - tx) * ty + c11[1] * tx * ty);
+    const b = Math.round(c00[2] * (1 - tx) * (1 - ty) + c10[2] * tx * (1 - ty) + c01[2] * (1 - tx) * ty + c11[2] * tx * ty);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function sampleTrilinear(u: number, v: number): string {
+    // 简化：在 1×1 层和 2×2 层各做 bilinear 后混合
+    const c1 = sampleBilinear(u, v);
+    // 第 1 层 mipmap（4×4）：每 2x2 块取均值
+    const fx = u * 4 - 0.5;
+    const fy = v * 4 - 0.5;
+    const x0 = Math.max(0, Math.min(3, Math.floor(fx)));
+    const y0 = Math.max(0, Math.min(3, Math.floor(fy)));
+    const x1 = Math.min(3, x0 + 1);
+    const y1 = Math.min(3, y0 + 1);
+    const tx = fx - Math.floor(fx);
+    const ty = fy - Math.floor(fy);
+    const avg = (sx: number, sy: number, sw: number, sh: number) => {
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let dy = 0; dy < sh; dy++) for (let dx = 0; dx < sw; dx++) {
+        const m = tex[sy + dy][sx + dx].match(/\d+/g)!;
+        r += Number(m[0]); g += Number(m[1]); b += Number(m[2]); n++;
+      }
+      return [r / n, g / n, b / n];
+    };
+    const c00 = avg(x0 * 2, y0 * 2, 2, 2), c10 = avg(x1 * 2, y0 * 2, 2, 2);
+    const c01 = avg(x0 * 2, y1 * 2, 2, 2), c11 = avg(x1 * 2, y1 * 2, 2, 2);
+    const r = Math.round(c00[0] * (1 - tx) * (1 - ty) + c10[0] * tx * (1 - ty) + c01[0] * (1 - tx) * ty + c11[0] * tx * ty);
+    const g = Math.round(c00[1] * (1 - tx) * (1 - ty) + c10[1] * tx * (1 - ty) + c01[1] * (1 - tx) * ty + c11[1] * tx * ty);
+    const b = Math.round(c00[2] * (1 - tx) * (1 - ty) + c10[2] * tx * (1 - ty) + c01[2] * (1 - tx) * ty + c11[2] * tx * ty);
+    const c2 = `rgb(${r},${g},${b})`;
+    // 在两层之间线性混合（这里偏向往低分辨率层，模拟"远处"效果）
+    const blend = 0.5;
+    const m1 = c1.match(/\d+/g)!.map(Number);
+    const m2 = c2.match(/\d+/g)!.map(Number);
+    const rr = Math.round(m1[0] * (1 - blend) + m2[0] * blend);
+    const gg = Math.round(m1[1] * (1 - blend) + m2[1] * blend);
+    const bb = Math.round(m1[2] * (1 - blend) + m2[2] * blend);
+    return `rgb(${rr},${gg},${bb})`;
+  }
+
+  function sample(u: number, v: number): string {
+    const mode = modeSel.value;
+    if (mode === 'nearest') return sampleNearest(u, v);
+    if (mode === 'bilinear') return sampleBilinear(u, v);
+    return sampleTrilinear(u, v);
+  }
+
+  function renderSrc() {
+    srcSvg.innerHTML = '';
+    const CELL = 320 / TEX;
+    for (let y = 0; y < TEX; y++) {
+      for (let x = 0; x < TEX; x++) {
+        const r = document.createElementNS(SVGNS, 'rect');
+        r.setAttribute('x', String(x * CELL));
+        r.setAttribute('y', String(y * CELL));
+        r.setAttribute('width', String(CELL));
+        r.setAttribute('height', String(CELL));
+        r.setAttribute('fill', tex[y][x]);
+        r.setAttribute('stroke', 'rgba(15,23,42,0.3)');
+        r.setAttribute('stroke-width', '1');
+        srcSvg.appendChild(r);
+      }
+    }
+    // 选中框
+    const sel = document.createElementNS(SVGNS, 'rect');
+    sel.setAttribute('x', String(SRC_X * CELL));
+    sel.setAttribute('y', String(SRC_Y * CELL));
+    sel.setAttribute('width', String(SRC_W * CELL));
+    sel.setAttribute('height', String(SRC_H * CELL));
+    sel.setAttribute('fill', 'none');
+    sel.setAttribute('stroke', '#fff');
+    sel.setAttribute('stroke-width', '3');
+    sel.setAttribute('stroke-dasharray', '6 3');
+    srcSvg.appendChild(sel);
+  }
+
+  function renderDst() {
+    dstSvg.innerHTML = '';
+    const zoom = Number(zoomInput.value);
+    const GRID = zoom;
+    const CELL = 320 / GRID;
+    // 把 SRC_W×SRC_H 像素区域映射到 GRID×GRID 网格
+    for (let py = 0; py < GRID; py++) {
+      for (let px = 0; px < GRID; px++) {
+        const u = (SRC_X + (px + 0.5) / GRID * SRC_W) / TEX;
+        const v = (SRC_Y + (py + 0.5) / GRID * SRC_H) / TEX;
+        const r = document.createElementNS(SVGNS, 'rect');
+        r.setAttribute('x', String(px * CELL));
+        r.setAttribute('y', String(py * CELL));
+        r.setAttribute('width', String(CELL));
+        r.setAttribute('height', String(CELL));
+        r.setAttribute('fill', sample(u, v));
+        dstSvg.appendChild(r);
+      }
+    }
+  }
+
+  function render() { renderSrc(); renderDst(); }
+
+  modeSel.addEventListener('change', render);
+  zoomInput.addEventListener('input', renderDst);
+  render();
+</script>

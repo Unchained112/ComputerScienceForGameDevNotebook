@@ -1,0 +1,227 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Rasterization · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Graphics / Rasterization</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">光栅化</span><span slot="en">Rasterization</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">光栅化把<b>顶点定义的三角形</b>转换成<b>屏幕像素的集合</b>——这是 GPU 固定功能阶段。核心是<b>三角形遍历</b>：找出每个像素中心是否落在三角形内，再用<b>重心坐标</b>对顶点属性（颜色、UV、法线）做插值。下方演示可悬停像素查看其重心坐标与插值颜色。</span>
+          <span slot="en">Rasterization turns <b>vertex-defined triangles</b> into <b>sets of screen pixels</b> — a fixed-function GPU stage. The core is <b>triangle traversal</b>: test whether each pixel center lies inside, then interpolate vertex attributes (color, UV, normal) via <b>barycentric coordinates</b>. Hover a pixel below to see its barycentric coords and interpolated color.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <div class="glass p-5">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <span id="ras-info" class="text-xs font-mono text-primary-cyan"></span>
+      </div>
+      <svg id="ras-svg" viewBox="0 0 480 360" class="w-full viz-stage"></svg>
+      <p class="text-xs text-ink-muted mt-2">
+        <Bilingual><span slot="zh">悬停像素查看其重心坐标 (α, β, γ) 与插值颜色。α+β+γ=1 是重心坐标的核心约束。</span><span slot="en">Hover a pixel to see its barycentric (α, β, γ) and interpolated color. The core constraint α+β+γ=1 holds.</span></Bilingual>
+      </p>
+    </div>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">重心坐标插值</span><span slot="en">Barycentric Interpolation</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed mb-3">
+        <Bilingual>
+          <span slot="zh">给定三角形顶点 A、B、C 与三个颜色 c_A、c_B、c_C，三角形内任意点 P 的颜色由<b>重心坐标</b> (α, β, γ) 决定：<code>P = αA + βB + γC</code>，<code>color = α·c_A + β·c_B + γ·c_C</code>。重心坐标把"位置"和"属性"用同一组权重表达，是 GPU 顶点→片元属性传递的数学基础。</span>
+          <span slot="en">Given triangle vertices A, B, C and colors c_A, c_B, c_C, the color of any interior point P is determined by its <b>barycentric coordinates</b> (α, β, γ): <code>P = αA + βB + γC</code>, <code>color = α·c_A + β·c_B + γ·c_C</code>. Barycentric coords use the same weights for position and attributes — the mathematical basis of GPU vertex→fragment attribute passing.</span>
+        </Bilingual>
+      </p>
+      <pre class="bg-[color:var(--code-bg)] rounded-lg p-4 overflow-x-auto text-sm"><code>// 重心坐标计算（向量叉积法）
+// 三角形顶点 A, B, C；待测点 P
+vec2 v0 = B - A, v1 = C - A, v2 = P - A;
+float denom = v0.x * v1.y - v1.x * v0.y;   // = 2 × 三角形有向面积
+float alpha = (v2.x * v1.y - v1.x * v2.y) / denom;  // β
+float beta  = (v0.x * v2.y - v2.x * v0.y) / denom;  // γ
+float gamma = 1.0 - alpha - beta;                   // α
+
+// 判断 P 是否在三角形内：α,β,γ 全部 ≥ 0
+bool inside = (alpha >= 0 && beta >= 0 && gamma >= 0);
+
+// 属性插值（颜色、UV、法线…）
+vec3 color = alpha * cA + beta * cB + gamma * cC;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">三角形遍历与扫描线</span><span slot="en">Triangle Traversal & Scanline</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">实际硬件实现采用<b>分块遍历</b>（tiled traversal）：把屏幕划成 8×8 或 16×16 的瓦片，每个瓦片独立判断与三角形的覆盖关系。早期软件光栅化用<b>扫描线算法</b>——从三角形最高顶点到底部，逐行求出左右边界，区间内像素批量填充。无论哪种算法，目标都是<b>只对覆盖像素做片元着色</b>，避免无效计算。</span>
+          <span slot="en">Real hardware uses <b>tiled traversal</b>: the screen is split into 8×8 or 16×16 tiles, each tested against triangle coverage independently. Early software rasterizers used the <b>scanline algorithm</b> — from the top vertex to bottom, computing left/right edges per row and filling pixels in between. Either way, the goal is to <b>shade only covered pixels</b> and avoid wasted work.</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">深度测试</span><span slot="en">Depth Test</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">多个三角形可能覆盖同一像素，需决定哪个最靠近相机。GPU 维护一个 <b>深度缓冲</b>（Z-Buffer），每个像素存最近片元的深度值。新片元写入前先比较：若 <code>z_new &lt; z_buffer</code> 则通过并更新缓冲，否则丢弃。这样无需对三角形排序即可正确处理遮挡——这是 Z-Buffer 算法的核心思想。</span>
+          <span slot="en">Multiple triangles may cover the same pixel; we must decide which is closest to the camera. The GPU keeps a <b>depth buffer</b> (Z-Buffer) storing the nearest fragment's depth per pixel. Before writing, a new fragment compares: if <code>z_new &lt; z_buffer</code> it passes and updates the buffer, else discarded. This correctly resolves occlusion without sorting triangles — the core of the Z-Buffer algorithm.</span>
+        </Bilingual>
+      </p>
+      <div class="overflow-x-auto mt-3">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">深度测试模式</span><span slot="en">Depth Func</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">行为</span><span slot="en">Behavior</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">典型用途</span><span slot="en">Use Case</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">LESS（默认）</td><td class="py-2 pr-4">z_new &lt; z_buf 通过</td><td class="py-2 pr-4">普通不透明几何</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">EQUAL</td><td class="py-2 pr-4">z_new == z_buf 通过</td><td class="py-2 pr-4">阴影贴图、贴花</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">禁用深度写入</td><td class="py-2 pr-4">深度比较仍执行，但不更新</td><td class="py-2 pr-4">透明物体（半透明排序）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">延伸阅读</span><span slot="en">Further Reading</span></Bilingual></h2>
+      <ul class="text-sm text-ink-muted space-y-2 list-disc pl-5">
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/shaders">着色器</a>：光栅化生成的片元如何进入片元着色器。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/shaders">Shaders</a>: how rasterized fragments enter the fragment shader.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/coord-transform">坐标变换</a>：顶点在到达光栅化前的 MVP 变换。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/coord-transform">Coords & Transforms</a>: the MVP transforms before rasterization.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/graphics/render">3D 渲染管线可视化页</a>：完整管线的 WebGL 演示。</span><span slot="en"><a class="text-primary-cyan underline" href="/graphics/render">3D Render Pipeline visualizer</a>: full WebGL pipeline demo.</span></Bilingual></li>
+      </ul>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('ras-svg') as unknown as SVGSVGElement;
+  const infoEl = document.getElementById('ras-info');
+
+  const PX = 16;
+  const GRID_W = 30, GRID_H = 22;
+
+  // 三角形顶点（网格坐标）
+  const A = [4, 3], B = [26, 6], C = [14, 20];
+  // 三顶点颜色 RGB
+  const cA = [239, 68, 68];
+  const cB = [34, 197, 94];
+  const cC = [56, 189, 248];
+
+  function lang(): 'zh' | 'en' {
+    return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+  }
+
+  // 重心坐标：返回 [α(A), β(B), γ(C)]
+  function barycentric(px: number, py: number): [number, number, number] {
+    const ax = A[0], ay = A[1], bx = B[0], by = B[1], cx = C[0], cy = C[1];
+    const denom = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy);
+    if (Math.abs(denom) < 1e-9) return [-1, -1, -1];
+    const a = ((by - cy) * (px - cx) + (cx - bx) * (py - cy)) / denom;
+    const b = ((cy - ay) * (px - cx) + (ax - cx) * (py - cy)) / denom;
+    const c = 1 - a - b;
+    return [a, b, c];
+  }
+
+  function isInside(b: [number, number, number]): boolean {
+    return b[0] >= 0 && b[1] >= 0 && b[2] >= 0;
+  }
+
+  function interpColor(b: [number, number, number]): string {
+    const r = Math.round(b[0] * cA[0] + b[1] * cB[0] + b[2] * cC[0]);
+    const g = Math.round(b[0] * cA[1] + b[1] * cB[1] + b[2] * cC[1]);
+    const bl = Math.round(b[0] * cA[2] + b[1] * cB[2] + b[2] * cC[2]);
+    return `rgb(${r},${g},${bl})`;
+  }
+
+  function render() {
+    svg.innerHTML = '';
+
+    // 像素网格
+    for (let j = 0; j < GRID_H; j++) {
+      for (let i = 0; i < GRID_W; i++) {
+        const cx = i + 0.5, cy = j + 0.5;
+        const b = barycentric(cx, cy);
+        const inside = isInside(b);
+        const rect = document.createElementNS(SVGNS, 'rect');
+        rect.setAttribute('x', String(i * PX));
+        rect.setAttribute('y', String(j * PX));
+        rect.setAttribute('width', String(PX));
+        rect.setAttribute('height', String(PX));
+        if (inside) {
+          rect.setAttribute('fill', interpColor(b));
+          rect.setAttribute('stroke', 'rgba(255,255,255,0.15)');
+          rect.setAttribute('stroke-width', '0.5');
+          rect.style.cursor = 'pointer';
+        } else {
+          rect.setAttribute('fill', 'rgba(148,163,184,0.04)');
+          rect.setAttribute('stroke', 'rgba(148,163,184,0.12)');
+          rect.setAttribute('stroke-width', '0.5');
+        }
+        rect.setAttribute('data-i', String(i));
+        rect.setAttribute('data-j', String(j));
+        svg.appendChild(rect);
+      }
+    }
+
+    // 三角形边框
+    const triPts = [A, B, C].map((p) => `${p[0] * PX},${p[1] * PX}`).join(' ');
+    const tri = document.createElementNS(SVGNS, 'polygon');
+    tri.setAttribute('points', triPts);
+    tri.setAttribute('fill', 'none');
+    tri.setAttribute('stroke', '#FBBF24');
+    tri.setAttribute('stroke-width', '2');
+    tri.setAttribute('stroke-dasharray', '4 3');
+    tri.setAttribute('pointer-events', 'none');
+    svg.appendChild(tri);
+
+    // 顶点标记
+    [A, B, C].forEach((p, idx) => {
+      const colors = [cA, cB, cC];
+      const c = document.createElementNS(SVGNS, 'circle');
+      c.setAttribute('cx', String(p[0] * PX));
+      c.setAttribute('cy', String(p[1] * PX));
+      c.setAttribute('r', '5');
+      c.setAttribute('fill', `rgb(${colors[idx].join(',')})`);
+      c.setAttribute('stroke', '#fff');
+      c.setAttribute('stroke-width', '1.5');
+      c.setAttribute('pointer-events', 'none');
+      svg.appendChild(c);
+      const label = document.createElementNS(SVGNS, 'text');
+      label.setAttribute('x', String(p[0] * PX + 8));
+      label.setAttribute('y', String(p[1] * PX - 8));
+      label.setAttribute('fill', '#FBBF24');
+      label.setAttribute('font-size', '14');
+      label.setAttribute('font-weight', '700');
+      label.setAttribute('pointer-events', 'none');
+      label.textContent = 'ABC'[idx];
+      svg.appendChild(label);
+    });
+
+    // 悬停事件
+    svg.addEventListener('mousemove', (e) => {
+      const target = e.target as SVGRectElement;
+      const i = Number(target.getAttribute('data-i'));
+      const j = Number(target.getAttribute('data-j'));
+      if (isNaN(i) || isNaN(j)) return;
+      const cx = i + 0.5, cy = j + 0.5;
+      const b = barycentric(cx, cy);
+      if (!isInside(b)) {
+        if (infoEl) infoEl.textContent = lang() === 'en' ? `(${i},${j}) outside triangle` : `(${i},${j}) 在三角形外`;
+        return;
+      }
+      const col = interpColor(b);
+      const labels = lang() === 'en'
+        ? `Pixel (${i},${j})  α=${b[0].toFixed(2)} β=${b[1].toFixed(2)} γ=${b[2].toFixed(2)}  → ${col}`
+        : `像素 (${i},${j})  α=${b[0].toFixed(2)} β=${b[1].toFixed(2)} γ=${b[2].toFixed(2)}  → ${col}`;
+      if (infoEl) infoEl.textContent = labels;
+    });
+
+    svg.addEventListener('mouseleave', () => {
+      if (infoEl) infoEl.textContent = '';
+    });
+
+    if (infoEl) infoEl.textContent = '';
+  }
+
+  document.addEventListener('langchange', render);
+  render();
+</script>

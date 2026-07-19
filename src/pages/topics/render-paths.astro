@@ -1,0 +1,153 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Render Paths · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Graphics / Render Paths</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">渲染路径（前向 / 延迟）</span><span slot="en">Render Paths (Forward / Deferred)</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">渲染路径决定<b>如何组织光照计算</b>。<b>前向渲染</b>每个片元立即计算所有光源，简单但光照多时开销线性增长；<b>延迟渲染</b>先把几何信息写入 G-Buffer，再做一次屏幕空间光照 pass，光照开销与场景复杂度解耦。两者在性能、带宽、透明度、MSAA 上各有取舍。</span>
+          <span slot="en">A render path decides <b>how lighting is organized</b>. <b>Forward rendering</b> computes all lights per fragment immediately — simple but scales linearly with light count. <b>Deferred rendering</b> writes geometry info to a G-Buffer first, then does a single screen-space lighting pass — decoupling light cost from scene complexity. They trade off performance, bandwidth, transparency, and MSAA.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">前向 vs 延迟流程对比</span><span slot="en">Forward vs Deferred Flow</span></Bilingual></h2>
+      <div class="grid lg:grid-cols-2 gap-4">
+        <div>
+          <div class="text-xs font-mono text-primary-cyan mb-2">Forward Rendering</div>
+          <div class="space-y-2 text-xs">
+            <div class="bg-[color:var(--code-bg)] rounded p-2 text-ink-muted">① Geometry Pass → Vertex Shader</div>
+            <div class="bg-[color:var(--code-bg)] rounded p-2 text-ink-muted">② Rasterize → Fragments</div>
+            <div class="bg-[color:var(--code-bg)] rounded p-2 text-primary-cyan">③ Fragment Shader × N Lights</div>
+            <div class="bg-[color:var(--code-bg)] rounded p-2 text-ink-muted">④ Depth Test</div>
+            <div class="bg-[color:var(--code-bg)] rounded p-2 text-ink-muted">⑤ Framebuffer</div>
+          </div>
+          <p class="text-xs text-ink-muted mt-2"><Bilingual><span slot="zh">每个片元对所有光源循环计算——光照越多越慢。</span><span slot="en">Each fragment loops over all lights — more lights = slower.</span></Bilingual></p>
+        </div>
+        <div>
+          <div class="text-xs font-mono text-primary-purple mb-2">Deferred Rendering</div>
+          <div class="space-y-2 text-xs">
+            <div class="bg-[color:var(--code-bg)] rounded p-2 text-ink-muted">① Geometry Pass → Vertex Shader</div>
+            <div class="bg-[color:var(--code-bg)] rounded p-2 text-ink-muted">② Rasterize → Fragments</div>
+            <div class="bg-[color:var(--code-bg)] rounded p-2 text-primary-purple">③ G-Buffer Pass（写入位置/法线/反照率/材质）</div>
+            <div class="bg-[color:var(--code-bg)] rounded p-2 text-primary-purple">④ Lighting Pass（屏幕空间逐像素光照）</div>
+            <div class="bg-[color:var(--code-bg)] rounded p-2 text-ink-muted">⑤ Framebuffer</div>
+          </div>
+          <p class="text-xs text-ink-muted mt-2"><Bilingual><span slot="zh">光照与几何解耦——N 个光源仅按屏幕像素算一次。</span><span slot="en">Lighting decoupled from geometry — N lights computed once per screen pixel.</span></Bilingual></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">性能与特性对比</span><span slot="en">Performance & Feature Comparison</span></Bilingual></h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">维度</span><span slot="en">Aspect</span></Bilingual></th><th class="py-2 pr-4 text-primary-cyan">Forward</th><th class="py-2 pr-4 text-primary-purple">Deferred</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">光照复杂度</td><td class="py-2 pr-4 text-func-amber">O(fragments × lights)</td><td class="py-2 pr-4 text-func-green">O(pixels × lights)</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">多光源</td><td class="py-2 pr-4 text-func-red">慢（需多 Pass 或循环）</td><td class="py-2 pr-4 text-func-green">快</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">带宽</td><td class="py-2 pr-4 text-func-green">低</td><td class="py-2 pr-4 text-func-red">高（G-Buffer 多 RT）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">透明物体</td><td class="py-2 pr-4 text-func-green">✓ 直接支持</td><td class="py-2 pr-4 text-func-red">✗ 需回退 Forward</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">MSAA 抗锯齿</td><td class="py-2 pr-4 text-func-green">✓ 原生支持</td><td class="py-2 pr-4 text-func-red">✗ 难（需特殊处理）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted">材质多样性</td><td class="py-2 pr-4 text-func-green">✓ 每片元任意着色</td><td class="py-2 pr-4 text-func-amber">受限（G-Buffer 固定字段）</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted">代表引擎/场景</td><td class="py-2 pr-4">Unity 默认、移动端</td><td class="py-2 pr-4">UE4/UE5、GTA V</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">透明度处理</span><span slot="en">Transparency Handling</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">延迟渲染的<b>致命短板</b>是透明物体：G-Buffer 每像素只能存一个表面信息，而透明物体（玻璃、烟雾）需要前后两层混合。常见方案是<b>混合渲染路径</b>——不透明物体走延迟，透明物体单独走前向 pass。前向渲染无此问题，但多光源下透明物体开销同样很大。</span>
+          <span slot="en">Deferred rendering's <b>fatal weakness</b> is transparency: the G-Buffer stores one surface per pixel, but transparent objects (glass, smoke) need front-back blending. The common solution is a <b>hybrid path</b> — opaque via deferred, transparent via a separate forward pass. Forward has no such issue, but multi-light transparency is still expensive.</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Forward+ / Cluster Forward</span><span slot="en">Forward+ / Cluster Forward</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh"><b>Forward+</b>（又称 Cluster Forward）是现代前向渲染的进化方案，融合了两者的优点。它先做一次<b>深度预 pass</b>把屏幕分成 3D 簇（cluster，沿视锥深度切分），统计每个簇内的光源列表；正式前向 pass 中每个片元只需遍历<b>所在簇的光源</b>，大幅减少无效光照计算。这样既保留前向渲染对透明/MSAA 的支持，又获得延迟渲染的多光源效率，是当前主流引擎（UE5 Lumen、Unity HDRP）的默认路径。</span>
+          <span slot="en"><b>Forward+</b> (a.k.a. Cluster Forward) is the modern evolution, combining both. It runs a <b>depth pre-pass</b> dividing the screen into 3D clusters (sliced along view depth), then bins lights per cluster; the actual forward pass iterates only the <b>lights in the fragment's cluster</b>, eliminating wasted work. This keeps forward's transparency/MSAA support while achieving deferred's multi-light efficiency — the default in modern engines (UE5 Lumen, Unity HDRP).</span>
+        </Bilingual>
+      </p>
+      <div class="grid sm:grid-cols-3 gap-3 mt-3 text-xs">
+        <div class="glass p-3">
+          <div class="text-primary-cyan font-mono mb-1">① Depth Pre-Pass</div>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">渲染深度，建立簇结构。</span><span slot="en">Render depth, build clusters.</span></Bilingual></p>
+        </div>
+        <div class="glass p-3">
+          <div class="text-primary-cyan font-mono mb-1">② Light Culling</div>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">Compute Shader 把光源分到各簇。</span><span slot="en">Compute shader bins lights to clusters.</span></Bilingual></p>
+        </div>
+        <div class="glass p-3">
+          <div class="text-primary-cyan font-mono mb-1">③ Shaded Forward</div>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">片元仅遍历簇内光源。</span><span slot="en">Fragment iterates only cluster lights.</span></Bilingual></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">选型建议</span><span slot="en">Selection Guide</span></Bilingual></h2>
+      <div class="grid sm:grid-cols-3 gap-4 text-sm">
+        <div class="space-y-2">
+          <div class="text-primary-cyan font-semibold"><Bilingual><span slot="zh">移动端 / VR</span><span slot="en">Mobile / VR</span></Bilingual></div>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">带宽敏感、光源少——<b>Forward</b>。带宽受限下延迟 G-Buffer 反而是负担。</span><span slot="en">Bandwidth-sensitive, few lights — <b>Forward</b>. G-Buffer bandwidth is a burden here.</span></Bilingual></p>
+        </div>
+        <div class="space-y-2">
+          <div class="text-primary-purple font-semibold"><Bilingual><span slot="zh">PC 3A 大作</span><span slot="en">PC AAA</span></Bilingual></div>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">多光源、复杂场景——<b>Deferred</b> 或 <b>Forward+</b>。UE5 默认 Forward+，兼顾透明与多光源。</span><span slot="en">Many lights, complex scenes — <b>Deferred</b> or <b>Forward+</b>. UE5 defaults to Forward+, balancing transparency and multi-light.</span></Bilingual></p>
+        </div>
+        <div class="space-y-2">
+          <div class="text-func-amber font-semibold"><Bilingual><span slot="zh">卡通 / 风格化</span><span slot="en">Toon / Stylized</span></Bilingual></div>
+          <p class="text-ink-muted"><Bilingual><span slot="zh">通常不需要多光源、对透明要求高——<b>Forward</b>。</span><span slot="en">Rarely needs many lights, transparency-heavy — <b>Forward</b>.</span></Bilingual></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">G-Buffer 字段示例</span><span slot="en">G-Buffer Fields Example</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">延迟渲染把几何属性写入多个 Render Target，典型布局（4 张 RT，RGBA8/RGBA16F）：</span><span slot="en">Deferred rendering writes geometry attributes to multiple render targets. Typical layout (4 RTs, RGBA8/RGBA16F):</span></Bilingual></p>
+      <pre class="bg-[color:var(--code-bg)] rounded-lg p-4 overflow-x-auto text-sm"><code>// G-Buffer 布局（MRT 多渲染目标）
+RT0 (RGBA8)   : albedo.rgb + AO.a
+RT1 (RGBA16F) : normal.rgb (view space) + roughness.a
+RT2 (RGBA8)   : metallic.r + specular.r + emissive.rgb
+RT3 (Depth)   : linear depth
+
+// Lighting Pass：屏幕空间逐像素计算
+in vec2 vUV;
+uniform sampler2D gAlbedo, gNormal, gMaterial, gDepth;
+out vec4 FragColor;
+void main() &#123;
+    vec3 albedo   = texture(gAlbedo, vUV).rgb;
+    vec3 normal   = texture(gNormal, vUV).rgb;
+    float rough   = texture(gNormal, vUV).a;
+    float metal   = texture(gMaterial, vUV).r;
+    // 对每个光源做 PBR 计算（屏幕空间，无几何遍历）
+    vec3 color = vec3(0.0);
+    for (int i = 0; i &lt; uLightCount; i++)
+        color += PBR(albedo, normal, rough, metal, uLights[i]);
+    FragColor = vec4(color, 1.0);
+&#125;</code></pre>
+    </section>
+
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">延伸阅读</span><span slot="en">Further Reading</span></Bilingual></h2>
+      <ul class="text-sm text-ink-muted space-y-2 list-disc pl-5">
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/lighting">光照模型</a>：渲染路径决定光照如何组织，模型决定每个光照如何计算。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/lighting">Lighting</a>: render path organizes lighting; model computes each light.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/global-illumination">全局光照</a>：渲染路径决定直接光，GI 补充间接光。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/global-illumination">Global Illumination</a>: path handles direct light; GI adds indirect.</span></Bilingual></li>
+        <li><Bilingual><span slot="zh"><a class="text-primary-cyan underline" href="/topics/shaders">着色器</a>：G-Buffer 写入与光照 Pass 都由片元/计算着色器实现。</span><span slot="en"><a class="text-primary-cyan underline" href="/topics/shaders">Shaders</a>: G-Buffer writes and lighting passes are fragment/compute shaders.</span></Bilingual></li>
+      </ul>
+    </section>
+  </article>
+</BaseLayout>
