@@ -132,6 +132,9 @@ export const outline: OutlineNode[] = [
           { id: 'cpp-tpl', zh: '模板与泛型', en: 'Templates', href: '/topics/cpp-templates' },
           { id: 'cpp-stl', zh: 'STL 容器与算法', en: 'STL', href: '/topics/cpp-stl' },
           { id: 'cpp-raii', zh: 'RAII 与智能指针', en: 'RAII & Smart Pointers', href: '/topics/cpp-raii' },
+          { id: 'cpp-move', zh: '移动语义与值类别', en: 'Move Semantics', href: '/topics/cpp-move' },
+          { id: 'cpp-conc', zh: '多线程与并发', en: 'Concurrency', href: '/topics/cpp-concurrency' },
+          { id: 'cpp-mod', zh: '现代 C++ 特性', en: 'Modern C++', href: '/topics/cpp-modern' },
         ],
       },
       {
@@ -142,6 +145,9 @@ export const outline: OutlineNode[] = [
         children: [
           { id: 'py-syntax', zh: '语法与数据结构', en: 'Syntax & Data Structures', href: '/topics/py-syntax' },
           { id: 'py-std', zh: '标准库与工具链', en: 'Stdlib & Tooling', href: '/topics/py-stdlib' },
+          { id: 'py-vm', zh: '虚拟机与字节码', en: 'VM & Bytecode', href: '/topics/py-vm' },
+          { id: 'py-objects', zh: '对象模型与内存', en: 'Object Model & Memory', href: '/topics/py-objects' },
+          { id: 'py-opt', zh: '性能优化', en: 'Performance Optimization', href: '/topics/py-optimization' },
         ],
       },
     ],

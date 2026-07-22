@@ -1,0 +1,873 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Concurrency · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Languages / C++ Concurrency</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">多线程与并发</span><span slot="en">Multithreading & Concurrency</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">现代游戏天然并发——<b>渲染线程</b>、<b>物理线程</b>、<b>音频线程</b>、<b>AI 线程</b>并行工作。C++11 将并发纳入标准库（<code>&lt;thread&gt;</code>、<code>&lt;mutex&gt;</code>、<code>&lt;atomic&gt;</code>、<code>&lt;future&gt;</code>），C++20 引入<b>协程</b>和 <code>std::jthread</code>。掌握多线程是高性能游戏引擎的必备技能——但也充满陷阱：数据竞争、死锁、虚假共享。点击下方观看生产者-消费者时序图。</span>
+          <span slot="en">Modern games are inherently concurrent — <b>render thread</b>, <b>physics thread</b>, <b>audio thread</b>, <b>AI thread</b> run in parallel. C++11 brought concurrency to the standard library (<code>&lt;thread&gt;</code>, <code>&lt;mutex&gt;</code>, <code>&lt;atomic&gt;</code>, <code>&lt;future&gt;</code>); C++20 added <b>coroutines</b> and <code>std::jthread</code>. Mastering multithreading is essential for high-performance game engines — but fraught with pitfalls: data races, deadlocks, false sharing. Click below to watch the producer-consumer sequence diagram.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：生产者-消费者时序图 -->
+    <div class="glass p-5" data-viz="prod-cons">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="pc-play" class="btn btn-primary">
+          <span data-ui="play" data-lang="zh">播放</span><span data-ui="play" data-lang="en">Play</span>
+          <span data-ui="pause" data-lang="zh" class="hidden">暂停</span><span data-ui="pause" data-lang="en" class="hidden">Pause</span>
+        </button>
+        <button id="pc-step" class="btn"><span data-ui="step" data-lang="zh">单步</span><span data-ui="step" data-lang="en">Step</span></button>
+        <button id="pc-reset" class="btn"><span data-ui="reset" data-lang="zh">重置</span><span data-ui="reset" data-lang="en">Reset</span></button>
+        <span id="pc-state" class="text-xs font-mono text-ink-muted"></span>
+      </div>
+      <svg id="pc-svg" viewBox="0 0 800 360" class="w-full h-96 viz-stage"></svg>
+    </div>
+
+    <!-- std::thread -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">std::thread：创建与管理</span><span slot="en">std::thread: Creation & Management</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><code>std::thread</code> 创建一个 OS 线程。关键规则：<b>必须 <code>join()</code> 或 <code>detach()</code></b>，否则析构时调用 <code>std::terminate</code>。<code>join</code> 等待线程结束（阻塞），<code>detach</code> 分离（后台运行）。C++20 的 <code>std::jthread</code> 自动 join 并支持<b>协作式取消</b>（<code>stop_token</code>）。</span><span slot="en"><code>std::thread</code> creates an OS thread. Key rule: <b>must <code>join()</code> or <code>detach()</code></b>, else <code>std::terminate</code> is called on destruction. <code>join</code> waits for completion (blocking), <code>detach</code> separates (background). C++20's <code>std::jthread</code> auto-joins and supports <b>cooperative cancellation</b> (<code>stop_token</code>).</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>#include &lt;thread&gt;
+#include &lt;iostream&gt;
+
+void worker(int id) &#123;
+    std::cout &lt;&lt; "Thread " &lt;&lt; id &lt;&lt; " running\\n";
+&#125;
+
+int main() &#123;
+    // 创建并启动线程
+    std::thread t1(worker, 1);
+    std::thread t2([]() &#123;            // Lambda 线程
+        std::cout &lt;&lt; "Lambda thread\\n";
+    &#125;);
+
+    t1.join();    // 等待 t1 结束
+    t2.join();    // 等待 t2 结束
+    // 若不 join/detach，t 析构时 std::terminate！
+
+    // detach：后台运行（失去控制）
+    std::thread t3([]() &#123; /* background */ &#125;);
+    t3.detach();   // 分离，不再可控
+
+    // 线程数：硬件并发数
+    unsigned n = std::thread::hardware_concurrency();
+    // 通常 = CPU 逻辑核心数（8/16/32...）
+
+    // ===== C++20: std::jthread（自动 join + 可取消） =====
+    #include &lt;stop_token&gt;
+    std::jtask jt([](std::stop_token st) &#123;
+        while (!st.stop_requested()) &#123;
+            // 工作循环
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        &#125;
+    &#125;);
+    // jt 析构时自动 join（无需手动）
+    jt.request_stop();   // 请求停止
+
+    // ===== 传递引用：必须用 std::ref =====
+    int result = 0;
+    std::thread t4([](int&amp; r) &#123; r = 42; &#125;, std::ref(result));
+    t4.join();
+    // result == 42
+
+    // ===== 线程池模式（游戏引擎标准） =====
+    class ThreadPool &#123;
+        std::vector&lt;std::thread&gt; workers;
+        std::queue&lt;std::function&lt;void()&gt;&gt; tasks;
+        std::mutex mtx;
+        std::condition_variable cv;
+        bool stop = false;
+    public:
+        ThreadPool(int n) &#123;
+            for (int i = 0; i &lt; n; i++)
+                workers.emplace_back([this] &#123;
+                    while (true) &#123;
+                        std::function&lt;void()&gt; task;
+                        &#123;
+                            std::unique_lock lock(mtx);
+                            cv.wait(lock, [this] &#123; return stop || !tasks.empty(); &#125;);
+                            if (stop &amp;&amp; tasks.empty()) return;
+                            task = std::move(tasks.front());
+                            tasks.pop();
+                        &#125;
+                        task();
+                    &#125;
+                &#125;);
+        &#125;
+        ~ThreadPool() &#123;
+            &#123; std::lock_guard lock(mtx); stop = true; &#125;
+            cv.notify_all();
+            for (auto&amp; w : workers) w.join();
+        &#125;
+        void enqueue(std::function&lt;void()&gt; task) &#123;
+            &#123; std::lock_guard lock(mtx); tasks.push(std::move(task)); &#125;
+            cv.notify_one();
+        &#125;
+    &#125;;</code></pre>`}
+  py={`<pre><code>import threading, time
+from concurrent.futures import ThreadPoolExecutor
+
+def worker(id):
+    print(f"Thread {id} running")
+
+# 方式1: threading.Thread
+t1 = threading.Thread(target=worker, args=(1,))
+t2 = threading.Thread(target=lambda: print("Lambda thread"))
+t1.start()    # 启动（Python 无 join/detach 强制要求）
+t2.start()
+t1.join()     # 等待结束
+t2.join()
+
+# 方式2: ThreadPoolExecutor（推荐，类似 C++ 线程池）
+with ThreadPoolExecutor(max_workers=4) as pool:
+    futures = [pool.submit(worker, i) for i in range(8)]
+    for f in futures:
+        f.result()  # 等待完成
+
+# CPU 核心数
+import os
+n = os.cpu_count()
+
+# 传递引用：Python 一切引用，无需 ref
+result = [0]  # 用 list 包装可变对象
+def set_result(r):
+    r[0] = 42
+t = threading.Thread(target=set_result, args=(result,))
+t.start(); t.join()
+print(result[0])  # 42
+
+# 注意：Python 有 GIL——多线程无法真正并行 CPU 密集任务
+# CPU 密集 → 用 multiprocessing
+# I/O 密集 → 用 threading / asyncio</code></pre>`}
+      />
+    </section>
+
+    <!-- mutex / lock -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">互斥锁与锁保护</span><span slot="en">Mutexes & Lock Guards</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>互斥锁</b>（mutex）保护共享数据——同一时刻只有一个线程能持有锁。<code>std::lock_guard</code> 是 RAII 锁（构造加锁、析构解锁），<code>std::unique_lock</code> 更灵活（可延迟加锁、手动解锁、配合 condition_variable）。<code>std::shared_mutex</code>（C++17）实现<b>读写锁</b>——多读单写。</span><span slot="en"><b>Mutex</b> protects shared data — only one thread can hold it at a time. <code>std::lock_guard</code> is RAII locking (lock on construct, unlock on destruct); <code>std::unique_lock</code> is more flexible (deferred lock, manual unlock, works with condition_variable). <code>std::shared_mutex</code> (C++17) implements a <b>read-write lock</b> — multiple readers, single writer.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>#include &lt;mutex&gt;
+#include &lt;shared_mutex&gt;
+
+std::vector&lt;Entity&gt; entities;   // 共享数据
+std::mutex mtx;                   // 保护 entities
+
+// ===== lock_guard：最简单的 RAII 锁 =====
+void addEntity(const Entity&amp; e) &#123;
+    std::lock_guard lock(mtx);    // 构造时加锁
+    entities.push_back(e);
+&#125;  // 析构自动解锁（即使异常）
+
+// ===== unique_lock：灵活，可配合 cv =====
+void waitForData() &#123;
+    std::unique_lock lock(mtx);   // 加锁
+    cv.wait(lock, []&#123; return !entities.empty(); &#125;);  // 等待并临时释放锁
+    // 重新加锁，继续
+    process(entities.back());
+&#125;  // 析构解锁
+
+// ===== shared_mutex：读写锁（多读单写） =====
+std::shared_mutex rwMtx;
+
+// 读操作：多个线程可同时读
+Entity getEntity(size_t i) &#123;
+    std::shared_lock lock(rwMtx);   // 共享锁（读锁）
+    return entities[i];
+&#125;
+
+// 写操作：独占，排斥所有其他读写
+void removeEntity(size_t i) &#123;
+    std::unique_lock lock(rwMtx);   // 独占锁（写锁）
+    entities.erase(entities.begin() + i);
+&#125;
+
+// ===== 死锁与避免 =====
+// 死锁：两个线程互相等待对方的锁
+std::mutex m1, m2;
+// 线程A: lock(m1); lock(m2);  ← 等待 m2
+// 线程B: lock(m2); lock(m1);  ← 等待 m1
+// → 永久阻塞！
+
+// 解决1: 固定加锁顺序
+void safeAB() &#123;
+    std::lock_guard l1(m1);   // 总是先锁 m1
+    std::lock_guard l2(m2);   // 再锁 m2
+&#125;
+
+// 解决2: std::lock 一次锁多个（避免死锁）
+void safeMulti() &#123;
+    std::unique_lock l1(m1, std::defer_lock);
+    std::unique_lock l2(m2, std::defer_lock);
+    std::lock(l1, l2);   // 原子地锁两个
+&#125;
+
+// 解决3: C++17 std::scoped_lock
+void safeScoped() &#123;
+    std::scoped_lock lock(m1, m2);   // 一次锁多个，RAII
+&#125;</code></pre>`}
+  py={`<pre><code>import threading
+
+entities = []
+mtx = threading.Lock()
+rw_lock = threading.RLock()  # Python 无 shared_mutex，用 RLock
+
+# ===== 基本 Lock =====
+def add_entity(e):
+    with mtx:              # 等价 lock_guard
+        entities.append(e)
+
+# ===== 手动 acquire/release =====
+def add_entity_manual(e):
+    mtx.acquire()
+    try:
+        entities.append(e)
+    finally:
+        mtx.release()      # 必须在 finally 中释放
+
+# ===== 读写锁模拟（第三方库） =====
+import rwlock
+rw = rwlock.RWLock()
+
+def get_entity(i):
+    with rw.r_locked():    # 读锁（可多读）
+        return entities[i]
+
+def remove_entity(i):
+    with rw.w_locked():    # 写锁（独占）
+        del entities[i]
+
+# ===== 死锁避免 =====
+m1 = threading.Lock()
+m2 = threading.Lock()
+
+# 危险：可能死锁
+def thread_a():
+    with m1:
+        with m2:
+            pass
+
+def thread_b():
+    with m2:
+        with m1:
+            pass
+
+# 安全：固定顺序
+def safe_a():
+    with m1:
+        with m2:
+            pass
+
+def safe_b():
+    with m1:   # 同样先锁 m1
+        with m2:
+            pass
+
+# Python 无 std::lock / scoped_lock 等价物
+# 需手动管理或用 contextlib.ExitStack</code></pre>`}
+      />
+    </section>
+
+    <!-- atomic 与内存序 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">atomic 与内存序</span><span slot="en">Atomic & Memory Order</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><code>std::atomic</code> 提供<b>无锁原子操作</b>——读-改-写不可中断，无需互斥锁。<code>memory_order</code> 控制可见性：<b>seq_cst</b>（默认，最强，全局顺序）、<b>acquire/release</b>（成对使用，保证释放-获取语义）、<b>relaxed</b>（最弱，仅原子性无顺序保证）。游戏开发中，<code>atomic&lt;bool&gt;</code> 做停止标志、<code>atomic&lt;int&gt;</code> 做计数器，性能远高于 mutex。</span><span slot="en"><code>std::atomic</code> provides <b>lock-free atomic operations</b> — uninterruptible read-modify-write, no mutex needed. <code>memory_order</code> controls visibility: <b>seq_cst</b> (default, strongest, global order), <b>acquire/release</b> (paired, release-acquire semantics), <b>relaxed</b> (weakest, atomicity only, no ordering). In game dev, <code>atomic&lt;bool&gt;</code> for stop flags, <code>atomic&lt;int&gt;</code> for counters — far faster than mutex.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>#include &lt;atomic&gt;
+
+// ===== 基本原子类型 =====
+std::atomic&lt;int&gt; counter(0);
+std::atomic&lt;bool&gt; running(true);
+std::atomic&lt;uint32_t&gt; frameCount(0);
+
+// 原子操作
+counter.fetch_add(1);       // ++counter（原子）
+counter.load();             // 读取
+counter.store(42);          // 写入
+bool expected = false;
+running.compare_exchange_strong(expected, true);  // CAS
+
+// ===== 数据竞争 vs 原子 =====
+// 错误：数据竞争（UB）
+int bad_counter = 0;
+// 线程A: bad_counter++;  ← 读-改-写三步，可能交错
+// 线程B: bad_counter++;
+
+// 正确：原子操作
+std::atomic&lt;int&gt; good_counter(0);
+// 线程A: good_counter.fetch_add(1);  ← 原子不可分
+// 线程B: good_counter.fetch_add(1);
+
+// ===== 内存序 =====
+std::atomic&lt;int&gt; data(0);
+std::atomic&lt;bool&gt; ready(false);
+
+// 生产者
+void producer() &#123;
+    data.store(42, std::memory_order_relaxed);       // 无顺序保证
+    ready.store(true, std::memory_order_release);     // 释放：之前的写对获取者可见
+&#125;
+
+// 消费者
+void consumer() &#123;
+    while (!ready.load(std::memory_order_acquire)) &#123;  // 获取：看到释放后的数据
+        std::this_thread::yield();
+    &#125;
+    assert(data.load(std::memory_order_relaxed) == 42);  // 保证看到 42
+&#125;
+
+// 内存序对比：
+// seq_cst:    全局顺序，最强，最慢（默认）
+// acquire:    读操作——看到对应 release 之前的所有写
+// release:    写操作——此前的所有写对 acquire 可见
+// relaxed:    仅原子性，无顺序保证，最快
+// acq_rel:    同时是 acquire 和 release（RMW 操作）
+
+// ===== CAS（Compare-And-Swap）无锁编程 =====
+std::atomic&lt;int&gt; value(0);
+
+bool tryIncrement() &#123;
+    int old = value.load(std::memory_order_relaxed);
+    while (!value.compare_exchange_weak(
+        old, old + 1,
+        std::memory_order_acq_rel,
+        std::memory_order_relaxed)) &#123;
+        // CAS 失败：old 被更新为当前值，重试
+    &#125;
+    return true;
+&#125;
+
+// 无锁栈（游戏对象池）
+template &lt;typename T&gt;
+class LockFreeStack &#123;
+    struct Node &#123; T data; Node* next; &#125;;
+    std::atomic&lt;Node*&gt; head&#123;nullptr&#125;;
+public:
+    void push(T value) &#123;
+        Node* n = new Node&#123;std::move(value), nullptr&#125;;
+        n-&gt;next = head.load(std::memory_order_relaxed);
+        while (!head.compare_exchange_weak(
+            n-&gt;next, n,
+            std::memory_order_release,
+            std::memory_order_relaxed));
+    &#125;
+    bool pop(T&amp; result) &#123;
+        Node* old = head.load(std::memory_order_acquire);
+        while (old &amp;&amp; !head.compare_exchange_weak(
+            old, old-&gt;next,
+            std::memory_order_acquire,
+            std::memory_order_relaxed));
+        if (old) &#123; result = std::move(old-&gt;data); delete old; return true; &#125;
+        return false;
+    &#125;
+&#125;;</code></pre>`}
+  py={`<pre><code># Python 无 std::atomic——用 threading 或 multiprocessing
+
+# 方式1: threading.Lock（有锁，慢）
+import threading
+counter = 0
+lock = threading.Lock()
+
+def increment():
+    global counter
+    with lock:
+        counter += 1
+
+# 方式2: queue.Queue（线程安全，内部用锁）
+from queue import Queue
+q = Queue()
+q.put(42)   # 线程安全
+val = q.get()
+
+# 方式3: multiprocessing.Value（进程间共享原子值）
+import multiprocessing as mp
+counter = mp.Value('i', 0)  # 原子 int
+with counter.get_lock():
+    counter.value += 1
+
+# 方式4: 第三方 atomic 库
+# pip install atomic
+from atomic import AtomicLong
+counter = AtomicLong(0)
+counter += 1   # 原子操作
+
+# Python GIL 使得 CPython 中简单操作天然"原子"
+# 但不保证——依赖实现细节，不推荐依赖
+# 正确做法：用 Lock 或 Queue
+
+# CAS 模拟
+def compare_and_swap(atom, expected, new):
+    """模拟 C++ compare_exchange"""
+    with atom.lock:
+        if atom.value == expected:
+            atom.value = new
+            return True
+        return False</code></pre>`}
+      />
+    </section>
+
+    <!-- condition_variable & future -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">condition_variable 与 future</span><span slot="en">condition_variable & future</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>condition_variable</b> 实现线程间<b>等待-通知</b>——消费者等待条件满足，生产者通知唤醒。是生产者-消费者模式的核心。<b>future/promise</b> 实现异步结果传递——<code>std::async</code> 启动异步任务并返回 <code>future</code>，调用 <code>get()</code> 阻塞等待结果。</span><span slot="en"><b>condition_variable</b> implements inter-thread <b>wait-notify</b> — consumers wait for a condition, producers notify to wake them. Core of the producer-consumer pattern. <b>future/promise</b> implements async result passing — <code>std::async</code> launches an async task returning a <code>future</code>; calling <code>get()</code> blocks for the result.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>#include &lt;condition_variable&gt;
+#include &lt;future&gt;
+#include &lt;queue&gt;
+
+// ===== 生产者-消费者 =====
+std::queue&lt;int&gt; taskQueue;
+std::mutex queueMtx;
+std::condition_variable queueCV;
+bool done = false;
+
+// 生产者
+void producer() &#123;
+    for (int i = 0; i &lt; 10; i++) &#123;
+        &#123;
+            std::lock_guard lock(queueMtx);
+            taskQueue.push(i);
+            std::cout &lt;&lt; "Produced " &lt;&lt; i &lt;&lt; "\\n";
+        &#125;
+        queueCV.notify_one();   // 通知一个等待的消费者
+    &#125;
+    &#123;
+        std::lock_guard lock(queueMtx);
+        done = true;
+    &#125;
+    queueCV.notify_one();
+&#125;
+
+// 消费者
+void consumer() &#123;
+    while (true) &#123;
+        int task;
+        &#123;
+            std::unique_lock lock(queueMtx);
+            queueCV.wait(lock, []&#123;
+                return !taskQueue.empty() || done;
+            &#125;);   // 等待：自动释放锁，被唤醒后重新加锁
+            if (taskQueue.empty() &amp;&amp; done) return;
+            task = taskQueue.front();
+            taskQueue.pop();
+        &#125;
+        std::cout &lt;&lt; "Consumed " &lt;&lt; task &lt;&lt; "\\n";
+    &#125;
+&#125;
+
+// ===== future / promise / async =====
+// std::async：最简单的异步任务
+std::future&lt;int&gt; fut = std::async(std::launch::async, []() &#123;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    return 42;
+&#125;);
+// 主线程做其他事...
+int result = fut.get();   // 阻塞等待结果（= 42）
+
+// std::promise / future：手动设置结果
+std::promise&lt;int&gt; prom;
+std::future&lt;int&gt; fut2 = prom.get_future();
+std::thread t([&amp;prom]() &#123;
+    int result = computeExpensive();
+    prom.set_value(result);   // 设置结果
+&#125;);
+int val = fut2.get();         // 等待结果
+t.join();
+
+// std::packaged_task：包装可调用对象
+std::packaged_task&lt;int(int)&gt; task([](int x) &#123; return x * 2; &#125;);
+std::future&lt;int&gt; fut3 = task.get_future();
+std::thread t2(std::move(task), 21);
+int val2 = fut3.get();   // = 42
+t2.join();
+
+// 游戏场景：异步资源加载
+class AssetLoader &#123;
+    std::unordered_map&lt;std::string, std::future&lt;Texture&gt;&gt; loading;
+public:
+    void requestAsync(const std::string&amp; path) &#123;
+        loading[path] = std::async(std::launch::async, [path]() &#123;
+            return loadTexture(path);   // 耗时加载
+        &#125;);
+    &#125;
+    Texture* getIfReady(const std::string&amp; path) &#123;
+        auto it = loading.find(path);
+        if (it != loading.end() &amp;&amp;
+            it-&gt;second.wait_for(std::chrono::seconds(0)) ==
+            std::future_status::ready) &#123;
+            return &amp;it-&gt;second.get();
+        &#125;
+        return nullptr;   // 还没加载完
+    &#125;
+&#125;;</code></pre>`}
+  py={`<pre><code>import threading, queue, concurrent.futures
+
+# ===== 生产者-消费者 =====
+task_queue = queue.Queue()
+
+def producer():
+    for i in range(10):
+        task_queue.put(i)
+        print(f"Produced {i}")
+    task_queue.put(None)  # 结束信号
+
+def consumer():
+    while True:
+        task = task_queue.get()  # 阻塞等待
+        if task is None:
+            break
+        print(f"Consumed {task}")
+        task_queue.task_done()
+
+# 启动
+pt = threading.Thread(target=producer)
+ct = threading.Thread(target=consumer)
+pt.start(); ct.start()
+pt.join(); ct.join()
+
+# ===== future（concurrent.futures） =====
+from concurrent.futures import ThreadPoolExecutor
+
+with ThreadPoolExecutor() as pool:
+    # 提交异步任务
+    fut = pool.submit(lambda: (
+        __import__('time').sleep(1), 42)[1])
+    # 主线程做其他事...
+    result = fut.result()  # 阻塞等待（= 42）
+    print(result)
+
+# Future 模式
+from concurrent.futures import Future
+
+def async_load(path):
+    """异步加载资源"""
+    fut = Future()
+    def work():
+        try:
+            result = load_texture(path)
+            fut.set_result(result)
+        except Exception as e:
+            fut.set_exception(e)
+    threading.Thread(target=work).start()
+    return fut
+
+fut = async_load("hero.png")
+# 做其他事...
+if fut.done():
+    tex = fut.result()
+else:
+    print("still loading...")</code></pre>`}
+      />
+    </section>
+
+    <!-- C++20 协程 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">C++20 协程：异步模型对比</span><span slot="en">C++20 Coroutines: Async Model Comparison</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>协程</b>是可暂停-恢复的函数——<code>co_await</code> 挂起不阻塞线程，<code>co_yield</code> 产出值，<code>co_return</code> 完成。相比线程，协程<b>无栈、极轻量</b>（KB 级 vs MB 级），适合异步 I/O、生成器、状态机。C++20 协程是<b>编译器特性</b>——需要库提供 <code>promise_type</code>，标准库的 <code>std::generator</code>（C++23）和第三方 <code>cppcoro</code> 提供常用设施。</span><span slot="en"><b>Coroutines</b> are suspendable-resumable functions — <code>co_await</code> suspends without blocking the thread, <code>co_yield</code> produces a value, <code>co_return</code> finishes. Compared to threads, coroutines are <b>stackless, extremely lightweight</b> (KB vs MB), ideal for async I/O, generators, state machines. C++20 coroutines are a <b>compiler feature</b> — libraries provide <code>promise_type</code>; <code>std::generator</code> (C++23) and third-party <code>cppcoro</code> provide common facilities.</span></Bilingual></p>
+      <div class="overflow-x-auto mb-4">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">特性</span><span slot="en">Aspect</span></Bilingual></th><th class="py-2 pr-4 text-func-amber">线程 Thread</th><th class="py-2 pr-4 text-func-green">协程 Coroutine</th><th class="py-2 pr-4 text-primary-cyan">std::async</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">内存开销</span><span slot="en">Memory</span></Bilingual></td><td class="py-2 pr-4 text-func-red">1-8 MB（栈）</td><td class="py-2 pr-4 text-func-green">KB 级（无栈）</td><td class="py-2 pr-4">依赖线程池</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">切换成本</span><span slot="en">Switch cost</span></Bilingual></td><td class="py-2 pr-4 text-func-red">~1-10 μs（内核切换）</td><td class="py-2 pr-4 text-func-green">~10-100 ns（用户态）</td><td class="py-2 pr-4">依赖线程</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">数量上限</span><span slot="en">Max count</span></Bilingual></td><td class="py-2 pr-4 text-func-amber">数千</td><td class="py-2 pr-4 text-func-green">数百万</td><td class="py-2 pr-4">依赖线程池</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">适用场景</span><span slot="en">Use case</span></Bilingual></td><td class="py-2 pr-4">CPU 密集并行</td><td class="py-2 pr-4">异步 I/O、生成器、状态机</td><td class="py-2 pr-4">简单一次性异步</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">游戏场景</span><span slot="en">Game use</span></Bilingual></td><td class="py-2 pr-4">Job System、物理</td><td class="py-2 pr-4">异步加载、脚本、AI 协程</td><td class="py-2 pr-4">资源预加载</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <CodeTabs
+  cpp={`<pre><code>#include &lt;coroutine&gt;
+#include &lt;generator&gt;   // C++23
+
+// ===== C++23 std::generator：协程生成器 =====
+std::generator&lt;int&gt; range(int start, int end) &#123;
+    for (int i = start; i &lt; end; i++) &#123;
+        co_yield i;   // 产出值，挂起
+    &#125;
+&#125;
+
+for (int v : range(0, 5)) &#123;
+    std::cout &lt;&lt; v &lt;&lt; " ";   // 0 1 2 3 4
+&#125;
+
+// 无限序列
+std::generator&lt;int&gt; fibonacci() &#123;
+    int a = 0, b = 1;
+    while (true) &#123;
+        co_yield a;
+        auto next = a + b;
+        a = b; b = next;
+    &#125;
+&#125;
+
+// 取前 10 个
+int count = 0;
+for (int v : fibonacci() | std::views::take(10)) &#123;
+    std::cout &lt;&lt; v &lt;&lt; " ";   // 0 1 1 2 3 5 8 13 21 34
+&#125;
+
+// ===== 自定义 awaitable：异步等待 =====
+struct AwaitTimer &#123;
+    int ms;
+    bool await_ready() &#123; return false; &#125;
+    void await_suspend(std::coroutine_handle&lt;&gt; h) &#123;
+        std::thread([h, this]() &#123;
+            std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+            h.resume();   // 恢复协程
+        &#125;).detach();
+    &#125;
+    void await_resume() &#123;&#125;
+&#125;;
+
+AwaitTimer waitFor(int ms) &#123; return &#123;ms&#125;; &#125;
+
+// 协程函数（需返回类型有 promise_type）
+Task asyncGameLoop() &#123;
+    while (running) &#123;
+        update();
+        render();
+        co_await waitFor(16);   // 等 16ms，不阻塞线程！
+    &#125;
+&#125;
+
+// ===== 游戏脚本协程：顺序执行动画 =====
+Task playCutscene() &#123;
+    co_await fadeIn(0.5f);        // 淡入 0.5 秒
+    co_await showDialogue("...");  // 等待对话结束
+    co_await moveCharacter(to);    // 等待移动完成
+    co_await fadeOut(0.5f);        // 淡出
+&#125;
+// 调用方无需回调地狱——代码看起来是同步的</code></pre>`}
+  py={`<pre><code># Python 协程（asyncio）比 C++ 更成熟
+
+import asyncio
+
+# async def 定义协程
+async def async_range(start, end):
+    for i in range(start, end):
+        await asyncio.sleep(0)   # 让出控制权
+        yield i                   # 产出值
+
+async def fibonacci():
+    a, b = 0, 1
+    while True:
+        yield a
+        a, b = b, a + b
+
+# 异步等待
+async def wait_for(ms):
+    await asyncio.sleep(ms / 1000)
+
+# 游戏循环协程
+async def async_game_loop():
+    while running:
+        update()
+        render()
+        await wait_for(16)   # 等 16ms，不阻塞线程
+
+# 游戏过场动画
+async def play_cutscene():
+    await fade_in(0.5)
+    await show_dialogue("...")
+    await move_character(to)
+    await fade_out(0.5)
+
+# 运行协程
+asyncio.run(play_cutscene())
+
+# Python asyncio vs C++20 协程：
+# Python: 标准库完整，event loop 内置，生态成熟
+# C++:    编译器特性，需第三方库提供基础设施
+# 两者语法相似：async/await (Py) vs co_await (C++)</code></pre>`}
+      />
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">关联阅读：<a class="text-primary-cyan underline" href="/topics/cpu">CPU 流水线</a>理解硬件并行；<a class="text-primary-cyan underline" href="/topics/cpp-modern">现代 C++ 特性</a>汇总 C++20 协程语法；<a class="text-primary-cyan underline" href="/topics/rpc">RPC 与游戏通信</a>关联异步网络 I/O。</span><span slot="en">Related: <a class="text-primary-cyan underline" href="/topics/cpu">CPU Pipeline</a> for hardware parallelism; <a class="text-primary-cyan underline" href="/topics/cpp-modern">Modern C++</a> for C++20 coroutine syntax; <a class="text-primary-cyan underline" href="/topics/rpc">RPC</a> for async network I/O.</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 生产者-消费者时序图动画
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('pc-svg') as unknown as SVGSVGElement;
+  const stateEl = document.getElementById('pc-state');
+
+  const LANES = [
+    { x: 120, label: { zh: '生产者', en: 'Producer' } },
+    { x: 400, label: { zh: '队列+锁', en: 'Queue+Mutex' } },
+    { x: 680, label: { zh: '消费者', en: 'Consumer' } },
+  ];
+  const TOP = 60, BOT = 320;
+  const COL = {
+    PROD: '#22C55E',
+    CONS: '#22D3EE',
+    MUTEX: '#FBBF24',
+    WAIT: '#A78BFA',
+    TXT: '#CBD5E1',
+    LBL: '#94A3B8',
+    BG: 'rgba(148,163,184,0.15)',
+    LINE: 'rgba(148,163,184,0.3)',
+  };
+
+  interface Step { from: number; to: number; labelZh: string; labelEn: string; color: string; }
+  const STEPS: Step[] = [
+    { from: 0, to: 1, labelZh: '1. lock(mtx)', labelEn: '1. lock(mtx)', color: COL.MUTEX },
+    { from: 0, to: 1, labelZh: '2. queue.push(item)', labelEn: '2. queue.push(item)', color: COL.PROD },
+    { from: 0, to: 1, labelZh: '3. unlock(mtx)', labelEn: '3. unlock(mtx)', color: COL.MUTEX },
+    { from: 0, to: 1, labelZh: '4. cv.notify_one()', labelEn: '4. cv.notify_one()', color: COL.PROD },
+    { from: 2, to: 1, labelZh: '5. cv.wait(lock,[])', labelEn: '5. cv.wait(lock,[])', color: COL.WAIT },
+    { from: 1, to: 2, labelZh: '6. 唤醒消费者', labelEn: '6. wake consumer', color: COL.WAIT },
+    { from: 2, to: 1, labelZh: '7. lock(mtx)', labelEn: '7. lock(mtx)', color: COL.MUTEX },
+    { from: 1, to: 2, labelZh: '8. queue.pop(item)', labelEn: '8. queue.pop(item)', color: COL.CONS },
+    { from: 2, to: 1, labelZh: '9. unlock(mtx)', labelEn: '9. unlock(mtx)', color: COL.MUTEX },
+    { from: 2, to: 2, labelZh: '10. 处理 item', labelEn: '10. process item', color: COL.CONS },
+  ];
+
+  let curStepIdx = -1;
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  function render(stepIdx: number) {
+    curStepIdx = stepIdx;
+    svg.innerHTML = '';
+
+    // 泳道
+    for (const lane of LANES) {
+      const rect = document.createElementNS(SVGNS, 'rect');
+      rect.setAttribute('x', String(lane.x - 90));
+      rect.setAttribute('y', String(TOP - 30));
+      rect.setAttribute('width', '180'); rect.setAttribute('height', String(BOT - TOP + 60));
+      rect.setAttribute('fill', COL.BG); rect.setAttribute('rx', '8');
+      svg.appendChild(rect);
+
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', String(lane.x)); line.setAttribute('y1', String(TOP));
+      line.setAttribute('x2', String(lane.x)); line.setAttribute('y2', String(BOT));
+      line.setAttribute('stroke', COL.LINE); line.setAttribute('stroke-width', '1.5');
+      line.setAttribute('stroke-dasharray', '4 4');
+      svg.appendChild(line);
+
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(lane.x)); t.setAttribute('y', String(TOP - 12));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '13');
+      t.setAttribute('font-weight', '600'); t.setAttribute('fill', '#E2E8F0');
+      t.textContent = lang() === 'en' ? lane.label.en : lane.label.zh;
+      svg.appendChild(t);
+    }
+
+    // 步骤箭头
+    const yStart = TOP + 20;
+    const yStep = (BOT - TOP - 40) / STEPS.length;
+    for (let i = 0; i <= stepIdx && i < STEPS.length; i++) {
+      const s = STEPS[i];
+      const y = yStart + i * yStep;
+      const x1 = LANES[s.from].x, x2 = LANES[s.to].x;
+      const isActive = i === stepIdx;
+      const color = isActive ? s.color : 'rgba(148,163,184,0.35)';
+
+      if (x1 !== x2) {
+        const line = document.createElementNS(SVGNS, 'line');
+        line.setAttribute('x1', String(x1)); line.setAttribute('y1', String(y));
+        line.setAttribute('x2', String(x2)); line.setAttribute('y2', String(y));
+        line.setAttribute('stroke', color);
+        line.setAttribute('stroke-width', isActive ? '2.5' : '1.5');
+        svg.appendChild(line);
+
+        const dir = x2 > x1 ? 1 : -1;
+        const tri = document.createElementNS(SVGNS, 'polygon');
+        tri.setAttribute('points', `${x2},${y} ${x2 - dir * 8},${y - 5} ${x2 - dir * 8},${y + 5}`);
+        tri.setAttribute('fill', color);
+        svg.appendChild(tri);
+
+        const midX = (x1 + x2) / 2;
+        const lbl = document.createElementNS(SVGNS, 'text');
+        lbl.setAttribute('x', String(midX)); lbl.setAttribute('y', String(y - 8));
+        lbl.setAttribute('text-anchor', 'middle'); lbl.setAttribute('font-size', '11');
+        lbl.setAttribute('fill', isActive ? color : COL.LBL);
+        if (isActive) lbl.setAttribute('font-weight', '700');
+        lbl.textContent = lang() === 'en' ? s.labelEn : s.labelZh;
+        svg.appendChild(lbl);
+      } else {
+        // 自环（处理 item）
+        const circ = document.createElementNS(SVGNS, 'circle');
+        circ.setAttribute('cx', String(x1)); circ.setAttribute('cy', String(y));
+        circ.setAttribute('r', '12');
+        circ.setAttribute('fill', 'none'); circ.setAttribute('stroke', color);
+        circ.setAttribute('stroke-width', isActive ? '2.5' : '1.5');
+        svg.appendChild(circ);
+
+        const lbl = document.createElementNS(SVGNS, 'text');
+        lbl.setAttribute('x', String(x1 + 20)); lbl.setAttribute('y', String(y + 4));
+        lbl.setAttribute('font-size', '11'); lbl.setAttribute('fill', isActive ? color : COL.LBL);
+        if (isActive) lbl.setAttribute('font-weight', '700');
+        lbl.textContent = lang() === 'en' ? s.labelEn : s.labelZh;
+        svg.appendChild(lbl);
+      }
+
+      if (isActive) {
+        for (const li of [s.from, s.to]) {
+          const bar = document.createElementNS(SVGNS, 'rect');
+          bar.setAttribute('x', String(LANES[li].x - 3));
+          bar.setAttribute('y', String(y - 8));
+          bar.setAttribute('width', '6'); bar.setAttribute('height', '16');
+          bar.setAttribute('fill', color); bar.setAttribute('rx', '2');
+          bar.setAttribute('opacity', '0.6');
+          svg.appendChild(bar);
+        }
+      }
+    }
+
+    if (stateEl) {
+      if (stepIdx >= 0 && stepIdx < STEPS.length) {
+        const s = STEPS[stepIdx];
+        stateEl.textContent = lang() === 'en' ? s.labelEn : s.labelZh;
+      } else {
+        stateEl.textContent = lang() === 'en' ? 'Ready' : '就绪';
+      }
+    }
+  }
+
+  let idx = 0;
+  let timer: number | null = null;
+  function langText(key: string): string {
+    const l = lang();
+    const el = document.querySelector(`[data-ui="${key}"][data-lang="${l}"]`);
+    return el ? (el.textContent || '') : '';
+  }
+  function stop() {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    const b = document.getElementById('pc-play');
+    if (b) b.innerHTML = langText('play');
+  }
+  function rebuild() {
+    stop(); idx = 0; render(-1); if (stateEl) stateEl.textContent = '';
+  }
+  function advance(): boolean {
+    if (idx < STEPS.length) { render(idx); idx++; return true; }
+    return false;
+  }
+  function play() {
+    if (timer !== null) { stop(); return; }
+    const b = document.getElementById('pc-play');
+    if (b) b.innerHTML = langText('pause');
+    timer = window.setInterval(() => { if (!advance()) stop(); }, 900);
+  }
+
+  document.getElementById('pc-play')?.addEventListener('click', play);
+  document.getElementById('pc-step')?.addEventListener('click', () => { stop(); advance(); });
+  document.getElementById('pc-reset')?.addEventListener('click', rebuild);
+  document.addEventListener('langchange', () => {
+    if (timer === null) { const b = document.getElementById('pc-play'); if (b) b.innerHTML = langText('play'); }
+    if (curStepIdx >= 0) render(curStepIdx); else render(-1);
+  });
+  rebuild();
+</script>

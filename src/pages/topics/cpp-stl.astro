@@ -1,0 +1,232 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="STL Containers & Algorithms · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Languages / C++ STL</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">STL 容器与算法</span><span slot="en">STL Containers & Algorithms</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">STL（Standard Template Library）是 C++ 标准库的核心——<b>容器</b>管理数据集合，<b>算法</b>操作迭代器范围，<b>迭代器</b>粘合两者。选对容器直接决定性能：<code>vector</code> 连续内存缓存友好，<code>unordered_map</code> 哈希查找 O(1)，<code>map</code> 有序但 O(log n)。游戏开发中，<code>vector</code> 是绝对主力——90% 场景应优先选择。</span>
+          <span slot="en">The STL (Standard Template Library) is the core of the C++ standard library — <b>containers</b> manage data collections, <b>algorithms</b> operate on iterator ranges, and <b>iterators</b> glue them together. Choosing the right container directly determines performance: <code>vector</code> has cache-friendly contiguous memory, <code>unordered_map</code> offers O(1) hash lookup, <code>map</code> is ordered but O(log n). In game dev, <code>vector</code> is the absolute workhorse — prefer it for 90% of use cases.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 容器复杂度对照表 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">容器复杂度对照表</span><span slot="en">Container Complexity Reference</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">选择容器的核心问题：<b>需要随机访问？</b>（vector）<b>需要频繁中间插入？</b>（list）<b>需要键值查找？</b>（unordered_map / map）<b>需要有序遍历？</b>（map / set）下表列出各容器的时间复杂度与内存特性。</span><span slot="en">The core question for choosing a container: <b>random access?</b> (vector) <b>frequent middle insertion?</b> (list) <b>key-value lookup?</b> (unordered_map / map) <b>ordered traversal?</b> (map / set) The table below lists time complexity and memory characteristics for each container.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">容器</span><span slot="en">Container</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">底层</span><span slot="en">Underlying</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">访问</span><span slot="en">Access</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">插入头/尾</span><span slot="en">Insert front/back</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">插入中间</span><span slot="en">Insert middle</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">查找</span><span slot="en">Find</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">内存</span><span slot="en">Memory</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green font-mono">vector</td><td class="py-2 pr-4">动态数组</td><td class="py-2 pr-4 text-func-green">O(1)</td><td class="py-2 pr-4">— / O(1)均摊</td><td class="py-2 pr-4 text-func-red">O(n)</td><td class="py-2 pr-4 text-func-red">O(n)</td><td class="py-2 pr-4 text-func-green">连续</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono">deque</td><td class="py-2 pr-4">分块数组</td><td class="py-2 pr-4 text-func-green">O(1)</td><td class="py-2 pr-4 text-func-green">O(1) / O(1)</td><td class="py-2 pr-4 text-func-red">O(n)</td><td class="py-2 pr-4 text-func-red">O(n)</td><td class="py-2 pr-4">分块</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono">list</td><td class="py-2 pr-4">双向链表</td><td class="py-2 pr-4 text-func-red">O(n)</td><td class="py-2 pr-4 text-func-green">O(1) / O(1)</td><td class="py-2 pr-4 text-func-green">O(1)*</td><td class="py-2 pr-4 text-func-red">O(n)</td><td class="py-2 pr-4 text-func-red">节点分散</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber font-mono">map</td><td class="py-2 pr-4">红黑树</td><td class="py-2 pr-4">—</td><td class="py-2 pr-4">O(log n)</td><td class="py-2 pr-4">O(log n)</td><td class="py-2 pr-4 text-func-amber">O(log n)</td><td class="py-2 pr-4 text-func-red">节点分散</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber font-mono">unordered_map</td><td class="py-2 pr-4">哈希表</td><td class="py-2 pr-4">—</td><td class="py-2 pr-4">O(1)均摊</td><td class="py-2 pr-4">O(1)均摊</td><td class="py-2 pr-4 text-func-green">O(1)均摊</td><td class="py-2 pr-4 text-func-red">桶+链表</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono">set</td><td class="py-2 pr-4">红黑树</td><td class="py-2 pr-4">—</td><td class="py-2 pr-4">O(log n)</td><td class="py-2 pr-4">O(log n)</td><td class="py-2 pr-4 text-func-amber">O(log n)</td><td class="py-2 pr-4 text-func-red">节点分散</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono">unordered_set</td><td class="py-2 pr-4">哈希表</td><td class="py-2 pr-4">—</td><td class="py-2 pr-4">O(1)均摊</td><td class="py-2 pr-4">O(1)均摊</td><td class="py-2 pr-4 text-func-green">O(1)均摊</td><td class="py-2 pr-4 text-func-red">桶+链表</td></tr>
+            <tr><td class="py-2 pr-4 font-mono">array</td><td class="py-2 pr-4">静态数组</td><td class="py-2 pr-4 text-func-green">O(1)</td><td class="py-2 pr-4">—</td><td class="py-2 pr-4 text-func-red">O(n)</td><td class="py-2 pr-4 text-func-red">O(n)</td><td class="py-2 pr-4 text-func-green">连续</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-ink-muted mt-2"><Bilingual><span slot="zh">* 已知位置迭代器的 list 插入为 O(1)；查找该位置仍需 O(n)。</span><span slot="en">* List insert at known iterator is O(1); finding the position still requires O(n).</span></Bilingual></p>
+    </section>
+
+    <!-- vector 深度解析 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">vector 深度解析：游戏开发主力</span><span slot="en">vector Deep Dive: Game Dev Workhorse</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><code>vector</code> 是动态数组——内存连续、缓存友好、<code>push_back</code> 均摊 O(1)。容量满时扩容为原来的 1.5-2 倍，拷贝旧数据后释放旧内存。游戏开发关键技巧：<b><code>reserve()</code></b> 预分配避免多次扩容；<b><code>emplace_back()</code></b> 原地构造避免拷贝；遍历性能远超 <code>list</code>（缓存命中率极高）。</span><span slot="en"><code>vector</code> is a dynamic array — contiguous memory, cache-friendly, <code>push_back</code> amortized O(1). When full, it grows 1.5-2×, copies old data, and frees old memory. Key game-dev tips: <b><code>reserve()</code></b> pre-allocates to avoid repeated growth; <b><code>emplace_back()</code></b> constructs in-place to avoid copies; iteration vastly outperforms <code>list</code> (excellent cache hit rate).</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>#include &lt;vector&gt;
+
+std::vector&lt;int&gt; v;
+
+// 扩容机制：size 增长时 capacity 翻倍
+v.push_back(1);   // capacity: 1 → 分配
+v.push_back(2);   // capacity: 2 → 分配+拷贝
+v.push_back(3);   // capacity: 4 → 分配+拷贝
+v.push_back(4);   // capacity: 4 → 无扩容
+v.push_back(5);   // capacity: 8 → 分配+拷贝
+// 5 次 push_back 触发了 4 次扩容！
+
+// 正确做法：预分配
+std::vector&lt;int&gt; v2;
+v2.reserve(1000);     // 一次分配，后续 1000 次 push_back 零扩容
+for (int i = 0; i &lt; 1000; i++) v2.push_back(i);
+
+// emplace_back vs push_back
+struct Entity &#123;
+    Entity(int id, float x, float y) : id(id), x(x), y(y) &#123;&#125;
+    int id; float x, y;
+&#125;;
+
+std::vector&lt;Entity&gt; entities;
+entities.push_back(Entity(1, 0, 0));     // 先构造临时对象，再移动/拷贝
+entities.emplace_back(1, 0, 0);          // 原地构造，零拷贝！
+
+// 遍历：vector 远快于 list（缓存连续）
+long long sum = 0;
+for (const auto&amp; e : entities) &#123;     // range-for (C++11)
+    sum += e.id;
+&#125;
+
+// 删除元素
+entities.erase(std::remove_if(entities.begin(), entities.end(),
+    [](const Entity&amp; e) &#123; return e.id == 0; &#125;),
+    entities.end());  // erase-remove 惯用法
+
+// C++20: std::erase_if 更简洁
+std::erase_if(entities, [](const Entity&amp; e) &#123; return e.id == 0; &#125;);
+
+// 数据指针：与 C API 交互
+void legacyRender(int* data, int count);
+legacyRender(v2.data(), v2.size());   // .data() 返回连续内存指针
+
+// 游戏实体系统：SoA 布局（数据-oriented）
+struct EntitySystem &#123;
+    std::vector&lt;int&gt;   ids;       // 连续
+    std::vector&lt;float&gt; xs, ys;    // 连续
+    std::vector&lt;bool&gt;  active;    // 连续（bit-packed）
+&#125;;
+// 遍历 xs/ys 时缓存命中率极高，SIMD 友好</code></pre>`}
+  py={`<pre><code># Python list 本质是动态数组（类似 vector）
+v = []
+
+# 扩容机制由 CPython 管理（类似 C++ vector）
+v.append(1)   # 均摊 O(1)
+v.extend([2, 3, 4, 5])  # 批量追加
+
+# 预分配（避免扩容）
+v2 = [0] * 1000  # 预分配 1000 个 0
+
+# 列表推导（等价 emplace_back + transform）
+entities = [Entity(i, x, y) for i, (x, y) in enumerate(positions)]
+
+# 过滤删除
+entities = [e for e in entities if e.id != 0]
+
+# 与 C 扩展交互（numpy 提供连续内存）
+import numpy as np
+arr = np.array(v2, dtype=np.int32)
+legacy_render(arr.ctypes.data_as(POINTER(c_int)), len(arr))
+
+# C++ vector vs Python list:
+# C++: 类型固定，连续内存，零开销
+# Python: 异构类型，指针数组，有装箱开销
+# 性能差距通常 10-100x</code></pre>`}
+      />
+    </section>
+
+    <!-- map vs unordered_map -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">map vs unordered_map：有序 vs 哈希</span><span slot="en">map vs unordered_map: Ordered vs Hashed</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><code>map</code> 基于红黑树，键有序遍历，查找/插入 O(log n)，但每个节点分散分配，缓存不友好。<code>unordered_map</code> 基于哈希表，查找/插入均摊 O(1)，但无序、最坏 O(n)（哈希冲突）。游戏开发默认选 <code>unordered_map</code>——除非需要<b>按键排序遍历</b>或<b>范围查询</b>（如排行榜前 N 名）。</span><span slot="en"><code>map</code> is based on a red-black tree — keys traverse in order, find/insert O(log n), but nodes are scattered (cache-unfriendly). <code>unordered_map</code> uses a hash table — find/insert amortized O(1), but unordered and worst-case O(n) (hash collisions). Game dev defaults to <code>unordered_map</code> — unless you need <b>sorted key traversal</b> or <b>range queries</b> (e.g., leaderboard top N).</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>#include &lt;map&gt;
+#include &lt;unordered_map&gt;
+
+// map: 有序，红黑树，O(log n)
+std::map&lt;std::string, int&gt; scores;
+scores["Alice"] = 95;
+scores["Bob"] = 87;
+scores["Charlie"] = 92;
+
+// 按键排序遍历（Alice → Bob → Charlie）
+for (const auto&amp; [name, score] : scores) &#123;   // C++17 结构化绑定
+    std::cout &lt;&lt; name &lt;&lt; ": " &lt;&lt; score &lt;&lt; "\\n";
+&#125;
+
+// 范围查询：排行榜前 3 名
+auto it = scores.rbegin();  // 从高分开始
+for (int i = 0; i &lt; 3 &amp;&amp; it != scores.rend(); i++, it++) &#123;
+    std::cout &lt;&lt; "#" &lt;&lt; (i+1) &lt;&lt; " " &lt;&lt; it-&gt;first &lt;&lt; "\\n";
+&#125;
+
+// unordered_map: 哈希表，O(1) 均摊
+std::unordered_map&lt;uint32_t, Entity&gt; entityById;  // 用 ID 查实体
+entityById[entity.id] = entity;
+
+// O(1) 查找（游戏帧内高频）
+auto found = entityById.find(targetId);
+if (found != entityById.end()) &#123;
+    found-&gt.second.update();
+&#125;
+
+// 自定义哈希（游戏常用：坐标 → 区块）
+struct Vec2Hash &#123;
+    size_t operator()(const std::pair&lt;int,int&gt;&amp; p) const &#123;
+        return std::hash&lt;int&gt;()(p.first) ^ (std::hash&lt;int&gt;()(p.second) &lt;&lt; 1);
+    &#125;
+&#125;;
+std::unordered_map&lt;std::pair&lt;int,int&gt;, Chunk, Vec2Hash&gt; chunks;
+chunks[&#123;0, 0&#125;] = Chunk();   // 区块 (0,0)
+
+// 选型决策树：
+// 需要有序遍历/范围查询？ → map
+// 只需 O(1) 查找？        → unordered_map
+// 键是连续整数？          → vector（最快）</code></pre>`}
+  py={`<pre><code># Python dict 是有序哈希表（3.7+ 保持插入顺序）
+# 相当于 unordered_map + 插入顺序记录
+
+scores = {}
+scores["Alice"] = 95
+scores["Bob"] = 87
+scores["Charlie"] = 92
+
+# 按插入顺序遍历（非排序）
+for name, score in scores.items():
+    print(f"{name}: {score}")
+
+# 按值排序（类似 map 的有序性）
+sorted_scores = sorted(scores.items(), key=lambda x: -x[1])
+for i, (name, score) in enumerate(sorted_scores[:3]):
+    print(f"#{i+1} {name}: {score}")
+
+# 游戏场景：ID → 实体
+entity_by_id = {}
+entity_by_id[entity.id] = entity
+found = entity_by_id.get(target_id)  # O(1) 查找
+
+# 区块哈希
+chunks = {}
+chunks[(0, 0)] = Chunk()  # tuple 作键（自带哈希）
+
+# Python dict vs C++ unordered_map:
+# Python: 保持插入顺序，键可为任意可哈希对象
+# C++: 无序，需自定义哈希函数
+# 两者查找均为 O(1) 均摊</code></pre>`}
+      />
+    </section>
+
+    <!-- STL 算法 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">STL 算法速查</span><span slot="en">STL Algorithm Cheat Sheet</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">STL 提供 100+ 泛型算法，操作迭代器范围。C++20 起可用 Ranges 版本（无需 <code>.begin()/.end()</code>，支持管道）。游戏常用：排序、查找、去重、分区、累积。</span><span slot="en">The STL provides 100+ generic algorithms operating on iterator ranges. C++20 adds Ranges versions (no <code>.begin()/.end()</code> needed, pipeline support). Common in games: sort, find, unique, partition, accumulate.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">算法</span><span slot="en">Algorithm</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">功能</span><span slot="en">Purpose</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">复杂度</span><span slot="en">Complexity</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏场景</span><span slot="en">Game use</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-amber">sort</td><td class="py-2 pr-4"><Bilingual><span slot="zh">排序</span><span slot="en">Sort</span></Bilingual></td><td class="py-2 pr-4">O(n log n)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">排行榜、Z-排序</span><span slot="en">Leaderboard, Z-sort</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-amber">find / find_if</td><td class="py-2 pr-4"><Bilingual><span slot="zh">线性查找</span><span slot="en">Linear find</span></Bilingual></td><td class="py-2 pr-4">O(n)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">小集合查找</span><span slot="en">Small set lookup</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-amber">lower_bound</td><td class="py-2 pr-4"><Bilingual><span slot="zh">二分查找下界</span><span slot="en">Binary lower bound</span></Bilingual></td><td class="py-2 pr-4">O(log n)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">有序数组查找</span><span slot="en">Sorted array lookup</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-green">remove_if</td><td class="py-2 pr-4"><Bilingual><span slot="zh">条件移除</span><span slot="en">Conditional remove</span></Bilingual></td><td class="py-2 pr-4">O(n)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">清理死亡实体</span><span slot="en">Remove dead entities</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-green">partition</td><td class="py-2 pr-4"><Bilingual><span slot="zh">分区</span><span slot="en">Partition</span></Bilingual></td><td class="py-2 pr-4">O(n)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">活跃/非活跃分离</span><span slot="en">Active/inactive split</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-primary-cyan">accumulate</td><td class="py-2 pr-4"><Bilingual><span slot="zh">累积求和</span><span slot="en">Accumulate</span></Bilingual></td><td class="py-2 pr-4">O(n)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">总伤害、总分数</span><span slot="en">Total damage, score</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-primary-cyan">transform</td><td class="py-2 pr-4"><Bilingual><span slot="zh">映射变换</span><span slot="en">Transform</span></Bilingual></td><td class="py-2 pr-4">O(n)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">批量位置更新</span><span slot="en">Batch position update</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-primary-purple">min/max_element</td><td class="py-2 pr-4"><Bilingual><span slot="zh">极值查找</span><span slot="en">Min/max element</span></Bilingual></td><td class="py-2 pr-4">O(n)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">最近敌人、最高分</span><span slot="en">Nearest enemy, top score</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 font-mono text-primary-purple">copy / fill</td><td class="py-2 pr-4"><Bilingual><span slot="zh">复制 / 填充</span><span slot="en">Copy / fill</span></Bilingual></td><td class="py-2 pr-4">O(n)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">初始化缓冲区</span><span slot="en">Init buffers</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">关联阅读：<a class="text-primary-cyan underline" href="/topics/cpp-templates">模板与泛型</a>讲解 ranges 管道语法；<a class="text-primary-cyan underline" href="/topics/sorting">排序算法</a>详解各排序原理。</span><span slot="en">Related: <a class="text-primary-cyan underline" href="/topics/cpp-templates">Templates</a> for ranges pipeline syntax; <a class="text-primary-cyan underline" href="/topics/sorting">Sorting</a> for sort algorithm internals.</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>

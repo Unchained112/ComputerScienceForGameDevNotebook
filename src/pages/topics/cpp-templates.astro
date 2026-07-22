@@ -1,0 +1,490 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Templates & Generics · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Languages / C++ Templates</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">模板与泛型</span><span slot="en">Templates & Generics</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">模板是 C++ <b>零开销抽象</b>的基石——写一份代码，编译器为每种类型生成专属版本，无虚函数开销、无装箱。从 C++98 的函数/类模板，到 C++11 的 variadic templates，再到 C++20 的 <b>concepts</b>（约束）与 <b>ranges</b>（管道式算法），模板体系已成为现代 C++ 最强大的特性。点击下方对比 SFINAE 与 concepts 的写法差异。</span>
+          <span slot="en">Templates are the cornerstone of C++ <b>zero-overhead abstraction</b> — write once, the compiler generates a specialized version per type, with no virtual call overhead or boxing. From C++98 function/class templates, to C++11 variadic templates, to C++20 <b>concepts</b> (constraints) and <b>ranges</b> (pipeline algorithms), the template system has become modern C++'s most powerful feature. Click below to compare SFINAE vs. concepts syntax.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：SFINAE vs Concepts 对比 -->
+    <div class="glass p-5" data-viz="sfinae-concepts">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button class="btn tmpl-btn btn-primary" data-style="sfinae">
+          <span data-lang="zh">SFINAE (C++11)</span><span data-lang="en">SFINAE (C++11)</span>
+        </button>
+        <button class="btn tmpl-btn" data-style="concepts">
+          <span data-lang="zh">Concepts (C++20)</span><span data-lang="en">Concepts (C++20)</span>
+        </button>
+      </div>
+      <svg id="tmpl-svg" viewBox="0 0 800 260" class="w-full h-72 viz-stage"></svg>
+    </div>
+
+    <!-- 函数模板与类模板 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">函数模板与类模板</span><span slot="en">Function & Class Templates</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>函数模板</b>定义一族函数，<code>T</code> 是占位类型，调用时编译器根据实参<b>推导</b>类型并实例化。<b>类模板</b>同理，生成类型参数化的类。模板在编译期展开——无运行时多态开销，但会增加代码体积（每种类型一份实例）。游戏开发中，<code>std::vector&lt;T&gt;</code> 就是最常见的类模板实例。</span><span slot="en"><b>Function templates</b> define a family of functions where <code>T</code> is a placeholder; the compiler <b>deduces</b> the type from arguments and instantiates at the call site. <b>Class templates</b> work similarly for type-parameterized classes. Templates expand at compile time — no runtime polymorphism overhead, but increased code size (one instance per type). In game dev, <code>std::vector&lt;T&gt;</code> is the most common class template instance.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// ===== 函数模板 =====
+template &lt;typename T&gt;
+T maxValue(const T&amp; a, const T&amp; b) &#123;
+    return (a &gt; b) ? a : b;
+&#125;
+
+int i = maxValue(3, 7);        // T=int，编译器推导
+double d = maxValue(1.5, 2.5); // T=double
+// maxValue(3, 2.5);           // 编译错误：T 推导冲突
+maxValue&lt;double&gt;(3, 2.5);      // 显式指定 T=double
+
+// ===== 类模板 =====
+template &lt;typename T, size_t N&gt;
+class FixedArray &#123;
+    T data[N];
+public:
+    T&amp; operator[](size_t i) &#123; return data[i]; &#125;
+    const T&amp; operator[](size_t i) const &#123; return data[i]; &#125;
+    constexpr size_t size() const &#123; return N; &#125;
+&#125;;
+
+FixedArray&lt;float, 16&gt; matrix;   // 16 个 float 的固定数组
+FixedArray&lt;Entity*, 256&gt; entities;
+
+// ===== 非类型模板参数 =====
+template &lt;auto Value&gt;          // C++17 auto 非类型参数
+struct Constant &#123;
+    static constexpr auto value = Value;
+&#125;;
+Constant&lt;42&gt;::value;            // int 42
+Constant&lt;'c'&gt;::value;            // char 'c'</code></pre>`}
+  py={`<pre><code># Python 用泛型函数/类型注解模拟（运行时无特化）
+from typing import TypeVar, Generic
+
+T = TypeVar('T')
+
+# 泛型函数（类型注解，不生成特化代码）
+def max_value(a: T, b: T) -> T:
+    return a if a > b else b
+
+# 泛型类
+class FixedArray(Generic[T]):
+    def __init__(self, n: int):
+        self.data: list[T] = [None] * n
+
+    def __getitem__(self, i: int) -> T:
+        return self.data[i]
+
+    def __setitem__(self, i: int, v: T):
+        self.data[i] = v
+
+    def size(self) -> int:
+        return len(self.data)
+
+# 使用（运行时无类型检查，注解仅供 IDE/mypy）
+arr = FixedArray[float](16)
+arr[0] = 3.14
+
+# C++ 模板 vs Python 泛型的核心区别：
+# C++: 编译期为每种类型生成独立代码（零开销）
+# Python: 运行时同一份代码，类型注解不影响执行</code></pre>`}
+      />
+    </section>
+
+    <!-- Variadic Templates & Fold Expressions -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">变参模板与折叠表达式</span><span slot="en">Variadic Templates & Fold Expressions</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>变参模板</b>（C++11）接受任意数量的模板参数，用 <code>parameter pack</code> <code>Args... args</code> 表示。<b>折叠表达式</b>（C++17）用 <code>(... op pack)</code> 语法对包进行归约，大幅简化变参代码。游戏引擎中常用于类型擦除的事件系统、多参数日志函数。</span><span slot="en"><b>Variadic templates</b> (C++11) accept any number of template parameters via <code>parameter pack</code> <code>Args... args</code>. <b>Fold expressions</b> (C++17) reduce a pack with <code>(... op pack)</code> syntax, greatly simplifying variadic code. Common in game engine event systems and multi-arg log functions.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// C++11: 递归展开 parameter pack
+template &lt;typename T&gt;
+void print(const T&amp; t) &#123; std::cout &lt;&lt; t &lt;&lt; "\\n"; &#125;
+
+template &lt;typename T, typename... Args&gt;
+void print(const T&amp; first, const Args&amp;... rest) &#123;
+    std::cout &lt;&lt; first &lt;&lt; " ";
+    print(rest...);   // 递归：每次剥一个参数
+&#125;
+print(1, 2.5, "hello", 'c');  // 1 2.5 hello c
+
+// C++17: fold expression 一行搞定
+template &lt;typename... Args&gt;
+void print(const Args&amp;... args) &#123;
+    ((std::cout &lt;&lt; args &lt;&lt; " "), ...);  // 二元左折叠
+    std::cout &lt;&lt; "\\n";
+&#125;
+
+// 折叠表达式语法：
+// (... op pack)   一元左折叠: ((e1 op e2) op e3) ...
+// (pack op ...)   一元右折叠: e1 op (e2 op (e3 ...))
+// (init op ... op pack)  二元左折叠
+// (pack op ... op init)  二元右折叠
+
+// 求和
+template &lt;typename... T&gt;
+auto sum(T... values) &#123;
+    return (values + ... + 0);  // 二元左折叠，初值 0
+&#125;
+sum(1, 2, 3, 4);  // 10
+
+// 全部为真
+template &lt;typename... T&gt;
+bool all(T... conditions) &#123;
+    return (true &amp;&amp; ... &amp;&amp; conditions);  // 二元左折叠
+&#125;
+all(true, true, false);  // false
+
+// 游戏事件系统：类型安全的多参数回调
+template &lt;typename... Args&gt;
+class Event &#123;
+    std::vector&lt;std::function&lt;void(Args...)&gt;&gt; handlers;
+public:
+    void subscribe(std::function&lt;void(Args...)&gt; h) &#123;
+        handlers.push_back(h);
+    &#125;
+    void emit(Args... args) &#123;
+        for (auto&amp; h : handlers) h(args...);
+    &#125;
+&#125;;
+Event&lt;int, float&gt; onDamage;  // (伤害值, 击退力度)
+onDamage.emit(50, 1.5f);</code></pre>`}
+  py={`<pre><code># Python 原生支持可变参数 (*args, **kwargs)
+# 无需模板，运行时动态处理
+
+def print_all(*args):
+    """等价于 C++ variadic print"""
+    print(*args)  # 解包打印
+
+print_all(1, 2.5, "hello", 'c')  # 1 2.5 hello c
+
+def sum_all(*values):
+    """等价于 C++ fold sum"""
+    return sum(values)  # 内置 sum 就是折叠
+
+print(sum_all(1, 2, 3, 4))  # 10
+
+def all_true(*conditions):
+    """等价于 C++ fold all"""
+    return all(conditions)  # 内置 all 就是折叠
+
+print(all_true(True, True, False))  # False
+
+# 游戏事件系统：Python 用类型注解 + callable
+from typing import Callable
+
+class Event:
+    def __init__(self):
+        self.handlers: list[Callable] = []
+
+    def subscribe(self, handler: Callable):
+        self.handlers.append(handler)
+
+    def emit(self, *args, **kwargs):
+        for h in self.handlers:
+            h(*args, **kwargs)
+
+on_damage = Event()
+on_damage.emit(50, 1.5)  # 无类型检查，运行时动态</code></pre>`}
+      />
+    </section>
+
+    <!-- C++20 Concepts -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">C++20 Concepts：类型约束的救赎</span><span slot="en">C++20 Concepts: Type Constraints Redeemed</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>SFINAE</b>（Substitution Failure Is Not An Error）是 C++11 的模板约束手段——用 <code>std::enable_if</code> 在模板参数推导时"失败即跳过"。写法极其晦涩，错误信息如天书。<b>Concepts</b>（C++20）用声明式语法 <code>template &lt;Concept T&gt;</code> 或 <code>requires (T t)</code> 直接表达类型要求，错误信息清晰可读，且支持<b>重载决议</b>。</span><span slot="en"><b>SFINAE</b> (Substitution Failure Is Not An Error) is C++11's template constraint mechanism — using <code>std::enable_if</code> to "fail-and-skip" during deduction. The syntax is notoriously cryptic and error messages are unreadable. <b>Concepts</b> (C++20) uses declarative syntax <code>template &lt;Concept T&gt;</code> or <code>requires (T t)</code> to express type requirements directly, with clear error messages and support for <b>overload resolution</b>.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// ===== SFINAE 写法（C++11，晦涩） =====
+#include &lt;type_traits&gt;
+
+// 只有 T 是整数类型时才启用
+template &lt;typename T,
+          typename = std::enable_if_t&lt;std::is_integral_v&lt;T&gt;&gt;&gt;
+T safeDivide(T a, T b) &#123;
+    return a / b;   // 整数除法
+&#125;
+
+// 报错信息类似：
+// "no matching function for call to safeDivide(double, double)"
+// "candidate template ignored: requirement std::is_integral_v&lt;double&gt;..."
+
+// ===== Concepts 写法（C++20，清晰） =====
+#include &lt;concepts&gt;
+
+// 方式1：用标准库 concept
+template &lt;std::integral T&gt;
+T safeDivide(T a, T b) &#123;
+    return a / b;
+&#125;
+
+// 方式2：自定义 concept
+template &lt;typename T&gt;
+concept Numeric = std::integral&lt;T&gt; || std::floating_point&lt;T&gt;;
+
+template &lt;Numeric T&gt;
+T add(T a, T b) &#123; return a + b; &#125;
+
+// 方式3：requires 子句（更灵活）
+template &lt;typename T&gt;
+requires requires(T t, T u) &#123;
+    &#123; t + u &#125; -&gt; std::convertible_to&lt;T&gt;;
+    &#123; t &lt; u &#125; -&gt; std::convertible_to&lt;bool&gt;;
+&#125;
+T maxOf(T a, T b) &#123; return (a &lt; b) ? b : a; &#125;
+
+// 方式4：简写模板语法（最简洁）
+void process(std::ranges::range auto&amp; container) &#123;
+    for (auto&amp; item : container) &#123; /* ... */ &#125;
+&#125;
+
+// 报错信息（Concepts）：
+// "constraints not satisfied: 'std::integral&lt;double&gt;' evaluated to false"
+// 清晰指出哪个 concept 未满足</code></pre>`}
+  py={`<pre><code># Python 无编译期类型约束——用 mypy/Protocol 模拟
+from typing import Protocol, TypeVar, runtime_checkable
+
+# Protocol = 结构化类型（鸭子类型的静态版）
+@runtime_checkable
+class Numeric(Protocol):
+    def __add__(self, other: "Numeric") -> "Numeric": ...
+    def __lt__(self, other: "Numeric") -> bool: ...
+
+# TypeVar + bound 模拟 concept
+T = TypeVar('T', bound=Numeric)
+
+def add(a: T, b: T) -> T:
+    return a + b   # mypy 检查 T 是否满足 Numeric
+
+# 运行时检查（可选）
+def safe_divide(a, b):
+    if not isinstance(a, int) or not isinstance(b, int):
+        raise TypeError("safe_divide requires integers")
+    return a // b
+
+# C++ concepts vs Python Protocol：
+# C++:  编译期强制，不满足则编译失败
+# Python: 运行时不检查，仅 mypy 静态分析</code></pre>`}
+      />
+    </section>
+
+    <!-- C++20 Ranges -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">C++20 Ranges：管道式算法</span><span slot="en">C++20 Ranges: Pipeline Algorithms</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">传统 STL 算法需要<b>起止迭代器</b>，组合多个操作时要存中间临时变量。Ranges 将算法重构为<b>视图（view）</b>——惰性求值、可组合、零拷贝，用 <code>|</code> 管道符串联，写法类似函数式语言的链式调用。</span><span slot="en">Traditional STL algorithms require <b>begin/end iterators</b>; composing multiple operations needs intermediate temporaries. Ranges refactors algorithms into <b>views</b> — lazy, composable, zero-copy — chained with the <code>|</code> pipe operator, similar to functional language pipelines.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>#include &lt;ranges&gt;
+#include &lt;vector&gt;
+#include &lt;algorithm&gt;
+
+std::vector&lt;int&gt; nums = &#123;1, 2, 3, 4, 5, 6, 7, 8, 9, 10&#125;;
+
+// 传统 STL：需要临时变量
+std::vector&lt;int&gt; evens;
+std::copy_if(nums.begin(), nums.end(), std::back_inserter(evens),
+             [](int x) &#123; return x % 2 == 0; &#125;);
+std::vector&lt;int&gt; squares;
+std::transform(evens.begin(), evens.end(), std::back_inserter(squares),
+               [](int x) &#123; return x * x; &#125;);
+int sum = std::accumulate(squares.begin(), squares.end(), 0);
+// sum = 4 + 16 + 36 + 64 + 100 = 220
+
+// C++20 Ranges：管道式，惰性求值，无中间容器
+auto result = nums
+    | std::views::filter([](int x) &#123; return x % 2 == 0; &#125;)
+    | std::views::transform([](int x) &#123; return x * x; &#125;)
+    | std::views::take(3);   // 只取前 3 个
+
+// 常用视图
+auto first5 = nums | std::views::take(5);           // 取前 5
+auto reversed = nums | std::views::reverse;          // 反转
+auto evens = nums | std::views::stride(2);           // 每隔 2 取
+auto transformed = nums
+    | std::views::transform([](int x) &#123; return x * 2; &#125;)
+    | std::views::filter([](int x) &#123; return x &gt; 5; &#125;);
+
+// 无限序列（惰性，不会死循环）
+auto squares = std::views::iota(1)              // 1, 2, 3, ...
+    | std::views::transform([](int x) &#123; return x * x; &#125;)
+    | std::views::take(10);   // 只取 10 个: 1 4 9 16 25 36 49 64 81 100
+
+// 游戏场景：筛选活跃实体
+std::vector&lt;Entity&gt; entities = /* ... */;
+auto active = entities
+    | std::views::filter(&amp;Entity::isActive)        // 成员指针
+    | std::views::transform(&amp;Entity::getPosition);</code></pre>`}
+  py={`<pre><code># Python 生成器 + itertools 天然惰性
+import itertools
+
+nums = range(1, 11)  # 1..10
+
+# 生成器表达式（等价 Ranges 管道）
+result = (
+    x * x               # transform
+    for x in nums
+    if x % 2 == 0       # filter
+)
+
+# itertools 组合
+evens = filter(lambda x: x % 2 == 0, nums)
+squares = map(lambda x: x * x, evens)
+first3 = itertools.islice(squares, 3)
+print(list(first3))  # [4, 16, 36]
+
+# 无限序列
+squares = (x * x for x in itertools.count(1))
+first10 = list(itertools.islice(squares, 10))
+print(first10)  # [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
+
+# 游戏场景：筛选活跃实体
+entities = [...]  # list of Entity
+active_positions = [e.position for e in entities if e.is_active]
+
+# C++ Ranges vs Python 生成器：
+# C++: 编译期优化，无 GC 开销，零拷贝
+# Python: 运行时惰性，但每次 next() 有解释器开销</code></pre>`}
+      />
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">延伸：<a class="text-primary-cyan underline" href="/topics/cpp-modern">现代 C++ 特性</a>汇总 C++17~23 语法糖；<a class="text-primary-cyan underline" href="/topics/cpp-stl">STL 容器</a>详解各容器复杂度。</span><span slot="en">Further: <a class="text-primary-cyan underline" href="/topics/cpp-modern">Modern C++</a> for C++17~23 syntax; <a class="text-primary-cyan underline" href="/topics/cpp-stl">STL</a> for container complexities.</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // SFINAE vs Concepts 对比可视化
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('tmpl-svg') as unknown as SVGSVGElement;
+  const tmplBtns = document.querySelectorAll<HTMLButtonElement>('.tmpl-btn');
+
+  interface CodeLine { text: string; color: string; indent?: number; }
+  interface StyleData {
+    titleZh: string; titleEn: string; color: string;
+    pros: { zh: string; en: string }[];
+    cons: { zh: string; en: string }[];
+    code: CodeLine[];
+  }
+
+  const STYLES: Record<string, StyleData> = {
+    sfinae: {
+      titleZh: 'SFINAE（C++11）', titleEn: 'SFINAE (C++11)', color: '#FBBF24',
+      pros: [
+        { zh: 'C++11 起可用，兼容性广', en: 'Available since C++11, wide compat' },
+        { zh: '能实现条件启用', en: 'Enables conditional activation' },
+      ],
+      cons: [
+        { zh: '语法极其晦涩', en: 'Extremely cryptic syntax' },
+        { zh: '错误信息如天书', en: 'Unreadable error messages' },
+        { zh: '不支持重载决议', en: 'No overload resolution' },
+      ],
+      code: [
+        { text: 'template<typename T,', color: '#CBD5E1' },
+        { text: '  typename = enable_if_t<', color: '#F87171' },
+        { text: '    is_integral_v<T>>>', color: '#F87171' },
+        { text: 'T safeDivide(T a, T b) {', color: '#CBD5E1' },
+        { text: '  return a / b;', color: '#CBD5E1' },
+        { text: '}', color: '#CBD5E1' },
+      ],
+    },
+    concepts: {
+      titleZh: 'Concepts（C++20）', titleEn: 'Concepts (C++20)', color: '#22C55E',
+      pros: [
+        { zh: '声明式语法，清晰直观', en: 'Declarative syntax, clear' },
+        { zh: '错误信息明确指出未满足的约束', en: 'Errors clearly show unsatisfied constraints' },
+        { zh: '支持基于约束的重载决议', en: 'Supports constraint-based overload resolution' },
+        { zh: '可与简写模板语法配合', en: 'Works with abbreviated template syntax' },
+      ],
+      cons: [
+        { zh: '需要 C++20 编译器', en: 'Requires C++20 compiler' },
+      ],
+      code: [
+        { text: 'template<std::integral T>', color: '#4ADE80' },
+        { text: 'T safeDivide(T a, T b) {', color: '#CBD5E1' },
+        { text: '  return a / b;', color: '#CBD5E1' },
+        { text: '}', color: '#CBD5E1' },
+      ],
+    },
+  };
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  function render(style: string) {
+    const data = STYLES[style];
+    if (!data) return;
+    svg.innerHTML = '';
+
+    // 左侧：代码示例
+    const codeX = 30, codeY = 30;
+    const codeBg = document.createElementNS(SVGNS, 'rect');
+    codeBg.setAttribute('x', String(codeX)); codeBg.setAttribute('y', String(codeY));
+    codeBg.setAttribute('width', '360'); codeBg.setAttribute('height', '180');
+    codeBg.setAttribute('rx', '8'); codeBg.setAttribute('fill', 'rgba(11,17,32,0.6)');
+    codeBg.setAttribute('stroke', data.color + '44'); codeBg.setAttribute('stroke-width', '1.5');
+    svg.appendChild(codeBg);
+
+    const codeTitle = document.createElementNS(SVGNS, 'text');
+    codeTitle.setAttribute('x', String(codeX + 12)); codeTitle.setAttribute('y', String(codeY + 22));
+    codeTitle.setAttribute('font-size', '13'); codeTitle.setAttribute('font-weight', '700');
+    codeTitle.setAttribute('fill', data.color); codeTitle.setAttribute('font-family', 'monospace');
+    codeTitle.textContent = lang() === 'en' ? data.titleEn : data.titleZh;
+    svg.appendChild(codeTitle);
+
+    for (let i = 0; i < data.code.length; i++) {
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(codeX + 16)); t.setAttribute('y', String(codeY + 48 + i * 20));
+      t.setAttribute('font-size', '12'); t.setAttribute('fill', data.code[i].color);
+      t.setAttribute('font-family', 'monospace');
+      t.textContent = data.code[i].text;
+      svg.appendChild(t);
+    }
+
+    // 右侧：优缺点
+    const prosX = 430, prosY = 30;
+    const prosTitle = document.createElementNS(SVGNS, 'text');
+    prosTitle.setAttribute('x', String(prosX)); prosTitle.setAttribute('y', String(prosY + 5));
+    prosTitle.setAttribute('font-size', '14'); prosTitle.setAttribute('font-weight', '700');
+    prosTitle.setAttribute('fill', '#22C55E');
+    prosTitle.textContent = lang() === 'en' ? '✓ Pros' : '✓ 优点';
+    svg.appendChild(prosTitle);
+
+    for (let i = 0; i < data.pros.length; i++) {
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(prosX + 8)); t.setAttribute('y', String(prosY + 30 + i * 20));
+      t.setAttribute('font-size', '12'); t.setAttribute('fill', '#CBD5E1');
+      t.textContent = '• ' + (lang() === 'en' ? data.pros[i].en : data.pros[i].zh);
+      svg.appendChild(t);
+    }
+
+    const consY = prosY + 30 + data.pros.length * 20 + 16;
+    const consTitle = document.createElementNS(SVGNS, 'text');
+    consTitle.setAttribute('x', String(prosX)); consTitle.setAttribute('y', String(consY + 5));
+    consTitle.setAttribute('font-size', '14'); consTitle.setAttribute('font-weight', '700');
+    consTitle.setAttribute('fill', '#F87171');
+    consTitle.textContent = lang() === 'en' ? '✗ Cons' : '✗ 缺点';
+    svg.appendChild(consTitle);
+
+    for (let i = 0; i < data.cons.length; i++) {
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(prosX + 8)); t.setAttribute('y', String(consY + 30 + i * 20));
+      t.setAttribute('font-size', '12'); t.setAttribute('fill', '#CBD5E1');
+      t.textContent = '• ' + (lang() === 'en' ? data.cons[i].en : data.cons[i].zh);
+      svg.appendChild(t);
+    }
+  }
+
+  function setActive(style: string) {
+    tmplBtns.forEach(b => b.classList.toggle('btn-primary', b.dataset.style === style));
+    render(style);
+  }
+  tmplBtns.forEach(b => b.addEventListener('click', () => setActive(b.dataset.style!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.tmpl-btn.btn-primary');
+    render(active?.dataset.style || 'sfinae');
+  });
+  setActive('sfinae');
+</script>

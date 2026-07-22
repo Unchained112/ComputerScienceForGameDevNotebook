@@ -1,0 +1,305 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="C++ Overview · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Languages / C++</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">C++ 概览</span><span slot="en">C++ Overview</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">C++ 是游戏引擎的<b>事实标准</b>——Unreal、Unity (IL2CPP)、自研引擎核心均以 C++ 编写。它提供<b>零开销抽象</b>：既能像 C 一样贴近硬件操控内存，又能用模板、RAII、智能指针等高级特性保证安全。从 C++11 起，语言每三年一次标准迭代，现代 C++ 已与 2003 年的"C with Classes"截然不同。点击下方时间线节点，查看每个标准的关键特性。</span>
+          <span slot="en">C++ is the <b>de facto standard</b> for game engines — Unreal, Unity (IL2CPP), and custom engine cores are all written in C++. It offers <b>zero-overhead abstraction</b>: as close to hardware as C for memory control, yet with templates, RAII, and smart pointers for safety. Since C++11, the standard evolves every three years; modern C++ is vastly different from 2003's "C with Classes". Click timeline nodes below to explore each standard's key features.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：C++ 标准演进时间线 -->
+    <div class="glass p-5" data-viz="cpp-timeline">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <button class="btn std-btn btn-primary" data-std="11">C++11</button>
+        <button class="btn std-btn" data-std="14">C++14</button>
+        <button class="btn std-btn" data-std="17">C++17</button>
+        <button class="btn std-btn" data-std="20">C++20</button>
+        <button class="btn std-btn" data-std="23">C++23</button>
+      </div>
+      <svg id="cpp-tl-svg" viewBox="0 0 800 300" class="w-full h-80 viz-stage"></svg>
+    </div>
+
+    <!-- 编译模型 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">编译模型：从源码到可执行</span><span slot="en">Compilation Model: Source to Binary</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">C++ 沿用 C 的<b>分离编译</b>模型：源文件（<code>.cpp</code>）独立编译为<b>目标文件</b>（<code>.o</code>），再由<b>链接器</b>合并为可执行文件。头文件（<code>.h</code>）声明接口，源文件定义实现。这套模型是 C++ 编译慢的根源——每个翻译单元独立解析头文件，模板实例化重复展开。<b>C++20 modules</b> 旨在替代头文件机制，从根本上加速编译。</span><span slot="en">C++ inherits C's <b>separate compilation</b> model: source files (<code>.cpp</code>) compile independently into <b>object files</code> (<code>.o</code>), then a <b>linker</b> merges them into an executable. Headers (<code>.h</code>) declare interfaces; source files define implementations. This model is the root cause of slow C++ builds — each translation unit re-parses headers, and template instantiations are duplicated. <b>C++20 modules</b> aim to replace the header mechanism and fundamentally speed up compilation.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">阶段</span><span slot="en">Stage</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">输入</span><span slot="en">Input</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">输出</span><span slot="en">Output</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">工具</span><span slot="en">Tool</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber">预处理</td><td class="py-2 pr-4 font-mono">.cpp + .h</td><td class="py-2 pr-4 font-mono">.ii (展开宏)</td><td class="py-2 pr-4">cpp / -E</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan">编译</td><td class="py-2 pr-4 font-mono">.ii</td><td class="py-2 pr-4 font-mono">.s (汇编)</td><td class="py-2 pr-4">cc1 / -S</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple">汇编</td><td class="py-2 pr-4 font-mono">.s</td><td class="py-2 pr-4 font-mono">.o (目标文件)</td><td class="py-2 pr-4">as / -c</td></tr>
+            <tr><td class="py-2 pr-4 text-func-green">链接</td><td class="py-2 pr-4 font-mono">.o × N + .lib</td><td class="py-2 pr-4 font-mono">.exe / .so</td><td class="py-2 pr-4">ld</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4">
+        <CodeTabs
+  cpp={`<pre><code>// ===== math.h（头文件：声明接口） =====
+#pragma once
+int add(int a, int b);
+
+// ===== math.cpp（源文件：定义实现） =====
+#include "math.h"
+int add(int a, int b) &#123; return a + b; &#125;
+
+// ===== main.cpp（独立翻译单元） =====
+#include "math.h"
+#include &lt;iostream&gt;
+int main() &#123;
+    std::cout &lt;&lt; add(2, 3) &lt;&lt; "\\n";  // 链接器找到 math.cpp 中的 add
+    return 0;
+&#125;
+
+// ===== C++20 modules（替代头文件） =====
+export module math;          // 声明模块
+export int add(int a, int b) &#123; return a + b; &#125;
+
+// 使用方
+import math;                 // 无需文本包含，编译更快
+int main() &#123; return add(2, 3); &#125;</code></pre>`}
+  py={`<pre><code># Python 无编译模型——解释器逐行执行
+# 但有类似的"模块"概念（运行时 import）
+
+# math_impl.py
+def add(a, b):
+    return a + b
+
+# main.py
+from math_impl import add
+print(add(2, 3))  # 运行时查找 math_impl 模块
+
+# Python 的 "编译" 是可选的字节码缓存 (.pyc)
+# 无链接阶段，无分离编译，无模板实例化
+# 迭代快但运行时性能低于 C++</code></pre>`}
+        />
+      </div>
+    </section>
+
+    <!-- 与 C 的区别 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">C++ 与 C 的关键区别</span><span slot="en">Key Differences: C++ vs C</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">C++ 以 C 为子集，在其上叠加了四层核心能力：<b>类型系统增强</b>（引用、函数重载、模板）、<b>资源管理</b>（RAII、构造/析构、智能指针）、<b>抽象机制</b>（类、继承、多态、泛型）、<b>标准库扩展</b>（STL 容器/算法/并发）。C 的哲学是"信任程序员"，C++ 的哲学是"让编译器帮你少犯错"。</span><span slot="en">C++ is a superset of C, adding four core layers: <b>enhanced type system</b> (references, overloading, templates), <b>resource management</b> (RAII, constructors/destructors, smart pointers), <b>abstraction mechanisms</b> (classes, inheritance, polymorphism, generics), and <b>stdlib expansion</b> (STL containers/algorithms/concurrency). C's philosophy is "trust the programmer"; C++'s is "let the compiler catch your mistakes".</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">特性</span><span slot="en">Feature</span></Bilingual></th><th class="py-2 pr-4">C</th><th class="py-2 pr-4">C++</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">字符串</span><span slot="en">Strings</span></Bilingual></td><td class="py-2 pr-4 font-mono">char[] + string.h</td><td class="py-2 pr-4 text-func-green font-mono">std::string</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">内存管理</span><span slot="en">Memory</span></Bilingual></td><td class="py-2 pr-4 font-mono">malloc / free</td><td class="py-2 pr-4 text-func-green font-mono">new / delete / RAII / 智能指针</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">错误处理</span><span slot="en">Error handling</span></Bilingual></td><td class="py-2 pr-4 font-mono">返回码 / errno</td><td class="py-2 pr-4 text-func-green font-mono">异常 / expected (C++23)</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">泛型</span><span slot="en">Generics</span></Bilingual></td><td class="py-2 pr-4 font-mono">void* / 宏</td><td class="py-2 pr-4 text-func-green font-mono">模板 / concepts</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">并发</span><span slot="en">Concurrency</span></Bilingual></td><td class="py-2 pr-4 font-mono">pthread (第三方)</td><td class="py-2 pr-4 text-func-green font-mono">&lt;thread&gt; / &lt;atomic&gt; (标准库)</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">抽象</span><span slot="en">Abstraction</span></Bilingual></td><td class="py-2 pr-4 font-mono">struct + 函数指针</td><td class="py-2 pr-4 text-func-green font-mono">类 / 继承 / 虚函数</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">深入阅读：<a class="text-primary-cyan underline" href="/topics/cpp-memory">内存与指针</a>、<a class="text-primary-cyan underline" href="/topics/cpp-raii">RAII 与智能指针</a>、<a class="text-primary-cyan underline" href="/topics/cpp-templates">模板与泛型</a>、<a class="text-primary-cyan underline" href="/topics/cpp-move">移动语义</a>、<a class="text-primary-cyan underline" href="/topics/cpp-concurrency">多线程并发</a>、<a class="text-primary-cyan underline" href="/topics/cpp-modern">现代 C++ 特性</a>。</span><span slot="en">Deep dive: <a class="text-primary-cyan underline" href="/topics/cpp-memory">Memory & Pointers</a>, <a class="text-primary-cyan underline" href="/topics/cpp-raii">RAII & Smart Pointers</a>, <a class="text-primary-cyan underline" href="/topics/cpp-templates">Templates</a>, <a class="text-primary-cyan underline" href="/topics/cpp-move">Move Semantics</a>, <a class="text-primary-cyan underline" href="/topics/cpp-concurrency">Concurrency</a>, <a class="text-primary-cyan underline" href="/topics/cpp-modern">Modern C++</a>.</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // C++ 标准演进时间线交互
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('cpp-tl-svg') as unknown as SVGSVGElement;
+  const stdButtons = document.querySelectorAll<HTMLButtonElement>('.std-btn');
+
+  interface StdFeature { zh: string; en: string; }
+  interface StdData {
+    year: string;
+    nicknameZh: string; nicknameEn: string;
+    color: string;
+    features: StdFeature[];
+  }
+
+  const STDS: Record<string, StdData> = {
+    '11': {
+      year: '2011', nicknameZh: '现代 C++ 起点', nicknameEn: 'Modern C++ Begins',
+      color: '#FBBF24',
+      features: [
+        { zh: 'auto / decltype 类型推导', en: 'auto / decltype type deduction' },
+        { zh: 'Lambda 表达式', en: 'Lambda expressions' },
+        { zh: '右值引用 / 移动语义', en: 'Rvalue references / move semantics' },
+        { zh: '智能指针 (unique_ptr/shared_ptr)', en: 'Smart pointers' },
+        { zh: 'std::thread 多线程库', en: 'std::thread concurrency' },
+        { zh: 'constexpr 编译期计算', en: 'constexpr compile-time' },
+        { zh: 'nullptr / enum class / 强枚举', en: 'nullptr / enum class' },
+        { zh: '统一初始化 {}', en: 'Uniform init {}' },
+        { zh: 'variadic templates', en: 'Variadic templates' },
+        { zh: 'range-for', en: 'Range-for' },
+      ],
+    },
+    '14': {
+      year: '2014', nicknameZh: '完善 11', nicknameEn: 'Refining C++11',
+      color: '#22D3EE',
+      features: [
+        { zh: '泛型 Lambda (auto 参数)', en: 'Generic lambdas' },
+        { zh: '返回类型推导 (auto f())', en: 'Return type deduction' },
+        { zh: 'constexpr 放宽（可含循环）', en: 'Relaxed constexpr' },
+        { zh: 'std::make_unique', en: 'std::make_unique' },
+        { zh: '数字字面量分隔符 1\'000\'000', en: 'Digit separators' },
+        { zh: 'std::integer_sequence', en: 'std::integer_sequence' },
+      ],
+    },
+    '17': {
+      year: '2017', nicknameZh: '实用工具大爆发', nicknameEn: 'Utility Boom',
+      color: '#A78BFA',
+      features: [
+        { zh: '结构化绑定 [a,b,c] = tuple', en: 'Structured bindings' },
+        { zh: 'if constexpr', en: 'if constexpr' },
+        { zh: 'std::optional / variant / any', en: 'optional / variant / any' },
+        { zh: 'std::string_view', en: 'std::string_view' },
+        { zh: 'fold expressions', en: 'Fold expressions' },
+        { zh: '并行算法 (std::execution)', en: 'Parallel algorithms' },
+        { zh: '类模板参数推导 (CTAD)', en: 'Class template arg deduction' },
+        { zh: 'inline 变量', en: 'Inline variables' },
+      ],
+    },
+    '20': {
+      year: '2020', nicknameZh: '四大革命', nicknameEn: 'Big Four',
+      color: '#22C55E',
+      features: [
+        { zh: 'Concepts（概念约束）', en: 'Concepts' },
+        { zh: 'Ranges（管道式算法）', en: 'Ranges' },
+        { zh: 'Coroutines（协程）', en: 'Coroutines' },
+        { zh: 'Modules（模块）', en: 'Modules' },
+        { zh: '&lt;=&gt; 飞船运算符', en: 'Three-way comparison' },
+        { zh: 'std::format', en: 'std::format' },
+        { zh: '指定初始化 { .x = 1 }', en: 'Designated initializers' },
+        { zh: '模板 lambda', en: 'Template lambdas' },
+        { zh: 'std::span', en: 'std::span' },
+        { zh: '位运算位字段改进', en: 'Bit ops improvements' },
+      ],
+    },
+    '23': {
+      year: '2023', nicknameZh: '标准库扩展', nicknameEn: 'Stdlib Expansion',
+      color: '#F472B6',
+      features: [
+        { zh: 'std::expected（错误处理）', en: 'std::expected' },
+        { zh: 'std::print / std::println', en: 'std::print' },
+        { zh: 'deducing this', en: 'Deducing this' },
+        { zh: 'std::mdspan（多维视图）', en: 'std::mdspan' },
+        { zh: 'std::flat_map / flat_set', en: 'flat_map / flat_set' },
+        { zh: '协程库 std::generator', en: 'std::generator' },
+        { zh: 'std::optional 改进（and/or）', en: 'optional monadic ops' },
+        { zh: 'if consteval', en: 'if consteval' },
+        { zh: '#elifdef / #elifndef', en: '#elifdef' },
+      ],
+    },
+  };
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  function render(std: string) {
+    const data = STDS[std];
+    if (!data) return;
+    svg.innerHTML = '';
+
+    // 时间线主轴
+    const axis = document.createElementNS(SVGNS, 'line');
+    axis.setAttribute('x1', '40'); axis.setAttribute('y1', '80');
+    axis.setAttribute('x2', '760'); axis.setAttribute('y2', '80');
+    axis.setAttribute('stroke', 'rgba(148,163,184,0.3)'); axis.setAttribute('stroke-width', '2');
+    svg.appendChild(axis);
+
+    // 各标准节点
+    const stdKeys = ['11', '14', '17', '20', '23'];
+    const xs = [80, 230, 380, 530, 680];
+    for (let i = 0; i < stdKeys.length; i++) {
+      const k = stdKeys[i], d = STDS[k], x = xs[i];
+      const isActive = k === std;
+
+      // 圆点
+      const circle = document.createElementNS(SVGNS, 'circle');
+      circle.setAttribute('cx', String(x)); circle.setAttribute('cy', '80');
+      circle.setAttribute('r', isActive ? '12' : '7');
+      circle.setAttribute('fill', isActive ? d.color : 'rgba(148,163,184,0.3)');
+      circle.setAttribute('stroke', d.color); circle.setAttribute('stroke-width', '2');
+      svg.appendChild(circle);
+
+      // 标签
+      const label = document.createElementNS(SVGNS, 'text');
+      label.setAttribute('x', String(x)); label.setAttribute('y', '110');
+      label.setAttribute('text-anchor', 'middle'); label.setAttribute('font-size', '14');
+      label.setAttribute('font-weight', '700'); label.setAttribute('fill', isActive ? d.color : '#94A3B8');
+      label.textContent = `C++${k}`;
+      svg.appendChild(label);
+
+      // 年份
+      const year = document.createElementNS(SVGNS, 'text');
+      year.setAttribute('x', String(x)); year.setAttribute('y', '128');
+      year.setAttribute('text-anchor', 'middle'); year.setAttribute('font-size', '11');
+      year.setAttribute('fill', '#64748B');
+      year.textContent = d.year;
+      svg.appendChild(year);
+    }
+
+    // 当前选中标准的详细信息卡片
+    const cardX = 40, cardY = 150, cardW = 720, cardH = 130;
+    const card = document.createElementNS(SVGNS, 'rect');
+    card.setAttribute('x', String(cardX)); card.setAttribute('y', String(cardY));
+    card.setAttribute('width', String(cardW)); card.setAttribute('height', String(cardH));
+    card.setAttribute('rx', '10'); card.setAttribute('fill', data.color + '11');
+    card.setAttribute('stroke', data.color + '66'); card.setAttribute('stroke-width', '1.5');
+    svg.appendChild(card);
+
+    // 卡片标题
+    const title = document.createElementNS(SVGNS, 'text');
+    title.setAttribute('x', String(cardX + 20)); title.setAttribute('y', String(cardY + 28));
+    title.setAttribute('font-size', '16'); title.setAttribute('font-weight', '700');
+    title.setAttribute('fill', data.color);
+    title.textContent = `C++${std} (${data.year}) — ${lang() === 'en' ? data.nicknameEn : data.nicknameZh}`;
+    svg.appendChild(title);
+
+    // 特性列表（两列）
+    const feats = data.features;
+    const colCount = 2;
+    const rowH = 18;
+    const startY = cardY + 52;
+    for (let i = 0; i < feats.length && i < 12; i++) {
+      const col = i % colCount;
+      const row = Math.floor(i / colCount);
+      const fx = cardX + 20 + col * 360;
+      const fy = startY + row * rowH;
+      if (fy > cardY + cardH - 10) break;
+
+      // bullet
+      const bullet = document.createElementNS(SVGNS, 'circle');
+      bullet.setAttribute('cx', String(fx)); bullet.setAttribute('cy', String(fy - 4));
+      bullet.setAttribute('r', '2.5'); bullet.setAttribute('fill', data.color);
+      svg.appendChild(bullet);
+
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(fx + 10)); t.setAttribute('y', String(fy));
+      t.setAttribute('font-size', '12'); t.setAttribute('fill', '#CBD5E1');
+      t.textContent = lang() === 'en' ? feats[i].en : feats[i].zh;
+      svg.appendChild(t);
+    }
+  }
+
+  function setActive(std: string) {
+    stdButtons.forEach(b => {
+      b.classList.toggle('btn-primary', b.dataset.std === std);
+    });
+    render(std);
+  }
+
+  stdButtons.forEach(b => b.addEventListener('click', () => setActive(b.dataset.std!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.std-btn.btn-primary');
+    render(active?.dataset.std || '11');
+  });
+  setActive('11');
+</script>

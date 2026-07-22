@@ -1,0 +1,795 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Modern C++ · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Languages / Modern C++</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">现代 C++ 语法特性总览</span><span slot="en">Modern C++ Feature Overview</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">从 C++11 到 C++23，语言每三年迭代一次，新增了大量<b>语法糖</b>——让代码更简洁、更安全、更表达意图。本页汇总日常编码最高频的现代特性：<code>auto</code> 类型推导、<b>Lambda</b>、<code>constexpr</code> 编译期计算、<b>结构化绑定</b>、<code>optional/variant</code> 和类型、<code>string_view</code> 零拷贝字符串视图、C++20 <code>&lt;=&gt;</code> 飞船运算符、C++23 <code>std::expected</code> 错误处理。点击下方时间线查看各版本里程碑。</span>
+          <span slot="en">From C++11 to C++23, the language iterates every three years, adding <b>syntactic sugar</b> that makes code cleaner, safer, and more expressive. This page summarizes the most frequently used modern features: <code>auto</code> type deduction, <b>Lambdas</b>, <code>constexpr</code> compile-time computation, <b>structured bindings</b>, <code>optional/variant</code> sum types, <code>string_view</code> zero-copy string views, C++20 <code>&lt;=&gt;</code> spaceship operator, C++23 <code>std::expected</code> error handling. Click the timeline below for version milestones.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：Lambda 捕获方式 -->
+    <div class="glass p-5" data-viz="lambda-capture">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button class="btn lambda-btn btn-primary" data-capture="value">
+          <span data-lang="zh">[=] 值捕获</span><span data-lang="en">[=] by value</span>
+        </button>
+        <button class="btn lambda-btn" data-capture="ref">
+          <span data-lang="zh">[&] 引用捕获</span><span data-lang="en">[&] by ref</span>
+        </button>
+        <button class="btn lambda-btn" data-capture="move">
+          <span data-lang="zh">[=,&x=move]</span><span data-lang="en">[=,&x=move]</span>
+        </button>
+        <button class="btn lambda-btn" data-capture="this">
+          <span data-lang="zh">[this]</span><span data-lang="en">[this]</span>
+        </button>
+      </div>
+      <svg id="lambda-svg" viewBox="0 0 800 260" class="w-full h-72 viz-stage"></svg>
+    </div>
+
+    <!-- auto / decltype -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">auto 与 decltype：类型推导</span><span slot="en">auto & decltype: Type Deduction</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><code>auto</code> 让编译器推导变量类型——减少冗长类型名、避免类型不匹配。<code>decltype</code> 推导表达式的精确类型（用于模板元编程）。<code>decltype(auto)</code>（C++14）保留引用与 cv 限定符。注意：<code>auto</code> 默认丢弃引用和 const，需显式写 <code>const auto&amp;</code>。</span><span slot="en"><code>auto</code> lets the compiler deduce variable types — reducing verbose type names and avoiding mismatches. <code>decltype</code> deduces the exact type of an expression (used in template metaprogramming). <code>decltype(auto)</code> (C++14) preserves references and cv-qualifiers. Note: <code>auto</code> drops references and const by default — use <code>const auto&amp;</code> explicitly.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>#include &lt;vector&gt;
+#include &lt;string&gt;
+
+// ===== auto：变量类型推导 =====
+auto i = 42;               // int
+auto d = 3.14;             // double
+auto s = std::string("hi"); // std::string
+auto v = std::vector&lt;int&gt;&#123;1,2,3&#125;;
+
+// 迭代器：auto 大幅简化
+std::map&lt;std::string, int&gt; m;
+// 不用 auto（C++03 写法）：
+for (std::map&lt;std::string, int&gt;::const_iterator it = m.begin(); it != m.end(); ++it)
+    /* ... */;
+// 用 auto（C++11）：
+for (auto it = m.begin(); it != m.end(); ++it)
+    /* ... */;
+
+// ===== auto 的陷阱：丢弃引用和 const =====
+int x = 42;
+const int&amp; ref = x;
+auto a = ref;        // auto = int（丢弃 const 和 &）！
+const auto&amp; b = ref; // auto = const int&（正确）
+
+// 函数返回类型推导（C++14）
+auto makeVector() &#123;
+    return std::vector&lt;int&gt;&#123;1, 2, 3&#125;;   // 推导为 vector&lt;int&gt;
+&#125;
+
+// ===== decltype：精确类型推导 =====
+int x2 = 42;
+decltype(x2) y = 10;       // int（变量名 → 变量类型）
+decltype((x2)) z = x2;     // int&（带括号 → 左值表达式 → 引用！）
+
+// decltype 用于模板
+template &lt;typename T, typename U&gt;
+auto add(T a, U b) -&gt; decltype(a + b) &#123;   // C++11 尾随返回类型
+    return a + b;
+&#125;
+
+// decltype(auto)：保留引用和 cv（C++14）
+decltype(auto) getRef(int&amp; x) &#123;
+    return x;   // 返回 int&（而非 int）
+&#125;
+
+// ===== auto 与结构化绑定配合（C++17） =====
+std::map&lt;std::string, int&gt; scores = &#123;&#123;"Alice", 95&#125;, &#123;"Bob", 87&#125;&#125;;
+for (const auto&amp; [name, score] : scores) &#123;   // 结构化绑定
+    std::cout &lt;&lt; name &lt;&lt; ": " &lt;&lt; score &lt;&lt; "\\n";
+&#125;
+
+// ===== 游戏场景 =====
+auto entity = std::make_unique&lt;Entity&gt;();   // auto 避免写 unique_ptr&lt;Entity&gt;
+auto&amp; manager = Game::instance().entityManager();  // auto& 保留引用
+const auto count = manager.size();   // const auto = 只读计数</code></pre>`}
+  py={`<pre><code># Python 类型注解（运行时不强制，仅 IDE/mypy 检查）
+
+# Python 本身是动态类型，无 auto 关键字
+i = 42           # 运行时推导类型
+d = 3.14
+s = "hi"
+v = [1, 2, 3]
+
+# 类型注解（Python 3.6+，类似 auto 的反向）
+def make_vector() -> list[int]:
+    return [1, 2, 3]
+
+# 遍历 map
+scores = {"Alice": 95, "Bob": 87}
+for name, score in scores.items():   # 天然解构
+    print(f"{name}: {score}")
+
+# Python 无 decltype——运行时可查类型
+x = 42
+print(type(x))   # <class 'int'>
+
+# 类型推导完全运行时，无编译期检查
+# 但可用 mypy 做静态分析
+from typing import TypeVar
+T = TypeVar('T')
+def identity(x: T) -> T:
+    return x   # mypy 推导 T 为传入类型
+
+# C++ auto vs Python：
+# C++: 编译期推导，强类型，零开销
+# Python: 运行时推导，动态类型，有开销</code></pre>`}
+      />
+    </section>
+
+    <!-- Lambda 表达式 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Lambda 表达式：匿名函数</span><span slot="en">Lambda Expressions: Anonymous Functions</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">Lambda 是<b>匿名函数对象</b>——<code>[capture](params) -&gt; ret &#123; body &#125;</code>。<b>捕获</b>决定如何访问外部变量：<code>[]</code> 不捕获、<code>[=]</code> 值捕获、<code>[&amp;]</code> 引用捕获、<code>[this]</code> 捕获 this。C++14 起支持<b>泛型 Lambda</b>（<code>auto</code> 参数），C++20 支持<b>模板 Lambda</b>。游戏开发中 Lambda 无处不在：回调、STL 算法谓词、线程函数。</span><span slot="en">Lambdas are <b>anonymous function objects</b> — <code>[capture](params) -&gt; ret &#123; body &#125;</code>. <b>Capture</b> controls access to outer variables: <code>[]</code> none, <code>[=]</code> by value, <code>[&amp;]</code> by reference, <code>[this]</code> captures this. C++14 adds <b>generic lambdas</b> (<code>auto</code> params), C++20 adds <b>template lambdas</b>. Lambdas are everywhere in game dev: callbacks, STL algorithm predicates, thread functions.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>#include &lt;algorithm&gt;
+#include &lt;vector&gt;
+#include &lt;functional&gt;
+
+// ===== Lambda 基本语法 =====
+auto add = [](int a, int b) &#123; return a + b; &#125;;
+add(2, 3);   // 5
+
+// 显式返回类型
+auto divide = [](int a, int b) -&gt; double &#123;
+    return static_cast&lt;double&gt;(a) / b;
+&#125;;
+
+// ===== 捕获方式 =====
+int x = 10, y = 20;
+
+// [=] 值捕获：拷贝所有外部变量（只读）
+auto byVal = [=]() &#123; return x + y; &#125;;   // x=10, y=20（快照）
+x = 100;
+byVal();   // 仍返回 30（值捕获的快照）
+
+// [&] 引用捕获：引用所有外部变量（可修改）
+auto byRef = [&]() &#123; x = 999; &#125;;
+byRef();   // x 现在是 999
+
+// 混合捕获
+auto mixed = [x, &y]() &#123; y = x * 2; &#125;;   // x 值捕获，y 引用捕获
+
+// C++14: 初始化捕获（move 捕获）
+auto ptr = std::make_unique&lt;int&gt;(42);
+auto moveCapture = [p = std::move(ptr)]() &#123; return *p; &#125;;
+// ptr 现在是 nullptr，p 拥有资源
+
+// [this] 捕获类成员
+class Game &#123;
+    int score = 0;
+public:
+    std::function&lt;void()&gt; getCallback() &#123;
+        return [this]() &#123; score++; &#125;;   // 捕获 this，可访问 score
+    &#125;
+&#125;;
+
+// ===== 泛型 Lambda（C++14） =====
+auto print = [](const auto&amp; x) &#123;
+    std::cout &lt;&lt; x &lt;&lt; "\\n";
+&#125;;
+print(42);       // int
+print("hello");  // const char*
+print(3.14);     // double
+
+// ===== STL 算法谓词 =====
+std::vector&lt;int&gt; nums = &#123;1,2,3,4,5,6&#125;;
+
+// find_if + Lambda
+auto it = std::find_if(nums.begin(), nums.end(),
+    [](int x) &#123; return x &gt; 3; &#125;);
+// it 指向 4
+
+// sort 自定义比较
+std::sort(nums.begin(), nums.end(),
+    [](int a, int b) &#123; return a &gt; b; &#125;);   // 降序
+
+// remove_if + erase
+std::erase_if(nums, [](int x) &#123; return x % 2 == 0; &#125;);  // 删除偶数
+
+// ===== 游戏回调系统 =====
+class EventBus &#123;
+    std::unordered_map&lt;std::string, std::vector&lt;std::function&lt;void()&gt;&gt;&gt; handlers;
+public:
+    void on(const std::string&amp; event, std::function&lt;void()&gt; handler) &#123;
+        handlers[event].push_back(handler);
+    &#125;
+    void emit(const std::string&amp; event) &#123;
+        for (auto&amp; h : handlers[event]) h();
+    &#125;
+&#125;;
+
+EventBus bus;
+int health = 100;
+bus.on("damage", [&health]() &#123;       // 引用捕获 health
+    health -= 10;
+    if (health &lt;= 0) std::cout &lt;&lt; "dead\\n";
+&#125;);
+bus.emit("damage");   // health = 90</code></pre>`}
+  py={`<pre><code># Python Lambda：单表达式匿名函数
+
+# 基本语法：lambda args: expression
+add = lambda a, b: a + b
+add(2, 3)   # 5
+
+# Python Lambda 限制：只能单个表达式，不能有语句
+# 复杂逻辑需用 def
+def divide(a, b):
+    return a / b
+
+# 无捕获语法——自动闭包引用外部变量
+x = 10
+y = 20
+by_val = lambda: x + y   # 引用（Python 无值捕获）
+x = 100
+by_val()   # 120（看到最新的 x）！
+
+# 想要"值捕获"快照：用默认参数
+by_val_snapshot = lambda x=x, y=y: x + y   # 绑定当前值
+x = 100
+by_val_snapshot()   # 30（快照）
+
+# STL 等价：sorted/filter/map
+nums = [1, 2, 3, 4, 5, 6]
+
+# find
+found = next((x for x in nums if x > 3), None)   # 4
+
+# sort 自定义比较
+sorted_nums = sorted(nums, key=lambda x: -x)   # 降序
+
+# filter
+odds = list(filter(lambda x: x % 2 != 0, nums))   # [1, 3, 5]
+
+# 游戏回调系统
+class EventBus:
+    def __init__(self):
+        self.handlers = {}
+
+    def on(self, event, handler):
+        self.handlers.setdefault(event, []).append(handler)
+
+    def emit(self, event):
+        for h in self.handlers.get(event, []):
+            h()
+
+bus = EventBus()
+health = [100]   # 用 list 包装（闭包不能修改不可变对象）
+bus.on("damage", lambda: (
+    health.__setitem__(0, health[0] - 10),
+    print("dead") if health[0] <= 0 else None
+))
+bus.emit("damage")   # health = [90]
+
+# C++ Lambda vs Python Lambda：
+# C++:  可多语句，显式捕获，生成函数对象
+# Python: 单表达式，自动闭包，功能受限</code></pre>`}
+      />
+    </section>
+
+    <!-- C++17 实用工具 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">C++17 实用工具：结构化绑定 / optional / variant</span><span slot="en">C++17 Utilities: Structured Bindings / optional / variant</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">C++17 引入了一组<b>日常高频</b>工具：<b>结构化绑定</b>解构 tuple/pair/struct；<code>std::optional</code> 表达"可能有值也可能没有"；<code>std::variant</code> 是类型安全的联合体（替代 union）；<code>std::string_view</code> 是零拷贝字符串视图；<code>if constexpr</code> 在编译期分支。这些工具让 C++ 更接近现代语言的表达力。</span><span slot="en">C++17 introduced a set of <b>daily-driver</b> utilities: <b>structured bindings</b> deconstruct tuple/pair/struct; <code>std::optional</code> expresses "may or may not have a value"; <code>std::variant</code> is a type-safe union (replacing union); <code>std::string_view</code> is a zero-copy string view; <code>if constexpr</code> branches at compile time. These bring C++ closer to modern language expressiveness.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>#include &lt;optional&gt;
+#include &lt;variant&gt;
+#include &lt;string_view&gt;
+#include &lt;tuple&gt;
+
+// ===== 结构化绑定（C++17） =====
+// 解构 pair
+std::map&lt;std::string, int&gt; m = &#123;&#123;"a", 1&#125;, &#123;"b", 2&#125;&#125;;
+for (const auto&amp; [key, value] : m) &#123;
+    std::cout &lt;&lt; key &lt;&lt; "=" &lt;&lt; value &lt;&lt; "\\n";
+&#125;
+
+// 解构 tuple
+auto [x, y, z] = std::make_tuple(1, 2.0, "three");
+
+// 解构 struct
+struct Point &#123; float x, y; &#125;;
+auto [px, py] = Point&#123;3.0f, 4.0f&#125;;
+
+// 解构数组
+int arr[3] = &#123;10, 20, 30&#125;;
+auto [a0, a1, a2] = arr;
+
+// ===== std::optional：可空值 =====
+std::optional&lt;int&gt; findValue(const std::vector&lt;int&gt;&amp; v, int target) &#123;
+    for (auto it = v.begin(); it != v.end(); ++it)
+        if (*it == target) return static_cast&lt;int&gt;(it - v.begin());
+    return std::nullopt;   // 未找到
+&#125;
+
+auto result = findValue(nums, 42);
+if (result) &#123;
+    std::cout &lt;&lt; "Found at " &lt;&lt; *result &lt;&lt; "\\n";
+&#125; else &#123;
+    std::cout &lt;&lt; "Not found\\n";
+&#125;
+
+// C++23: optional 的 monadic 操作
+auto idx = findValue(nums, 42)
+    .and_then([](int i) -&gt; std::optional&lt;std::string&gt; &#123;
+        return i &gt;= 0 ? std::optional("found") : std::nullopt;
+    &#125;)
+    .or_else([]&#123; return std::optional("not found"); &#125;)
+    .value_or("error");
+
+// ===== std::variant：类型安全联合 =====
+using Value = std::variant&lt;int, float, std::string&gt;;
+
+Value v = 42;       // 当前是 int
+v = 3.14f;          // 切换为 float
+v = "hello";        // 切换为 string
+
+// 访问
+std::visit([](auto&amp;&amp; val) &#123;
+    std::cout &lt;&lt; val &lt;&lt; "\\n";
+&#125;, v);
+
+// 模式匹配（if + holds_alternative）
+if (auto p = std::get_if&lt;int&gt;(&amp;v)) &#123;
+    std::cout &lt;&lt; "int: " &lt;&lt; *p &lt;&lt; "\\n";
+&#125;
+
+// 游戏事件系统：变体事件
+using GameEvent = std::variant&lt;
+    struct DamageEvent&#123;int amount; std::string target;&#125;,
+    struct HealEvent&#123;int amount; std::string target;&#125;,
+    struct MoveEvent&#123;float x, y;&#125;
+&gt;;
+
+void handleEvent(const GameEvent&amp; e) &#123;
+    std::visit([](auto&amp;&amp; ev) &#123;
+        using T = std::decay_t&lt;decltype(ev)&gt;;
+        if constexpr (std::is_same_v&lt;T, DamageEvent&gt;)
+            applyDamage(ev.target, ev.amount);
+        else if constexpr (std::is_same_v&lt;T, HealEvent&gt;)
+            applyHeal(ev.target, ev.amount);
+        else if constexpr (std::is_same_v&lt;T, MoveEvent&gt;)
+            moveEntity(ev.x, ev.y);
+    &#125;, e);
+&#125;
+
+// ===== std::string_view：零拷贝字符串视图 =====
+void log(std::string_view msg) &#123;   // 不拷贝，只持有指针+长度
+    std::cout &lt;&lt; msg &lt;&lt; "\\n";
+&#125;
+
+log("literal");              // const char* → string_view（零拷贝）
+log(std::string("temp"));    // std::string → string_view（零拷贝）
+log(someString.substr(0,5)); // 子串 → string_view（零拷贝）
+
+// 注意：string_view 不拥有数据！
+// 调用方必须保证原字符串的生命周期
+
+// ===== if constexpr：编译期分支 =====
+template &lt;typename T&gt;
+void process(T value) &#123;
+    if constexpr (std::is_integral_v&lt;T&gt;) &#123;
+        std::cout &lt;&lt; "integer: " &lt;&lt; value &lt;&lt; "\\n";
+    &#125; else if constexpr (std::is_floating_point_v&lt;T&gt;) &#123;
+        std::cout &lt;&lt; "float: " &lt;&lt; value &lt;&lt; "\\n";
+    &#125; else &#123;
+        std::cout &lt;&lt; "other: " &lt;&lt; value &lt;&lt; "\\n";
+    &#125;
+    // 不匹配的分支不会实例化（无编译错误）
+&#125;</code></pre>`}
+  py={`<pre><code># Python 天然支持这些特性
+
+# ===== 结构化绑定：Python 解包 =====
+m = {"a": 1, "b": 2}
+for key, value in m.items():
+    print(f"{key}={value}")
+
+x, y, z = (1, 2.0, "three")   # tuple 解包
+
+class Point:
+    def __init__(self, x, y):
+        self.x, self.y = x, y
+
+p = Point(3.0, 4.0)
+px, py = p.x, p.y   # 无原生解构，手动取属性
+
+# ===== Optional：Python 用 None =====
+def find_value(nums, target):
+    for i, v in enumerate(nums):
+        if v == target:
+            return i
+    return None   # 未找到
+
+result = find_value(nums, 42)
+if result is not None:
+    print(f"Found at {result}")
+else:
+    print("Not found")
+
+# Python 3.10+ walrus operator
+if (idx := find_value(nums, 42)) is not None:
+    print(f"Found at {idx}")
+
+# ===== Variant：Python 动态类型天然支持 =====
+v = 42        # int
+v = 3.14      # float
+v = "hello"   # string
+# 同一变量可持有任意类型（无需 variant）
+
+# 类型检查
+if isinstance(v, int):
+    print(f"int: {v}")
+elif isinstance(v, float):
+    print(f"float: {v}")
+
+# match 语句（Python 3.10+）
+match v:
+    case int():
+        print(f"int: {v}")
+    case float():
+        print(f"float: {v}")
+    case str():
+        print(f"string: {v}")
+
+# ===== string_view：Python 字符串切片天然零拷贝 =====
+msg = "hello world"
+sub = msg[0:5]   # 切片创建新对象（Python 字符串不可变）
+# Python 无 string_view 概念——字符串本就是引用语义
+
+# ===== if constexpr：Python 无编译期分支 =====
+# 但有运行时类型检查
+from numbers import Integral
+def process(value):
+    if isinstance(value, Integral):
+        print(f"integer: {value}")
+    elif isinstance(value, float):
+        print(f"float: {value}")
+    else:
+        print(f"other: {value}")
+
+# C++ vs Python：
+# C++: 编译期类型安全，variant 强制穷尽检查
+# Python: 运行时动态，灵活但不安全</code></pre>`}
+      />
+    </section>
+
+    <!-- C++20/23 新特性 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">C++20/23 新特性</span><span slot="en">C++20/23 New Features</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">C++20 的<b>四大革命</b>（concepts、ranges、coroutines、modules）已在各自专页讲解。此外还有 <code>&lt;=&gt;</code> 飞船运算符（三路比较）、<code>std::format</code>（类型安全格式化）。C++23 带来 <code>std::expected</code>（错误处理替代异常）、<code>std::print</code>（标准库 printf）、<code>deducing this</code>（显式对象参数）。</span><span slot="en">C++20's <b>Big Four</b> (concepts, ranges, coroutines, modules) are covered on their respective pages. Additionally: <code>&lt;=&gt;</code> spaceship operator (three-way comparison), <code>std::format</code> (type-safe formatting). C++23 brings <code>std::expected</code> (error handling replacing exceptions), <code>std::print</code> (stdlib printf), <code>deducing this</code> (explicit object parameter).</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// ===== C++20: &lt;=&gt; 飞船运算符（三路比较） =====
+#include &lt;compare&gt;
+
+struct Version &#123;
+    int major, minor, patch;
+
+    // 一行定义所有比较运算符
+    auto operator&lt;=&gt;(const Version&amp;) const = default;
+    // 自动生成 ==, !=, &lt;, &lt;=, &gt;, &gt;=, &lt;=&gt;
+&#125;;
+
+Version v1&#123;1, 2, 3&#125;, v2&#123;1, 3, 0&#125;;
+v1 &lt; v2;    // true（自动按 major→minor→patch 比较）
+v1 &lt;=&gt; v2; // std::strong_ordering::less
+
+// 自定义比较
+struct CaseInsensitiveString &#123;
+    std::string s;
+    auto operator&lt;=&gt;(const CaseInsensitiveString&amp; o) const &#123;
+        return toLower(s) &lt;=&gt; toLower(o.s);
+    &#125;
+    bool operator==(const CaseInsensitiveString&amp; o) const &#123;
+        return toLower(s) == toLower(o.s);
+    &#125;
+&#125;;
+
+// ===== C++20: std::format（类型安全格式化） =====
+#include &lt;format&gt;
+
+std::string msg = std::format("Player {} has {} HP", name, hp);
+// 类似 Python f-string，类型安全（编译期检查格式串）
+
+// 格式说明
+std::format("&#123;:.2f&#125;", 3.14159);    // "3.14"
+std::format("&#123;:x&#125;", 255);          // "ff"（十六进制）
+std::format("&#123;:&gt;10&#125;", "hi");      // "        hi"（右对齐）
+std::format("&#123;:*^10&#125;", "hi");      // "****hi****"（居中填充）
+
+// ===== C++23: std::expected（错误处理） =====
+#include &lt;expected&gt;
+
+// 替代异常：返回值或错误
+std::expected&lt;int, std::string&gt; parseInt(std::string_view s) &#123;
+    try &#123;
+        return std::stoi(std::string(s));
+    &#125; catch (...) &#123;
+        return std::unexpected("invalid number");
+    &#125;
+&#125;
+
+auto result = parseInt("42");
+if (result) &#123;
+    std::cout &lt;&lt; *result &lt;&lt; "\\n";    // 42
+&#125; else &#123;
+    std::cout &lt;&lt; result.error() &lt;&lt; "\\n";  // "invalid number"
+&#125;
+
+// monadic 操作
+auto doubled = parseInt("42")
+    .transform([](int x) &#123; return x * 2; &#125;)
+    .or_else([](auto err) &#123; return std::expected&lt;int,std::string&gt;(0); &#125;);
+// doubled = 84
+
+// ===== C++23: std::print / std::println =====
+#include &lt;print&gt;
+
+std::println("Hello, &#123;&#125;!", name);   // 类似 Python print + format
+std::println("Score: &#123;:.1f&#125;", score);
+
+// ===== C++23: deducing this（显式对象参数） =====
+struct StringBuilder &#123;
+    // this 参数推导：可同时支持 const/非 const、左值/右值
+    template &lt;typename Self&gt;
+    auto&amp;&amp; append(this Self&amp;&amp; self, std::string_view s) &#123;
+        self.data += s;
+        return std::forward&lt;Self&gt;(self);   // 链式调用保留值类别
+    &#125;
+    std::string data;
+&#125;;
+
+StringBuilder b;
+b.append("Hello").append(" ").append("World");  // 链式调用
+
+// CRTP 简化：不再需要复杂的 CRTP 模式
+struct Base &#123;
+    template &lt;typename Self&gt;
+    void interface(this Self&amp; self) &#123;
+        self.implementation();   // 直接调用派生类
+    &#125;
+&#125;;
+struct Derived : Base &#123;
+    void implementation() &#123; /* ... */ &#125;
+&#125;;</code></pre>`}
+  py={`<pre><code># Python 对应特性（大多天生就有）
+
+# ===== 三路比较：Python 用 tuple 比较 =====
+class Version:
+    def __init__(self, major, minor, patch):
+        self.major, self.minor, self.patch = major, minor, patch
+
+    def __lt__(self, other):
+        return (self.major, self.minor, self.patch) < (other.major, other.minor, other.patch)
+
+    # Python 3.10+ functools.total_ordering 自动补全
+    # 或直接实现 __eq__ 和 __lt__，用 total_ordering 装饰器
+
+v1 = Version(1, 2, 3)
+v2 = Version(1, 3, 0)
+print(v1 < v2)  # True
+
+# ===== 格式化：f-string（Python 3.6+） =====
+name = "Alice"
+hp = 100
+msg = f"Player {name} has {hp} HP"
+
+print(f"{3.14159:.2f}")   # "3.14"
+print(f"{255:x}")         # "ff"
+print(f"{'hi':>10}")      # "        hi"
+print(f"{'hi':*^10}")     # "****hi****"
+
+# ===== 错误处理：Python 用异常（或 Result 模式） =====
+from dataclasses import dataclass
+from typing import Union
+
+@dataclass
+class Ok:
+    value: int
+
+@dataclass
+class Err:
+    error: str
+
+def parse_int(s: str) -> Union[Ok, Err]:
+    try:
+        return Ok(int(s))
+    except ValueError:
+        return Err("invalid number")
+
+result = parse_int("42")
+if isinstance(result, Ok):
+    print(result.value)       # 42
+else:
+    print(result.error)       # "invalid number"
+
+# Python 更常用异常（try/except）
+def parse_int_exc(s):
+    try:
+        return int(s)
+    except ValueError as e:
+        raise ValueError(f"invalid number: {s}") from e
+
+# ===== print：Python 天生有 =====
+print(f"Hello, {name}!")
+print(f"Score: {score:.1f}")
+
+# ===== deducing this：Python self 天然推导 =====
+class StringBuilder:
+    def __init__(self):
+        self.data = ""
+
+    def append(self, s):
+        self.data += s
+        return self   # 链式调用
+
+b = StringBuilder()
+b.append("Hello").append(" ").append("World")
+
+# C++ vs Python 总结：
+# C++: 编译期类型安全，零开销，但语法复杂
+# Python: 运行时动态，简洁灵活，但有性能开销</code></pre>`}
+      />
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">关联阅读：<a class="text-primary-cyan underline" href="/topics/cpp">C++ 概览</a>含标准演进时间线；<a class="text-primary-cyan underline" href="/topics/cpp-templates">模板与泛型</a>详解 concepts/ranges；<a class="text-primary-cyan underline" href="/topics/cpp-concurrency">多线程并发</a>详解协程；<a class="text-primary-cyan underline" href="/topics/cpp-move">移动语义</a>详解值类别。</span><span slot="en">Related: <a class="text-primary-cyan underline" href="/topics/cpp">C++ Overview</a> for the standard timeline; <a class="text-primary-cyan underline" href="/topics/cpp-templates">Templates</a> for concepts/ranges; <a class="text-primary-cyan underline" href="/topics/cpp-concurrency">Concurrency</a> for coroutines; <a class="text-primary-cyan underline" href="/topics/cpp-move">Move Semantics</a> for value categories.</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // Lambda 捕获方式可视化
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('lambda-svg') as unknown as SVGSVGElement;
+  const lambdaBtns = document.querySelectorAll<HTMLButtonElement>('.lambda-btn');
+
+  interface CaptureData {
+    titleZh: string; titleEn: string; color: string;
+    syntax: string;
+    descZh: string; descEn: string;
+    exampleZh: string; exampleEn: string;
+  }
+
+  const CAPTURES: Record<string, CaptureData> = {
+    value: {
+      titleZh: '[=] 值捕获', titleEn: '[=] by value', color: '#22C55E',
+      syntax: '[=]() { /* 使用 x, y 的拷贝 */ }',
+      descZh: '拷贝所有外部变量的当前值。Lambda 内修改不影响外部（除非 mutable）。',
+      descEn: 'Copies all outer variables by value. Modifications inside do not affect outer (unless mutable).',
+      exampleZh: 'auto f = [=]() { return x + y; };  // 快照',
+      exampleEn: 'auto f = [=]() { return x + y; };  // snapshot',
+    },
+    ref: {
+      titleZh: '[&] 引用捕获', titleEn: '[&] by reference', color: '#FBBF24',
+      syntax: '[&]() { /* 可修改 x, y */ }',
+      descZh: '引用所有外部变量。Lambda 内修改直接影响外部。注意生命周期！',
+      descEn: 'References all outer variables. Modifications inside affect outer. Mind lifetimes!',
+      exampleZh: 'auto f = [&]() { x = 999; };  // 修改外部',
+      exampleEn: 'auto f = [&]() { x = 999; };  // modifies outer',
+    },
+    move: {
+      titleZh: '[=,&x=move] 移动捕获', titleEn: '[=,&x=move]', color: '#A78BFA',
+      syntax: '[p = std::move(ptr)]() { /* 使用 p */ }',
+      descZh: 'C++14 初始化捕获：将外部资源移动到 Lambda 内部。适合智能指针、大型对象。',
+      descEn: 'C++14 init capture: move outer resources into the lambda. Good for smart pointers, large objects.',
+      exampleZh: 'auto f = [p = std::move(ptr)]() { return *p; };',
+      exampleEn: 'auto f = [p = std::move(ptr)]() { return *p; };',
+    },
+    this: {
+      titleZh: '[this] 捕获 this', titleEn: '[this]', color: '#22D3EE',
+      syntax: '[this]() { /* 访问成员 */ }',
+      descZh: '捕获类实例指针，可访问成员变量和成员函数。C++20 推荐 [=*this] 值捕获整个对象。',
+      descEn: 'Captures class instance pointer, accessing members. C++20 recommends [=*this] to copy the object.',
+      exampleZh: 'auto cb = [this]() { score++; };  // 访问成员',
+      exampleEn: 'auto cb = [this]() { score++; };  // access member',
+    },
+  };
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  function render(cap: string) {
+    const data = CAPTURES[cap];
+    if (!data) return;
+    svg.innerHTML = '';
+
+    // 标题
+    const title = document.createElementNS(SVGNS, 'text');
+    title.setAttribute('x', '400'); title.setAttribute('y', '35');
+    title.setAttribute('text-anchor', 'middle'); title.setAttribute('font-size', '18');
+    title.setAttribute('font-weight', '700'); title.setAttribute('fill', data.color);
+    title.setAttribute('font-family', 'monospace');
+    title.textContent = lang() === 'en' ? data.titleEn : data.titleZh;
+    svg.appendChild(title);
+
+    // 语法代码块
+    const codeY = 65;
+    const codeBg = document.createElementNS(SVGNS, 'rect');
+    codeBg.setAttribute('x', '100'); codeBg.setAttribute('y', String(codeY));
+    codeBg.setAttribute('width', '600'); codeBg.setAttribute('height', '45');
+    codeBg.setAttribute('rx', '8'); codeBg.setAttribute('fill', 'rgba(11,17,32,0.6)');
+    codeBg.setAttribute('stroke', data.color + '44'); codeBg.setAttribute('stroke-width', '1.5');
+    svg.appendChild(codeBg);
+
+    const code = document.createElementNS(SVGNS, 'text');
+    code.setAttribute('x', '120'); code.setAttribute('y', String(codeY + 28));
+    code.setAttribute('font-size', '14'); code.setAttribute('fill', '#CBD5E1');
+    code.setAttribute('font-family', 'monospace');
+    code.textContent = data.syntax;
+    svg.appendChild(code);
+
+    // 描述
+    const descText = lang() === 'en' ? data.descEn : data.descZh;
+    const words = descText.split('');
+    let line = '';
+    let dy = 0;
+    const descY = 135;
+    for (let i = 0; i < words.length; i++) {
+      const test = line + words[i];
+      if (test.length > 55) {
+        const t = document.createElementNS(SVGNS, 'text');
+        t.setAttribute('x', '400'); t.setAttribute('y', String(descY + dy));
+        t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '13');
+        t.setAttribute('fill', '#94A3B8');
+        t.textContent = line;
+        svg.appendChild(t);
+        line = words[i];
+        dy += 20;
+      } else {
+        line = test;
+      }
+    }
+    if (line) {
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', '400'); t.setAttribute('y', String(descY + dy));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '13');
+      t.setAttribute('fill', '#94A3B8');
+      t.textContent = line;
+      svg.appendChild(t);
+    }
+
+    // 示例代码
+    const exY = descY + dy + 35;
+    const exBg = document.createElementNS(SVGNS, 'rect');
+    exBg.setAttribute('x', '100'); exBg.setAttribute('y', String(exY));
+    exBg.setAttribute('width', '600'); exBg.setAttribute('height', '45');
+    exBg.setAttribute('rx', '8'); exBg.setAttribute('fill', data.color + '11');
+    exBg.setAttribute('stroke', data.color + '55'); exBg.setAttribute('stroke-width', '1.5');
+    svg.appendChild(exBg);
+
+    const exLabel = document.createElementNS(SVGNS, 'text');
+    exLabel.setAttribute('x', '110'); exLabel.setAttribute('y', String(exY + 16));
+    exLabel.setAttribute('font-size', '11'); exLabel.setAttribute('fill', data.color);
+    exLabel.setAttribute('font-weight', '600');
+    exLabel.textContent = lang() === 'en' ? 'Example' : '示例';
+    svg.appendChild(exLabel);
+
+    const exCode = document.createElementNS(SVGNS, 'text');
+    exCode.setAttribute('x', '120'); exCode.setAttribute('y', String(exY + 36));
+    exCode.setAttribute('font-size', '13'); exCode.setAttribute('fill', '#CBD5E1');
+    exCode.setAttribute('font-family', 'monospace');
+    exCode.textContent = lang() === 'en' ? data.exampleEn : data.exampleZh;
+    svg.appendChild(exCode);
+  }
+
+  function setActive(cap: string) {
+    lambdaBtns.forEach(b => b.classList.toggle('btn-primary', b.dataset.capture === cap));
+    render(cap);
+  }
+  lambdaBtns.forEach(b => b.addEventListener('click', () => setActive(b.dataset.capture!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.lambda-btn.btn-primary');
+    render(active?.dataset.capture || 'value');
+  });
+  setActive('value');
+</script>

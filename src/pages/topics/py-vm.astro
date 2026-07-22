@@ -1,0 +1,385 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Python VM & Bytecode · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Languages / Python VM</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">虚拟机与字节码</span><span slot="en">VM & Bytecode</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">Python 常被笼统称为"解释型语言"，但 CPython 的执行并非逐行解释源码——它有一条完整的<b>编译流水线</b>：源码先被解析为 <b>AST</b>，再编译为<b>字节码</b>（<code>.pyc</code>），最后由<b>栈式虚拟机</b>逐条执行。理解这条流水线，是看懂 Python 性能瓶颈、<code>dis</code> 反汇编、以及 GIL/协程底层机制的前提。点击下方各阶段查看详情。</span>
+          <span slot="en">Python is loosely called "interpreted", but CPython doesn't interpret source line-by-line — it runs a full <b>compilation pipeline</b>: source is parsed into an <b>AST</b>, compiled to <b>bytecode</b> (<code>.pyc</code>), then executed by a <b>stack-based virtual machine</b>. Understanding this pipeline is prerequisite to grasping Python's performance limits, <code>dis</code> disassembly, and the internals of GIL/coroutines. Click each stage below.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：Python 执行流水线 -->
+    <div class="glass p-5" data-viz="py-pipeline">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <button class="btn pl-btn btn-primary" data-stage="src"><span data-lang="zh">源码</span><span data-lang="en">Source</span></button>
+        <button class="btn pl-btn" data-stage="ast">AST</button>
+        <button class="btn pl-btn" data-stage="code">Code Object</button>
+        <button class="btn pl-btn" data-stage="frame">Frame</button>
+        <button class="btn pl-btn" data-stage="eval">ceval Loop</button>
+      </div>
+      <svg id="pl-svg" viewBox="0 0 800 300" class="w-full h-80 viz-stage"></svg>
+    </div>
+
+    <!-- 解释型语言的真相 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">"解释型"的真相：编译 + 解释两段式</span><span slot="en">The Truth About "Interpreted": Compile + Interpret</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">严格的"逐行解释"几乎不存在。现代语言按<b>编译时机</b>分三类：<b>AOT</b>（C/C++/Rust：运行前编译为机器码）、<b>JIT</b>（JVM/V8/PyPy：运行时编译热点为机器码）、<b>字节码解释</b>（CPython：运行前编译为字节码，运行时由 VM 解释）。CPython 属于第三类——它<b>有</b>编译器（<code>compile.c</code>），只是不编译到机器码，而是编译到一种<b>平台无关的中间指令</b>（字节码），再由 C 写的虚拟机解释执行。<code>.pyc</code> 文件就是缓存这套字节码，避免重复编译。</span><span slot="en">Strict "line-by-line interpretation" barely exists. Modern languages split by <b>compile timing</b>: <b>AOT</b> (C/C++/Rust: compile to machine code before run), <b>JIT</b> (JVM/V8/PyPy: compile hotspots to machine code at runtime), <b>bytecode interpretation</b> (CPython: compile to bytecode before run, interpret via VM at runtime). CPython is the third type — it <b>has</b> a compiler (<code>compile.c</code>), but compiles to <b>platform-independent intermediate instructions</b> (bytecode) instead of machine code, interpreted by a C-written VM. <code>.pyc</code> files cache this bytecode to avoid recompiling.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">模型</span><span slot="en">Model</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">代表</span><span slot="en">Example</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">编译产物</span><span slot="en">Output</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">运行机制</span><span slot="en">Runtime</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green">AOT</td><td class="py-2 pr-4">C / C++ / Rust</td><td class="py-2 pr-4 font-mono">机器码 (.exe)</td><td class="py-2 pr-4">CPU 直接执行</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan">字节码解释</td><td class="py-2 pr-4">CPython</td><td class="py-2 pr-4 font-mono">字节码 (.pyc)</td><td class="py-2 pr-4">VM 大循环解释</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple">JIT</td><td class="py-2 pr-4">PyPy / V8 / JVM</td><td class="py-2 pr-4 font-mono">机器码 (运行时)</td><td class="py-2 pr-4">热点编译后执行</td></tr>
+            <tr><td class="py-2 pr-4 text-func-amber">混合</td><td class="py-2 pr-4">.NET / Dalvik</td><td class="py-2 pr-4 font-mono">字节码 + JIT</td><td class="py-2 pr-4">解释 + 热点编译</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 字节码与 Code Object -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">字节码与 Code Object</span><span slot="en">Bytecode & Code Object</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">编译器把 AST 翻译成一系列<b>指令</b>（如 <code>LOAD_FAST</code>、<code>BINARY_ADD</code>、<code>RETURN_VALUE</code>），每条指令 1 字节操作码 + 可选参数。一个函数的全部字节码、常量表（<code>co_consts</code>）、变量名表（<code>co_names</code>/​<code>co_varnames</code>）打包成一个 <b>Code Object</b>。Code Object 是<b>不可变</b>的——这也是 <code>.pyc</code> 可缓存的原因：只要源码和解释器版本没变，字节码就不变。</span><span slot="en">The compiler translates the AST into a sequence of <b>instructions</b> (e.g. <code>LOAD_FAST</code>, <code>BINARY_ADD</code>, <code>RETURN_VALUE</code>), each 1-byte opcode + optional arg. A function's bytecode, constant table (<code>co_consts</code>), and name tables (<code>co_names</code>/<code>co_varnames</code>) are bundled into a <b>Code Object</b>. Code Objects are <b>immutable</b> — that's why <code>.pyc</code> caches work: bytecode is stable as long as source and interpreter version don't change.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// CPython 中 Code Object 的 C 定义（简化自 Include/cpython/code.h）
+// 一个 PyCodeObject 封装了"一个函数/模块"的全部可执行信息
+
+struct PyCodeObject &#123;
+    PyObject_HEAD               // ob_refcnt + ob_type（见对象模型页）
+    int        co_argcount;     // 位置参数个数
+    int        co_nlocals;      // 局部变量槽位数
+    int        co_stacksize;    // 值栈最大深度（编译期算出）
+    int        co_flags;        // CO_VARARGS / CO_GENERATOR 等标志
+    PyObject  *co_code;         // 字节码字节串（bytes，不可变）
+    PyObject  *co_consts;       // 常量表（元组）：数字、字符串、嵌套 Code
+    PyObject  *co_names;        // 全局/属性名表
+    PyObject  *co_varnames;     // 局部变量名表
+    PyObject  *co_freevars;     // 闭包捕获的变量名
+    PyObject  *co_cellvars;     // 被内层闭包引用的变量名
+    PyObject  *co_filename;     // 源文件名（用于 traceback）
+    PyObject  *co_name;         // 函数名
+    int        co_firstlineno;  // 源码起始行号
+    // ... 其他用于 PEP 657 位置信息、异常表等
+&#125;;
+
+// 关键：co_stacksize 是编译期静态算出的
+// VM 据此一次性分配好值栈数组，运行时无需动态扩容
+// 这也是 Python 没有"栈溢出"而是有"递归深度限制"的原因</code></pre>`}
+  py={`<pre><code># 用 dis 模块查看字节码——Python 程序员的"反汇编器"
+import dis
+
+def add(a, b):
+    c = a + b
+    return c
+
+# 查看函数的 Code Object 属性
+co = add.__code__
+print(co.co_varnames)   # ('a', 'b', 'c')
+print(co.co_consts)     # (None,)   —— None 是隐式 return
+print(co.co_stacksize)  # 2         —— 值栈最多 2 深度
+print(co.co_argcount)   # 2
+
+# 反汇编：看 VM 实际要执行的指令序列
+dis.dis(add)
+#  2           0 LOAD_FAST                0 (a)
+#              2 LOAD_FAST                1 (b)
+#              4 BINARY_ADD               # 弹出 a,b，压入 a+b
+#              6 STORE_FAST               2 (c)
+#  3           8 LOAD_FAST                2 (c)
+#             10 RETURN_VALUE             # 弹出栈顶作为返回值
+
+# 左列 = 源码行号；中间 = 字节码偏移；右列 = 操作码 + 参数
+# 这套指令就是 .pyc 里存的全部内容</code></pre>`}
+      />
+    </section>
+
+    <!-- CPython 虚拟机实现 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">CPython 虚拟机：栈式大循环</span><span slot="en">CPython VM: Stack-Based Big Loop</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">CPython VM 是<b>栈式</b>（stack-based）而非寄存器式——指令不直接寻址寄存器，而是操作一个<b>值栈</b>：<code>LOAD_*</code> 压栈、<code>BINARY_*</code> 弹出操作数计算后压回结果。VM 的核心是 <code>Python/ceval.c</code> 里一个巨大的 <code>switch(opcode)</code> 循环：<b>取指 → 译码 → 执行 → 推进 PC</b>，周而复始。每条字节码指令都会<b>重新进入</b>这个 switch——这就是 CPython 比 JIT 慢的根源：每条指令都付出一次分支预测 + 一次函数调用般的开销，而 JIT 把热点编译成了连续的机器码。</span><span slot="en">CPython VM is <b>stack-based</b>, not register-based — instructions don't address registers but operate on a <b>value stack</b>: <code>LOAD_*</code> pushes, <code>BINARY_*</code> pops operands, computes, pushes back. The VM core is a giant <code>switch(opcode)</code> loop in <code>Python/ceval.c</code>: <b>fetch → decode → execute → advance PC</b>, ad infinitum. Each bytecode re-enters this switch — the root cause of CPython being slower than JIT: each instruction pays a branch prediction + call-like overhead, while JIT compiles hotspots into contiguous machine code.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// ceval.c 的核心循环（极度简化，省略内联缓存/预测/信号检查）
+// 真实代码用 "computed goto"（GCC 扩展）替代 switch 以提升分支预测
+
+PyObject* PyEval_EvalFrame(PyFrameObject *f) &#123;
+    // 取出本帧的字节码与值栈
+    PyObject **stack_pointer = f->f_valuestack;
+    PyObject **fastlocals   = f->f_localsplus;
+    _Py_CODEUNIT *code      = f->f_code->co_code;
+    int next_instr = 0;
+
+    for (;;) &#123;
+        _Py_CODEUNIT word = code[next_instr++];  // 取指
+        int opcode = _Py_OPCODE(word);            // 译码
+        int oparg  = _Py_OPARG(word);
+
+        switch (opcode) &#123;
+        case LOAD_FAST: &#123;            // 压入局部变量
+            PyObject *v = fastlocals[oparg];
+            Py_INCREF(v);
+            *stack_pointer++ = v;
+            break;
+        &#125;
+        case STORE_FAST: &#123;            // 弹出并存入局部变量
+            PyObject *v = *--stack_pointer;
+            Py_XDECREF(fastlocals[oparg]);
+            fastlocals[oparg] = v;        // 不增引用（fast 槽特殊处理）
+            break;
+        &#125;
+        case BINARY_ADD: &#123;            // 弹两个，相加，压回
+            PyObject *r = *--stack_pointer;
+            PyObject *l = *--stack_pointer;
+            PyObject *res = PyNumber_Add(l, r);  // 走类型系统 tp_add
+            Py_DECREF(l); Py_DECREF(r);
+            *stack_pointer++ = res;
+            break;
+        &#125;
+        case RETURN_VALUE: &#123;
+            PyObject *v = *--stack_pointer;
+            return v;                     // 退出本帧
+        &#125;
+        // ... 共约 200 条指令 ...
+        &#125;
+    &#125;
+&#125;
+
+// 关键开销点：
+// 1. 每条指令一次 switch 分支（computed goto 优化后仍有跳转）
+// 2. 每个对象操作一次 Py_INCREF/Py_DECREF（引用计数开销）
+// 3. BINARY_ADD 走 PyNumber_Add —— 动态类型分发，非直接 CPU add
+// 这三点叠加，使 Python 比 C 慢 30-100 倍</code></pre>`}
+  py={`<pre><code># 亲身体验栈式执行：值栈的状态变化
+# 代码:  c = a + b * 2
+#
+# 字节码:
+#   LOAD_FAST  a        栈: [a]
+#   LOAD_FAST  b        栈: [a, b]
+#   LOAD_CONST 2        栈: [a, b, 2]
+#   BINARY_MULTIPLY     栈: [a, b*2]      弹 b,2 压 b*2
+#   BINARY_ADD          栈: [a+b*2]       弹 a,b*2 压和
+#   STORE_FAST c        栈: []            弹出存入 c
+
+import dis
+dis.dis(compile("c = a + b * 2", "&lt;str&gt;", "exec"))
+
+# 对比：寄存器式 VM（如 Lua 5.0+、Dalvik）只需 2-3 条指令
+#   R0 = getglobal a
+#   R1 = getglobal b
+#   R1 = R1 * 2
+#   R0 = R0 + R1
+#   setglobal c R0
+# 寄存器式指令少但每条更长；栈式指令多但编码紧凑
+# CPython 选栈式是因为实现简单、代码紧凑（历史决定）
+
+# 体验"每条指令都有开销"：
+python -X importtime your_script.py   # 看 import 耗时
+python -m cProfile your_script.py     # 看函数级耗时</code></pre>`}
+      />
+    </section>
+
+    <!-- 帧栈与函数调用 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">帧栈：函数调用的载体</span><span slot="en">Frame Stack: The Carrier of Calls</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">每次函数调用，VM 创建一个 <b>Frame</b>（<code>PyFrameObject</code>），压入<b>帧栈</b>。Frame 持有：本函数的 Code Object、值栈、局部变量槽、返回地址（字节码偏移）。函数返回时弹帧、恢复调用者的值栈与 PC。递归过深会<b>耗尽帧栈</b>——CPython 用 <code>sys.getrecursionlimit()</code>（默认 1000）保护 C 栈不溢出。<b>生成器</b>和<b>协程</b>的本质就是"可挂起的 Frame"：挂起时保留值栈与 PC，恢复时重新压回帧栈继续执行。</span><span slot="en">Each function call creates a <b>Frame</b> (<code>PyFrameObject</code>), pushed onto the <b>frame stack</b>. A frame holds: the function's Code Object, value stack, local slots, return address (bytecode offset). On return, the frame pops, restoring the caller's stack and PC. Deep recursion can <b>exhaust the frame stack</b> — CPython guards the C stack via <code>sys.getrecursionlimit()</code> (default 1000). <b>Generators</b> and <b>coroutines</b> are essentially "suspendable frames": on suspend, the value stack and PC are preserved; on resume, the frame is pushed back and execution continues.</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-func-green"># 生成器 = 可挂起的 Frame</span>
+def counter():
+    n = 0
+    while True:
+        yield n          <span class="text-ink-muted"># 挂起：保存 Frame（n、PC、值栈），返回值给调用者</span>
+        n += 1           <span class="text-ink-muted"># 恢复：Frame 重新压栈，从 yield 之后继续</span>
+
+gen = counter()
+print(next(gen))  <span class="text-func-amber"># 0 —— 创建 Frame，执行到 yield，挂起</span>
+print(next(gen))  <span class="text-func-amber"># 1 —— 恢复 Frame，n+=1，循环到下一个 yield</span>
+
+<span class="text-primary-cyan"># async/await 是同一套机制的语义升级</span>
+<span class="text-ink-muted"># await 本质：挂起当前 Frame，让出事件循环，等 Future 就绪后恢复</span>
+
+<span class="text-func-red"># 递归限制：保护 C 栈</span>
+import sys
+print(sys.getrecursionlimit())  <span class="text-func-amber"># 1000</span>
+def recurse(n): return recurse(n+1)
+recurse(0)  <span class="text-func-red"># RecursionError: 帧栈超限（不是内存溢出，是保护）</span>
+
+<span class="text-primary-purple"># sys.setrecursionlimit 可调高，但有 C 栈溢出崩溃风险</span></code></pre>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">关联阅读：<a class="text-primary-cyan underline" href="/topics/py-objects">对象模型与内存</a>讲解 <code>PyObject</code> 与引用计数；<a class="text-primary-cyan underline" href="/topics/py-optimization">性能优化</a>讲解为何这套 VM 慢、如何优化。</span><span slot="en">Related: <a class="text-primary-cyan underline" href="/topics/py-objects">Object Model & Memory</a> for <code>PyObject</code> & refcounting; <a class="text-primary-cyan underline" href="/topics/py-optimization">Performance</a> for why this VM is slow and how to optimize.</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // Python 执行流水线可视化
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('pl-svg') as unknown as SVGSVGElement;
+  const plBtns = document.querySelectorAll<HTMLButtonElement>('.pl-btn');
+
+  interface StageData {
+    nameZh: string; nameEn: string; color: string;
+    descZh: string; descEn: string;
+    items: { zh: string; en: string }[];
+  }
+
+  const STAGES: Record<string, StageData> = {
+    src: {
+      nameZh: '源码 .py', nameEn: 'Source .py', color: '#22D3EE',
+      descZh: '文本文件，UTF-8 编码的字符流',
+      descEn: 'Text file, UTF-8 character stream',
+      items: [
+        { zh: 'tokenizer: 字符流 → token', en: 'tokenizer: chars → tokens' },
+        { zh: 'parser: token → CST → AST', en: 'parser: tokens → CST → AST' },
+        { zh: 'Python/ast.c 完成 AST 构建', en: 'Python/ast.c builds AST' },
+      ],
+    },
+    ast: {
+      nameZh: 'AST 抽象语法树', nameEn: 'AST', color: '#A78BFA',
+      descZh: '去掉括号/分号等语法糖的树形结构',
+      descEn: 'Tree structure, syntactic sugar stripped',
+      items: [
+        { zh: '节点: BinOp/Name/Load/Constant', en: 'Nodes: BinOp/Name/Load/Constant' },
+        { zh: 'compile.c 把 AST 编译为字节码', en: 'compile.c compiles AST → bytecode' },
+        { zh: '可优化: 常量折叠 a+1+2 → a+3', en: 'Opt: constant folding a+1+2 → a+3' },
+      ],
+    },
+    code: {
+      nameZh: 'Code Object (.pyc)', nameEn: 'Code Object', color: '#FBBF24',
+      descZh: '不可变字节码 + 常量表 + 名字表',
+      descEn: 'Immutable bytecode + const/names tables',
+      items: [
+        { zh: 'co_code: 字节码 bytes', en: 'co_code: bytecode bytes' },
+        { zh: 'co_consts/co_names/co_varnames', en: 'consts/names/varnames' },
+        { zh: 'co_stacksize: 值栈深度(编译期算出)', en: 'co_stacksize: stack depth (static)' },
+        { zh: '缓存到 .pyc，避免重复编译', en: 'Cached to .pyc, skip recompile' },
+      ],
+    },
+    frame: {
+      nameZh: 'Frame 帧对象', nameEn: 'Frame', color: '#22C55E',
+      descZh: '每次函数调用创建一个 Frame',
+      descEn: 'One Frame per function call',
+      items: [
+        { zh: '值栈 f_valuestack', en: 'Value stack f_valuestack' },
+        { zh: '局部变量槽 f_localsplus', en: 'Locals slots f_localsplus' },
+        { zh: 'PC 指针(字节码偏移)', en: 'PC pointer (bytecode offset)' },
+        { zh: '生成器=可挂起的 Frame', en: 'Generator = suspendable Frame' },
+      ],
+    },
+    eval: {
+      nameZh: 'ceval.c 大循环', nameEn: 'ceval Loop', color: '#F472B6',
+      descZh: '取指→译码→执行→推进 PC',
+      descEn: 'fetch → decode → execute → advance PC',
+      items: [
+        { zh: 'switch(opcode) ~200 条指令', en: 'switch(opcode) ~200 ops' },
+        { zh: 'LOAD_* 压栈, BINARY_* 弹栈计算', en: 'LOAD_* push, BINARY_* pop+compute' },
+        { zh: '每条指令 Py_INCREF/DECREF', en: 'Py_INCREF/DECREF per op' },
+        { zh: 'GIL 在此循环边界检查释放', en: 'GIL released at loop boundaries' },
+      ],
+    },
+  };
+
+  const order = ['src', 'ast', 'code', 'frame', 'eval'];
+  const xs = [70, 220, 370, 520, 670];
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  function render(active: string) {
+    svg.innerHTML = '';
+    const data = STAGES[active];
+    if (!data) return;
+
+    // 流水线主轴
+    const axis = document.createElementNS(SVGNS, 'line');
+    axis.setAttribute('x1', '70'); axis.setAttribute('y1', '60');
+    axis.setAttribute('x2', '670'); axis.setAttribute('y2', '60');
+    axis.setAttribute('stroke', 'rgba(148,163,184,0.25)'); axis.setAttribute('stroke-width', '2');
+    svg.appendChild(axis);
+
+    // 箭头
+    for (let i = 0; i < order.length - 1; i++) {
+      const arrow = document.createElementNS(SVGNS, 'polygon');
+      const ax = (xs[i] + xs[i+1]) / 2;
+      arrow.setAttribute('points', `${ax-5},55 ${ax+5},60 ${ax-5},65`);
+      arrow.setAttribute('fill', 'rgba(148,163,184,0.4)');
+      svg.appendChild(arrow);
+    }
+
+    // 各阶段节点
+    for (let i = 0; i < order.length; i++) {
+      const k = order[i], d = STAGES[k], x = xs[i];
+      const isActive = k === active;
+      const c = document.createElementNS(SVGNS, 'circle');
+      c.setAttribute('cx', String(x)); c.setAttribute('cy', '60');
+      c.setAttribute('r', isActive ? '11' : '6');
+      c.setAttribute('fill', isActive ? d.color : 'rgba(148,163,184,0.3)');
+      c.setAttribute('stroke', d.color); c.setAttribute('stroke-width', '2');
+      svg.appendChild(c);
+
+      const label = document.createElementNS(SVGNS, 'text');
+      label.setAttribute('x', String(x)); label.setAttribute('y', '88');
+      label.setAttribute('text-anchor', 'middle'); label.setAttribute('font-size', '11');
+      label.setAttribute('font-weight', isActive ? '700' : '500');
+      label.setAttribute('fill', isActive ? d.color : '#64748B');
+      label.textContent = lang() === 'en' ? d.nameEn : d.nameZh;
+      svg.appendChild(label);
+    }
+
+    // 详情卡片
+    const cx = 40, cy = 115, cw = 720, ch = 170;
+    const card = document.createElementNS(SVGNS, 'rect');
+    card.setAttribute('x', String(cx)); card.setAttribute('y', String(cy));
+    card.setAttribute('width', String(cw)); card.setAttribute('height', String(ch));
+    card.setAttribute('rx', '10'); card.setAttribute('fill', data.color + '11');
+    card.setAttribute('stroke', data.color + '55'); card.setAttribute('stroke-width', '1.5');
+    svg.appendChild(card);
+
+    const title = document.createElementNS(SVGNS, 'text');
+    title.setAttribute('x', String(cx + 20)); title.setAttribute('y', String(cy + 28));
+    title.setAttribute('font-size', '15'); title.setAttribute('font-weight', '700');
+    title.setAttribute('fill', data.color);
+    title.textContent = lang() === 'en' ? data.nameEn : data.nameZh;
+    svg.appendChild(title);
+
+    const desc = document.createElementNS(SVGNS, 'text');
+    desc.setAttribute('x', String(cx + 20)); desc.setAttribute('y', String(cy + 50));
+    desc.setAttribute('font-size', '12'); desc.setAttribute('fill', '#94A3B8');
+    desc.textContent = lang() === 'en' ? data.descEn : data.descZh;
+    svg.appendChild(desc);
+
+    for (let i = 0; i < data.items.length; i++) {
+      const it = data.items[i];
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const ix = cx + 20 + col * 360;
+      const iy = cy + 80 + row * 26;
+      const bullet = document.createElementNS(SVGNS, 'circle');
+      bullet.setAttribute('cx', String(ix)); bullet.setAttribute('cy', String(iy - 4));
+      bullet.setAttribute('r', '2.5'); bullet.setAttribute('fill', data.color);
+      svg.appendChild(bullet);
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(ix + 10)); t.setAttribute('y', String(iy));
+      t.setAttribute('font-size', '12'); t.setAttribute('fill', '#CBD5E1');
+      t.textContent = lang() === 'en' ? it.en : it.zh;
+      svg.appendChild(t);
+    }
+  }
+
+  function setActive(stage: string) {
+    plBtns.forEach(b => b.classList.toggle('btn-primary', b.dataset.stage === stage));
+    render(stage);
+  }
+  plBtns.forEach(b => b.addEventListener('click', () => setActive(b.dataset.stage!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.pl-btn.btn-primary');
+    render(active?.dataset.stage || 'src');
+  });
+  setActive('src');
+</script>

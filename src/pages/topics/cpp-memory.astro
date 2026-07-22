@@ -1,0 +1,337 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Memory & Pointers · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Languages / C++ Memory</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">内存管理与指针</span><span slot="en">Memory Management & Pointers</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">C++ 程序的内存布局分为<b>栈</b>（自动管理、LIFO、快）和<b>堆</b>（手动管理、灵活、慢）。理解指针与引用的区别、内存对齐的规则，是写出高性能游戏代码的基础——一次缓存未命中代价约 <b>100ns</b>，而一次对齐访问仅需 <b>0.3ns</b>。点击下方内存布局图查看各区域详情。</span>
+          <span slot="en">A C++ program's memory layout splits into the <b>stack</b> (auto-managed, LIFO, fast) and the <b>heap</b> (manually managed, flexible, slow). Understanding pointers vs. references and memory alignment is the foundation of high-performance game code — a cache miss costs ~<b>100ns</b>, while an aligned access takes ~<b>0.3ns</b>. Click the memory layout below to explore each region.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：内存布局可视化 -->
+    <div class="glass p-5" data-viz="memory-layout">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button class="btn mem-btn btn-primary" data-region="stack">
+          <span data-lang="zh">栈 Stack</span><span data-lang="en">Stack</span>
+        </button>
+        <button class="btn mem-btn" data-region="heap">
+          <span data-lang="zh">堆 Heap</span><span data-lang="en">Heap</span>
+        </button>
+        <button class="btn mem-btn" data-region="global">
+          <span data-lang="zh">全局/静态</span><span data-lang="en">Global/Static</span>
+        </button>
+        <button class="btn mem-btn" data-region="code">
+          <span data-lang="zh">代码段</span><span data-lang="en">Code Segment</span>
+        </button>
+      </div>
+      <svg id="mem-svg" viewBox="0 0 800 320" class="w-full h-80 viz-stage"></svg>
+    </div>
+
+    <!-- 栈 vs 堆 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">栈 vs 堆：两种内存分配策略</span><span slot="en">Stack vs Heap: Two Allocation Strategies</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>栈</b>分配只需移动栈指针（一条 <code>sub rsp, N</code> 指令），与函数调用同生命周期——函数返回自动回收，零碎片但大小受限（默认 1-8MB）。<b>堆</b>由 <code>new</code>/<code>delete</code> 或 <code>malloc</code>/<code>free</code> 管理，灵活但需手动释放，易产生碎片和内存泄漏。游戏开发中，<b>栈分配优先</b>：局部变量、值参数、小型临时对象走栈；大对象、动态集合、跨函数生命周期的对象走堆。</span><span slot="en"><b>Stack</b> allocation just moves the stack pointer (one <code>sub rsp, N</code> instruction), tied to function call lifetime — auto-freed on return, zero fragmentation, but size-limited (default 1-8MB). <b>Heap</b> is managed by <code>new</code>/<code>delete</code> or <code>malloc</code>/<code>free</code> — flexible but manual, prone to fragmentation and leaks. In game dev, <b>prefer stack</b>: locals, value params, small temporaries go on stack; large objects, dynamic collections, cross-function lifetimes go on heap.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">特性</span><span slot="en">Aspect</span></Bilingual></th><th class="py-2 pr-4 text-func-green">栈 Stack</th><th class="py-2 pr-4 text-func-amber">堆 Heap</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">分配速度</span><span slot="en">Alloc speed</span></Bilingual></td><td class="py-2 pr-4 text-func-green">~1 周期（移指针）</td><td class="py-2 pr-4 text-func-red">~100-1000 周期（查找空闲块）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">释放</span><span slot="en">Deallocation</span></Bilingual></td><td class="py-2 pr-4 text-func-green">自动（函数返回）</td><td class="py-2 pr-4 text-func-red">手动 delete / free</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">大小</span><span slot="en">Size</span></Bilingual></td><td class="py-2 pr-4">1-8 MB（有限）</td><td class="py-2 pr-4">虚拟内存上限（TB 级）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">碎片</span><span slot="en">Fragmentation</span></Bilingual></td><td class="py-2 pr-4 text-func-green">无</td><td class="py-2 pr-4 text-func-red">有（外部 + 内部）</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">缓存友好</span><span slot="en">Cache friendly</span></Bilingual></td><td class="py-2 pr-4 text-func-green">高（连续）</td><td class="py-2 pr-4 text-func-red">低（分散）</td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">线程安全</span><span slot="en">Thread safety</span></Bilingual></td><td class="py-2 pr-4 text-func-green">天然（每线程独立栈）</td><td class="py-2 pr-4 text-func-red">需同步（全局堆）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 指针与引用 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">指针 vs 引用</span><span slot="en">Pointers vs References</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>指针</b>是一个变量，存储另一个变量的地址，可为 null、可重新赋值、可做算术运算。<b>引用</b>是已存在变量的别名，必须在声明时初始化、不可为 null、不可重新绑定——更安全、更直观。现代 C++ 优先用引用传参（<code>const T&</code> 只读、<code>T&</code> 可写），指针仅在需要"可空"或"数组"语义时使用。</span><span slot="en"><b>Pointer</b> is a variable storing another variable's address — can be null, reassignable, supports arithmetic. <b>Reference</b> is an alias for an existing variable — must initialize at declaration, cannot be null, cannot rebind — safer and clearer. Modern C++ prefers references for parameters (<code>const T&</code> read-only, <code>T&</code> mutable); use pointers only when "nullable" or "array" semantics are needed.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 指针：可为空、可重新指向、支持算术
+int a = 10, b = 20;
+int* p = &amp;a;          // p 指向 a
+p = &amp;b;               // 重新指向 b
+*p = 30;               // 解引用：b = 30
+p = nullptr;           // 可为空
+if (p) &#123; /* 非空检查 */ &#125;
+int arr[5] = &#123;1,2,3,4,5&#125;;
+int* it = arr;
+std::cout &lt;&lt; *(it + 2);  // 指针算术：arr[2] = 3
+
+// 引用：不可空、不可重新绑定、无算术
+int x = 100;
+int&amp; ref = x;          // ref 是 x 的别名
+ref = 200;             // 等价于 x = 200
+// int&amp; bad;           // 编译错误：必须初始化
+// ref = b;             // 不是重新绑定，而是 x = b
+
+// 现代 C++ 传参惯例
+void render(const Mesh&amp; mesh);     // 只读：const T&amp;（零拷贝）
+void update(Transform&amp; t);         // 可写：T&amp;
+void spawn(Entity* opt = nullptr);  // 可空：T*（需检查）
+std::unique_ptr&lt;Texture&gt; load();   // 转移所有权：智能指针</code></pre>`}
+  py={`<pre><code># Python 没有指针——一切皆引用，但语义不同
+# Python 变量是"标签"，贴在对象上
+
+a = 10
+b = a       # b 和 a 指向同一个 int 对象 10
+b = 20      # b 重新贴到 20，a 不变（int 不可变）
+
+lst = [1, 2, 3]
+ref = lst   # ref 和 lst 指向同一个 list
+ref[0] = 99 # 修改的是同一个对象，lst 也变了
+print(lst)  # [99, 2, 3]
+
+# Python "引用"与 C++ 引用的区别：
+# 1. 可以重新绑定（类似指针）
+# 2. 不可空（但可用 None 表示"无"）
+# 3. 无 const 引用（只有不可变对象）
+
+# 传参：Python 默认传引用（对象）
+def append_item(lst, item):
+    lst.append(item)  # 修改原对象
+
+my_list = [1, 2]
+append_item(my_list, 3)
+print(my_list)  # [1, 2, 3]</code></pre>`}
+      />
+    </section>
+
+    <!-- 内存对齐 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">内存对齐：为什么 struct 不是紧凑排列</span><span slot="en">Memory Alignment: Why Structs Aren't Packed</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">CPU 访问内存按<b>字长对齐</b>（64 位机一次读 8 字节）。若数据未对齐，一次读取需拆成两次内存事务并拼接，性能下降甚至触发硬件异常。编译器自动在结构体成员间插入<b>填充字节</b>（padding）保证对齐。<code>#pragma pack</code> 可强制紧凑排列以省内存，但牺牲访问速度——仅用于网络协议/文件格式。</span><span slot="en">CPU accesses memory in <b>word-aligned</b> chunks (8 bytes on 64-bit). Unaligned data requires two memory transactions plus stitching, hurting performance or causing hardware faults. Compilers auto-insert <b>padding</b> bytes between struct members to ensure alignment. <code>#pragma pack</code> forces tight packing to save memory at the cost of speed — use only for network/file formats.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 默认对齐：编译器自动填充
+struct BadLayout &#123;      // 24 字节（浪费 12 字节）
+    char  c;      // [0]     1B + 7B padding
+    double d;     // [8]     8B
+    int   i;      // [16]    4B + 4B padding
+&#125;;
+
+// 优化对齐：大成员在前，减少 padding
+struct GoodLayout &#123;     // 16 字节（无浪费）
+    double d;     // [0]     8B
+    int   i;      // [8]     4B
+    char  c;      // [12]    1B + 3B padding
+&#125;;
+
+static_assert(sizeof(GoodLayout) == 16);
+
+// 强制紧凑（省内存，牺牲速度）
+#pragma pack(push, 1)
+struct NetworkPacket &#123;  // 正好 13 字节
+    uint8_t  type;    // [0] 1B
+    uint16_t len;     // [1] 2B（未对齐！）
+    uint64_t data;    // [3] 8B（未对齐！）
+    uint16_t crc;     // [11] 2B
+&#125;;
+#pragma pack(pop)
+static_assert(sizeof(NetworkPacket) == 13);
+
+// alignas / alignof (C++11)
+struct alignas(64) CacheLine &#123;  // 强制 64 字节对齐（一个缓存行）
+    int data[16];
+&#125;;
+static_assert(alignof(CacheLine) == 64);</code></pre>`}
+  py={`<pre><code># Python 层不暴露内存对齐——解释器与 C 扩展处理
+# 但 ctypes / struct 模块可控制二进制布局
+
+import struct
+
+# 网络包：紧凑排列（无 padding）
+# 格式: B(1B uint8) H(2B uint16) Q(8B uint64) H(2B uint16)
+fmt = "&lt;BHQH"   # &lt; = little-endian, 无 padding
+packet = struct.pack(fmt, 1, 1024, 0xDEADBEEF, 0x1234)
+print(len(packet))  # 13 字节（与 C++ #pragma pack 1 一致）
+
+# 对齐版本（默认行为，加 padding）
+fmt_aligned = "BHQH"  # 无 &lt; 前缀，使用本机对齐
+packet_aligned = struct.pack(fmt_aligned, 1, 1024, 0xDEADBEEF, 0x1234)
+print(len(packet_aligned))  # 可能是 16 或 24（取决于平台）
+
+# numpy dtype 可显式指定对齐
+import numpy as np
+dt = np.dtype(&#123;
+    'names':   ['type', 'len', 'data'],
+    'formats': ['u1',   'u2',  'u8'],
+    'offsets': [0,      1,     3],     # 紧凑排列
+    'itemsize': 13
+&#125;)</code></pre>`}
+      />
+    </section>
+
+    <!-- 游戏场景：自定义分配器 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">游戏场景：自定义内存分配器</span><span slot="en">Game Scenario: Custom Allocators</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">游戏引擎几乎不直接调用 <code>new</code>/<code>delete</code>，而是用<b>自定义分配器</b>精细控制内存：<br>
+          • <b class="text-func-amber">线性分配器（Linear/Arena）</b>：整块预分配，指针递增分配，整批释放——适合一帧内临时对象。<br>
+          • <b class="text-primary-cyan">栈分配器（Stack）</b>：LIFO 释放，适合嵌套作用域。<br>
+          • <b class="text-func-green">池分配器（Pool）</b>：固定大小块链表，O(1) 分配释放——适合同类型大量对象（如 Entity、Bullet）。<br>
+          • <b class="text-primary-purple">帧分配器（Frame/Scratch）</b>：每帧开始重置，所有临时分配零释放开销。<br><br>
+          这些策略将分配从 ~100ns 降到 ~1ns，并消除碎片——对于 60FPS（每帧 16.6ms 预算）至关重要。</span>
+          <span slot="en">Game engines almost never call <code>new</code>/<code>delete</code> directly, instead using <b>custom allocators</b> for fine-grained memory control:<br>
+          • <b class="text-func-amber">Linear/Arena</b>: pre-allocate a block, bump-pointer alloc, bulk free — ideal for per-frame temporaries.<br>
+          • <b class="text-primary-cyan">Stack</b>: LIFO free, for nested scopes.<br>
+          • <b class="text-func-green">Pool</b>: fixed-size block free list, O(1) alloc/free — for many same-type objects (Entity, Bullet).<br>
+          • <b class="text-primary-purple">Frame/Scratch</b>: reset each frame, zero free overhead for all temporary allocs.<br><br>
+          These strategies cut allocation from ~100ns to ~1ns and eliminate fragmentation — critical for 60FPS (16.6ms frame budget).</span>
+        </Bilingual>
+      </p>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">关联阅读：<a class="text-primary-cyan underline" href="/topics/cpp-raii">RAII 与智能指针</a>讲解自动释放；<a class="text-primary-cyan underline" href="/topics/memory-hierarchy">存储层级</a>讲解 Cache/RAM 层次。</span><span slot="en">Related: <a class="text-primary-cyan underline" href="/topics/cpp-raii">RAII & Smart Pointers</a> for automatic cleanup; <a class="text-primary-cyan underline" href="/topics/memory-hierarchy">Memory Hierarchy</a> for Cache/RAM levels.</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 内存布局可视化
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('mem-svg') as unknown as SVGSVGElement;
+  const memBtns = document.querySelectorAll<HTMLButtonElement>('.mem-btn');
+
+  interface RegionData {
+    nameZh: string; nameEn: string; color: string; y: number; h: number;
+    descZh: string; descEn: string; items: { zh: string; en: string }[];
+  }
+
+  const REGIONS: Record<string, RegionData> = {
+    stack: {
+      nameZh: '栈区', nameEn: 'Stack', color: '#22C55E', y: 20, h: 90,
+      descZh: '自动管理，LIFO，函数局部变量',
+      descEn: 'Auto-managed, LIFO, function locals',
+      items: [
+        { zh: '局部变量、函数参数', en: 'Locals, function params' },
+        { zh: '返回地址、保存的寄存器', en: 'Return addr, saved regs' },
+        { zh: '大小有限（1-8MB）', en: 'Limited size (1-8MB)' },
+        { zh: '分配: 移动 SP 指针 (~1ns)', en: 'Alloc: move SP (~1ns)' },
+      ],
+    },
+    heap: {
+      nameZh: '堆区', nameEn: 'Heap', color: '#FBBF24', y: 120, h: 90,
+      descZh: '手动管理 (new/delete)，动态分配',
+      descEn: 'Manual (new/delete), dynamic alloc',
+      items: [
+        { zh: 'new/malloc 分配的对象', en: 'new/malloc objects' },
+        { zh: '大型容器 (vector, map)', en: 'Large containers' },
+        { zh: '可碎片化，需手动释放', en: 'Fragmentable, manual free' },
+        { zh: '分配: 查找空闲块 (~100ns)', en: 'Alloc: find free block (~100ns)' },
+      ],
+    },
+    global: {
+      nameZh: '全局/静态区', nameEn: 'Global/Static', color: '#A78BFA', y: 220, h: 50,
+      descZh: '程序启动时分配，退出时释放',
+      descEn: 'Allocated at startup, freed at exit',
+      items: [
+        { zh: '全局变量、static 变量', en: 'Globals, static vars' },
+        { zh: '.bss（未初始化）/ .data（已初始化）', en: '.bss (uninit) / .data (init)' },
+      ],
+    },
+    code: {
+      nameZh: '代码段', nameEn: 'Code Segment', color: '#22D3EE', y: 280, h: 35,
+      descZh: '只读，存储编译后的机器指令',
+      descEn: 'Read-only, stores compiled machine code',
+      items: [
+        { zh: '.text 段（可执行指令）', en: '.text segment (executable)' },
+        { zh: '只读，通常共享', en: 'Read-only, usually shared' },
+      ],
+    },
+  };
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  function render(active: string) {
+    svg.innerHTML = '';
+    const data = REGIONS[active];
+    if (!data) return;
+
+    // 绘制所有区域
+    for (const [key, r] of Object.entries(REGIONS)) {
+      const isActive = key === active;
+      const rect = document.createElementNS(SVGNS, 'rect');
+      rect.setAttribute('x', '200'); rect.setAttribute('y', String(r.y));
+      rect.setAttribute('width', '400'); rect.setAttribute('height', String(r.h - 5));
+      rect.setAttribute('rx', '6');
+      rect.setAttribute('fill', isActive ? r.color + '33' : r.color + '11');
+      rect.setAttribute('stroke', isActive ? r.color : r.color + '55');
+      rect.setAttribute('stroke-width', isActive ? '2.5' : '1.5');
+      svg.appendChild(rect);
+
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', '210'); t.setAttribute('y', String(r.y + 22));
+      t.setAttribute('font-size', '13'); t.setAttribute('font-weight', '600');
+      t.setAttribute('fill', isActive ? r.color : '#64748B');
+      t.textContent = lang() === 'en' ? r.nameEn : r.nameZh;
+      svg.appendChild(t);
+
+      const d = document.createElementNS(SVGNS, 'text');
+      d.setAttribute('x', '210'); d.setAttribute('y', String(r.y + 40));
+      d.setAttribute('font-size', '11'); d.setAttribute('fill', '#64748B');
+      d.textContent = lang() === 'en' ? r.descEn : r.descZh;
+      svg.appendChild(d);
+    }
+
+    // 高地址/低地址标签
+    const hiLabel = document.createElementNS(SVGNS, 'text');
+    hiLabel.setAttribute('x', '620'); hiLabel.setAttribute('y', '30');
+    hiLabel.setAttribute('font-size', '11'); hiLabel.setAttribute('fill', '#64748B');
+    hiLabel.textContent = lang() === 'en' ? 'High Addr ↑' : '高地址 ↑';
+    svg.appendChild(hiLabel);
+
+    const loLabel = document.createElementNS(SVGNS, 'text');
+    loLabel.setAttribute('x', '620'); loLabel.setAttribute('y', '315');
+    loLabel.setAttribute('font-size', '11'); loLabel.setAttribute('fill', '#64748B');
+    loLabel.textContent = lang() === 'en' ? 'Low Addr ↓' : '低地址 ↓';
+    svg.appendChild(loLabel);
+
+    // 详情面板（右侧）
+    const px = 630, py = 60;
+    const card = document.createElementNS(SVGNS, 'rect');
+    card.setAttribute('x', String(px)); card.setAttribute('y', String(py));
+    card.setAttribute('width', '160'); card.setAttribute('height', '200');
+    card.setAttribute('rx', '8'); card.setAttribute('fill', data.color + '15');
+    card.setAttribute('stroke', data.color + '66'); card.setAttribute('stroke-width', '1.5');
+    svg.appendChild(card);
+
+    const title = document.createElementNS(SVGNS, 'text');
+    title.setAttribute('x', String(px + 10)); title.setAttribute('y', String(py + 24));
+    title.setAttribute('font-size', '13'); title.setAttribute('font-weight', '700');
+    title.setAttribute('fill', data.color);
+    title.textContent = lang() === 'en' ? data.nameEn : data.nameZh;
+    svg.appendChild(title);
+
+    for (let i = 0; i < data.items.length; i++) {
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(px + 10)); t.setAttribute('y', String(py + 50 + i * 22));
+      t.setAttribute('font-size', '11'); t.setAttribute('fill', '#CBD5E1');
+      t.textContent = '• ' + (lang() === 'en' ? data.items[i].en : data.items[i].zh);
+      svg.appendChild(t);
+    }
+  }
+
+  function setActive(region: string) {
+    memBtns.forEach(b => b.classList.toggle('btn-primary', b.dataset.region === region));
+    render(region);
+  }
+  memBtns.forEach(b => b.addEventListener('click', () => setActive(b.dataset.region!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.mem-btn.btn-primary');
+    render(active?.dataset.region || 'stack');
+  });
+  setActive('stack');
+</script>

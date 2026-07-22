@@ -1,0 +1,372 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Python Performance Optimization · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Languages / Python Performance</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">性能优化</span><span slot="en">Performance Optimization</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">Python 在国内游戏圈大量用于<b>脚本层</b>——热更新逻辑、配置解析、测试工具、服务端业务（Panda3D/BigWorld 架构）。但前面两页揭示了它的结构性代价：每对象 16B 头、引用计数分摊进每条指令、动态类型分发、GIL 单线程。本页从<b>内存</b>和 <b>CPU</b> 两条线讲实战优化，并重点剖析 <code>dict</code>——游戏脚本里最常用的结构——该如何压榨。点击下方对比 Python 与 C/C++ 的内存代价。</span>
+          <span slot="en">Python is widely used in China's game industry as a <b>scripting layer</b> — hot-update logic, config parsing, test tooling, server business logic (Panda3D/BigWorld). But the previous two pages revealed its structural costs: 16B per-object header, refcounting smeared across every instruction, dynamic type dispatch, single-threaded GIL. This page covers practical optimization along <b>memory</b> and <b>CPU</b> axes, with a deep dive on <code>dict</code> — the most used structure in game scripts — and how to squeeze it. Click below to compare Python vs C/C++ memory costs.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：内存占用对比 -->
+    <div class="glass p-5" data-viz="mem-compare">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <button class="btn mc-btn btn-primary" data-case="int"><span data-lang="zh">整数</span><span data-lang="en">int</span></button>
+        <button class="btn mc-btn" data-case="struct"><span data-lang="zh">实体对象</span><span data-lang="en">entity</span></button>
+        <button class="btn mc-btn" data-case="array"><span data-lang="zh">10万元素数组</span><span data-lang="en">100k array</span></button>
+      </div>
+      <svg id="mc-svg" viewBox="0 0 800 260" class="w-full h-64 viz-stage"></svg>
+    </div>
+
+    <!-- 为什么 Python 占内存 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">为什么 Python 这么占内存</span><span slot="en">Why Python Eats So Much Memory</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">Python 内存膨胀有三个叠加原因：<br>
+          • <b class="text-func-amber">对象头税</b>：每个对象固定 16-24B 头部，存 1000 个 int 要 28KB，C 只要 4KB。<br>
+          • <b class="text-primary-cyan">一切堆分配</b>：Python 对象<b>只能在堆上</b>（没有栈对象概念），连循环里的临时 int 都要 malloc 一次——而 C++ 的 <code>int i</code> 在栈上零开销。<br>
+          • <b class="text-func-green">容器间接</b>：<code>list</code> 存的是<b>指针数组</b>而非值本身——<code>[1,2,3]</code> 是 3 个 int 对象(28B×3) + 3 个指针(8B×3) + list 头(56B) = 170B，而 C++ <code>vector&lt;int&gt;{1,2,3}</code> 仅 12B 数据。<br>
+          这就是"Python 占内存通常是 C++ 的 5-10 倍"的根源。</span>
+          <span slot="en">Python's memory bloat has three compounding causes:<br>
+          • <b class="text-func-amber">Object header tax</b>: 16-24B fixed header per object — 1000 ints cost 28KB vs C's 4KB.<br>
+          • <b class="text-primary-cyan">All-heap allocation</b>: Python objects <b>only live on the heap</b> (no stack objects) — even a loop's temporary int gets a malloc, while C++'s <code>int i</code> is zero-cost on stack.<br>
+          • <b class="text-func-green">Container indirection</b>: <code>list</code> stores an array of <b>pointers</b>, not values — <code>[1,2,3]</code> = 3 int objects (28B×3) + 3 pointers (8B×3) + list header (56B) = 170B, vs C++ <code>vector&lt;int&gt;{1,2,3}</code>'s 12B of data.<br>
+          This is the root of "Python uses 5-10x the memory of C++".</span>
+        </Bilingual>
+      </p>
+    </section>
+
+    <!-- 内存优化 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">内存优化：__slots__ / intern / 对象池</span><span slot="en">Memory: __slots__ / intern / Object Pool</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">压低 Python 内存有四板斧：<b>__slots__</b> 关掉每个实例的 <code>__dict__</code>（省 ~100B/实例）；<b>intern</b> 复用相同字符串/小整数；<b>对象池</b>复用高频短命对象（如游戏里的 vec3/bullet）；<b>numpy / array</b> 把同质数据压成连续 C 数组（绕过对象模型）。前三者是"省头部"，后者是"绕过模型"——对大批量数值数据，<b>numpy 是唯一正解</b>。</span><span slot="en">Four levers to cut Python memory: <b>__slots__</b> disables per-instance <code>__dict__</code> (saves ~100B/instance); <b>intern</b> reuses identical strings/small ints; <b>object pools</b> reuse high-frequency short-lived objects (e.g. game vec3/bullet); <b>numpy / array</b> packs homogeneous data into contiguous C arrays (bypassing the object model). The first three "save headers"; the last "bypasses the model" — for large-scale numeric data, <b>numpy is the only right answer</b>.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// C++ 对照：这些优化在 C++ 里"天然存在"
+// C++ 对象默认无运行时头，字段紧凑排列，可栈分配
+
+struct Vec3 &#123;            // 紧凑 12 字节（或 alignas 后 16）
+    float x, y, z;
+&#125;;
+
+// 大批量数据：连续内存，缓存友好
+std::vector&lt;Vec3&gt; particles(100000);
+// 100000 * 12 = 1.2MB，全部连续，SIMD 友好
+
+// 对象池：固定大小块复用
+class ParticlePool &#123;
+    std::vector&lt;Particle&gt; pool;
+    std::vector&lt;size_t&gt; freeList;
+public:
+    Particle* alloc() &#123;
+        if (freeList.empty()) &#123; pool.emplace_back(); return &amp;pool.back(); &#125;
+        auto p = &amp;pool[freeList.back()]; freeList.pop_back();
+        return p;
+    &#125;
+    void free(Particle* p) &#123; freeList.push_back(p - pool.data()); &#125;
+&#125;;
+
+// C++ 不需要 __slots__：struct 本就没有虚字典
+// C++ 不需要 intern：字符串字面量自动去重（链接器）
+// C++ 不需要 numpy：原生数组就是连续内存</code></pre>`}
+  py={`<pre><code>import sys
+
+# ===== 1. __slots__: 关掉实例 __dict__ =====
+class EntityDict:           # 默认有 __dict__
+    def __init__(self): self.x, self.y, self.hp = 0, 0, 100
+
+class EntitySlots:          # __slots__ 固定字段
+    __slots__ = ('x', 'y', 'hp')
+    def __init__(self): self.x, self.y, self.hp = 0, 0, 100
+
+e1 = EntityDict(); e2 = EntitySlots()
+print(sys.getsizeof(e1) + sys.getsizeof(e1.__dict__))  # ~152
+print(sys.getsizeof(e2))                                 # ~56  省 ~63%!
+# 代价：不能动态加属性（也是优点：防拼写错误）
+
+# ===== 2. intern: 复用相同字符串 =====
+a = sys.intern("player_damage_" + "fire")
+b = sys.intern("player_damage_" + "fire")
+print(a is b)  # True —— 同一对象，省内存 + 比较变指针比较 O(1)
+# CPython 自动 intern: 看似标识符的字符串、-5~256 的 int
+
+# ===== 3. 对象池: 复用高频短命对象 =====
+class Bullet:
+    __slots__ = ('x', 'y', 'vx', 'vy', 'alive')
+    def reset(self, x, y, vx, vy):
+        self.x, self.y, self.vx, self.vy = x, y, vx, vy
+        self.alive = True
+
+class BulletPool:
+    def __init__(self, n):
+        self.pool = [Bullet() for _ in range(n)]  # 预分配
+        self.free = list(self.pool)
+    def spawn(self, x, y, vx, vy):
+        b = self.free.pop() if self.free else Bullet()
+        b.reset(x, y, vx, vy); return b
+    def reclaim(self, b): self.free.append(b)  # 复用，不 GC
+# 每帧创建/回收数百子弹 → 0 次 malloc
+
+# ===== 4. numpy: 绕过对象模型 =====
+import numpy as np
+# 10万粒子，用 Python list 存对象:
+class P:
+    __slots__=('x','y','z')
+ps_list = [P() for _ in range(100000)]   # ~4.8MB (100000*48)
+# 用 numpy:
+arr = np.zeros((100000, 3), dtype=np.float32)  # 1.2MB!  连续内存
+# 4 倍省内存 + SIMD 加速 + 缓存友好</code></pre>`}
+      />
+    </section>
+
+    <!-- CPU 优化 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">CPU 优化：GIL、向量化、C 扩展、多进程</span><span slot="en">CPU: GIL, Vectorization, C Extensions, Multiprocessing</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">Python 慢的 CPU 侧原因：<b>每条字节码都过 VM 大循环</b>（见虚拟机页）、<b>动态类型分发</b>（<code>+</code> 要查 <code>tp_add</code>）、<b>GIL</b> 阻止多核并行。优化路径按收益排序：<b>算法优先</b>（O(n²)→O(n log n) 胜过一切微优化）→ <b>向量化</b>（numpy 把循环下沉到 C）→ <b>C 扩展/Cython</b>（热点编译）→ <b>多进程</b>（绕 GIL 用多核）→ <b>PyPy/JIT</b>（换运行时）。<b>多线程对 CPU 密集任务无效</b>（GIL），只对 I/O 有用。</span><span slot="en">Python's CPU slowness: <b>each bytecode through the VM loop</b> (see VM page), <b>dynamic type dispatch</b> (<code>+</code> looks up <code>tp_add</code>), <b>GIL</b> blocking multicore parallelism. Optimization by ROI: <b>algorithm first</b> (O(n²)→O(n log n) beats any micro-opt) → <b>vectorization</b> (numpy sinks loops to C) → <b>C extensions/Cython</b> (compile hotspots) → <b>multiprocessing</b> (use multicore around GIL) → <b>PyPy/JIT</b> (swap runtime). <b>Threading is useless for CPU-bound</b> (GIL); only helps I/O.</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-func-green"># GIL：全局解释器锁</span>
+<span class="text-ink-muted"># 同一时刻只有一个线程执行字节码 → 多线程无法利用多核做 CPU 计算</span>
+<span class="text-ink-muted"># GIL 在 ceval.c 循环边界定期释放（每 ~100 条指令或 I/O 时）</span>
+
+<span class="text-primary-cyan"># 1. 向量化：把 Python 循环下沉到 numpy 的 C 循环</span>
+import numpy as np
+arr = np.random.rand(10_000_000)
+
+<span class="text-func-red"># 慢：Python 层逐元素循环（每步过 VM + 类型分发）</span>
+result = sum(x * 2 for x in arr)          <span class="text-ink-muted"># ~1.2s</span>
+
+<span class="text-func-green"># 快：numpy 向量化（一次 C 层批量操作）</span>
+result = (arr * 2).sum()                    <span class="text-ink-muted"># ~15ms  80倍!</span>
+
+<span class="text-primary-cyan"># 2. C 扩展 / Cython：把热点函数编译成 C</span>
+<span class="text-ink-muted">#  纯 Python:</span>
+def mandel(c, max_iter):
+    z = 0
+    for n in range(max_iter):
+        if abs(z) &gt; 2: return n
+        z = z*z + c
+    return max_iter
+<span class="text-ink-muted">#  Cython (加类型注解后编译):</span>
+<span class="text-ink-muted">#  cdef double z=0; cdef int n  → 接近 C 速度，无 VM 开销</span>
+
+<span class="text-primary-cyan"># 3. 多进程绕 GIL（每个进程独立 GIL）</span>
+from multiprocessing import Pool
+def work(x): return x * x
+with Pool(8) as p:           <span class="text-ink-muted"># 真·8核并行</span>
+    results = p.map(work, range(10**6))
+<span class="text-ink-muted"># 代价：进程间内存不共享，数据要序列化(pickle)传输 → 仅适合粗粒度任务</span>
+
+<span class="text-primary-cyan"># 4. I/O 密集用 asyncio / 线程（GIL 在 I/O 时释放）</span>
+import asyncio
+async def fetch(url): ...    <span class="text-ink-muted"># 单线程并发，无 GIL 争用</span>
+
+<span class="text-func-amber"># 选型决策树:</span>
+<span class="text-ink-muted">#  算法能优化?           → 先优化算法</span>
+<span class="text-ink-muted">#  数值批量计算?         → numpy 向量化</span>
+<span class="text-ink-muted">#  单函数热点?           → Cython / numba @jit</span>
+<span class="text-ink-muted">#  多核 CPU 密集?        → multiprocessing</span>
+<span class="text-ink-muted">#  I/O 密集?            → asyncio / threading</span>
+<span class="text-ink-muted">#  整体慢?              → 考虑 PyPy (JIT)</span></code></pre>
+    </section>
+
+    <!-- dict 优化与游戏开发 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">dict 优化与游戏脚本实践</span><span slot="en">dict Optimization & Game Script Practices</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><code>dict</code> 是 Python 脚本里<b>最高频</b>的结构——存配置表、实体属性、消息映射、缓存。Python 3.6+ 的<b>紧凑 dict</b> 已比旧版省 20-25%：它把键值对存进一个紧凑 <code>entries</code> 数组（插入有序），另用一个稀疏<b>索引数组</b>做哈希查找——这样 entries 连续、缓存友好，且删除留下空洞只影响索引。进一步优化：<b>共享 key dict</b>（同类的多个实例共享 key 数组，只存各自的 value）、<b>预知大小避免 rehash</b>、以及<b>用 dataclass(slots=True) / namedtuple 替代属性 dict</b>。游戏脚本中要警惕"用 dict 存上万个实体属性"——那会让缓存雪崩。</span><span slot="en"><code>dict</code> is the <b>most frequent</b> structure in Python scripts — config tables, entity attributes, message maps, caches. Python 3.6+'s <b>compact dict</b> already saves 20-25% vs legacy: it stores key-value pairs in a compact <code>entries</code> array (insertion-ordered), with a separate sparse <b>index array</b> for hash lookup — making entries contiguous & cache-friendly, with deletion holes only affecting the index. Further: <b>shared-key dict</b> (same-class instances share the key array, only values differ), <b>pre-sizing to avoid rehash</b>, and <b>dataclass(slots=True)/namedtuple instead of attribute dicts</b>. In game scripts, beware "storing tens of thousands of entity attributes in dicts" — that triggers cache thrashing.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// C++ 对照：游戏引擎几乎不用 unordered_map 存实体属性
+// 而是用 SoA（Structure of Arrays）连续存储
+
+// DoA（Array of Structures）：缓存不友好
+struct Entity &#123; float x,y,z; int hp; &#125;;
+std::vector&lt;Entity&gt; entities;   // 遍历 x 时跳过 hp，cache miss
+
+// SoA（Structure of Arrays）：缓存友好，SIMD 友好
+struct Entities &#123;
+    std::vector&lt;float&gt; x, y, z;  // 连续
+    std::vector&lt;int&gt;   hp;       // 单独连续
+&#125;;
+// 遍历所有 x → 完美缓存命中，可向量化
+
+// 这就是为什么 C++ 引擎能跑几十万实体而 Python 脚本卡在几千
+// Python dict 本质是 DoA 的极端版：每个属性都是独立的堆对象 + 指针跳转</code></pre>`}
+  py={`<pre><code>import sys
+from dataclasses import dataclass
+
+# ===== 紧凑 dict 原理（3.6+）=====
+# 旧版 dict: 每个槽存 (hash, key, value)，稀疏，空洞浪费
+# 新版 dict: entries[] 紧凑存 (hash,key,value) + indices[] 稀疏索引
+d = &#123;'hp': 100, 'mp': 50, 'name': 'hero'&#125;
+# entries = [(hash,'hp',100),(hash,'mp',50),(hash,'name','hero')]  连续!
+# indices = [0, None, 1, None, 2, ...]  稀疏(按 hash 取模定位)
+# 优势: 插入有序、entries 连续缓存友好、省内存
+
+# ===== 共享 key dict: 同类实例共享 key 数组 =====
+class Player:
+    def __init__(self):
+        self.hp = 100; self.mp = 50; self.name = ""  # 触发实例 dict
+p1, p2, p3 = Player(), Player(), Player()
+# 三个实例的 __dict__ 共享同一个 keys 数组，只各自存 value 数组
+# 省: N 个实例只需 1 份 key 存储（但每个仍有 dict 头开销）
+
+# ===== 游戏脚本: 别用 dict 存大量实体 =====
+<span class="text-func-red"># 反例: 10万实体 × 5 属性 = 50万个 dict entry</span>
+entities = [&#123;'x':0,'y':0,'z':0,'hp':100,'type':'mob'&#125;
+            for _ in range(100000)]
+# 内存: ~100000 * 232B(dict头+entries) ≈ 23MB，且全是堆对象，缓存雪崩
+
+<span class="text-func-green"># 正解: dataclass(slots=True) + numpy 批量属性</span>
+@dataclass(slots=True)
+class Entity:
+    x: float; y: float; z: float; hp: int; type_id: int
+
+import numpy as np
+class World:
+    def __init__(self, n):
+        self.pos = np.zeros((n, 3), np.float32)   # 连续 12n 字节
+        self.hp = np.full(n, 100, np.int32)        # 连续 4n 字节
+        self.type_id = np.zeros(n, np.int8)        # 连续 n 字节
+# 10万实体: 1.2MB + 0.4MB + 0.1MB ≈ 1.7MB，且遍历 pos 走 SIMD
+# 比 dict 方案省 13 倍内存 + 快 50 倍以上
+
+# ===== dict 使用最佳实践 =====
+# 1. 配置表/消息映射: dict 是合适的（量小、查表频繁）
+ACTIONS = &#123;'attack': do_attack, 'defend': do_defend&#125;
+# 2. 预知大小: dict.fromkeys 一次性建好，避免反复 rehash
+lookup = dict.fromkeys(keys, default)   # 一次性分配
+# 3. 查表用 set 而非 list: in 操作 O(1) vs O(n)
+valid = &#123;'sword', 'bow', 'staff'&#125;  # if item in valid: O(1)
+# 4. 大量属性 → dataclass(slots=True)；批量数值 → numpy</code></pre>`}
+      />
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">关联阅读：<a class="text-primary-cyan underline" href="/topics/py-vm">虚拟机与字节码</a>解释为何每条指令都慢；<a class="text-primary-cyan underline" href="/topics/py-objects">对象模型与内存</a>解释为何每个对象都大；<a class="text-primary-cyan underline" href="/topics/cpp-memory">C++ 内存管理</a>对比栈堆与缓存友好的 SoA 设计。</span><span slot="en">Related: <a class="text-primary-cyan underline" href="/topics/py-vm">VM & Bytecode</a> for why each instruction is slow; <a class="text-primary-cyan underline" href="/topics/py-objects">Object Model & Memory</a> for why each object is large; <a class="text-primary-cyan underline" href="/topics/cpp-memory">C++ Memory</a> for stack/heap & cache-friendly SoA design.</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 内存占用对比可视化
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('mc-svg') as unknown as SVGSVGElement;
+  const mcBtns = document.querySelectorAll<HTMLButtonElement>('.mc-btn');
+
+  interface CaseData {
+    titleZh: string; titleEn: string;
+    rows: { label: string; bytes: number; color: string; noteZh: string; noteEn: string }[];
+    noteZh: string; noteEn: string;
+  }
+
+  const CASES: Record<string, CaseData> = {
+    int: {
+      titleZh: '存 1000 个整数', titleEn: 'Storing 1000 ints',
+      rows: [
+        { label: 'C int[1000]', bytes: 4000, color: '#22C55E', noteZh: '4B × 1000，连续数组', noteEn: '4B × 1000, contiguous' },
+        { label: 'C++ vector<int>', bytes: 4024, color: '#22D3EE', noteZh: '数据 + 24B 头', noteEn: 'data + 24B header' },
+        { label: 'Python list[int]', bytes: 36000, color: '#FBBF24', noteZh: '1000×28B对象 + 1000×8B指针 + 56B头', noteEn: '1000×28B objs + 1000×8B ptrs + 56B' },
+        { label: 'numpy int32[1000]', bytes: 4096, color: '#A78BFA', noteZh: '连续 C 数组 + 小头，接近 C', noteEn: 'contiguous C array, near C' },
+      ],
+      noteZh: 'Python list 存 int 比 C 贵 9 倍；numpy 几乎抹平差距。',
+      noteEn: 'Python list of ints is 9x C; numpy nearly closes the gap.',
+    },
+    struct: {
+      titleZh: '存 1 万个实体(x,y,z,hp)', titleEn: '10k entities (x,y,z,hp)',
+      rows: [
+        { label: 'C++ SoA (float+int)', bytes: 160000, color: '#22C55E', noteZh: '4×4B × 10000，连续可SIMD', noteEn: '4×4B × 10k, contiguous SIMD' },
+        { label: 'C++ vector<Entity>', bytes: 160024, color: '#22D3EE', noteZh: 'DoA，16B×10000', noteEn: 'AoS, 16B × 10k' },
+        { label: 'Python dict/list', bytes: 2300000, color: '#FBBF24', noteZh: '10000×(dict232B + 4个对象)', noteEn: '10k×(dict232B + 4 objs)' },
+        { label: 'dataclass(slots) list', bytes: 560000, color: '#F472B6', noteZh: '10000×56B，无__dict__', noteEn: '10k×56B, no __dict__' },
+        { label: 'numpy SoA', bytes: 170000, color: '#A78BFA', noteZh: 'pos(12B)+hp(4B)×10000', noteEn: 'pos(12B)+hp(4B)×10k' },
+      ],
+      noteZh: 'dict 方案比 C++ 贵 14 倍；dataclass+numpy 逼近 C++。',
+      noteEn: 'dict is 14x C++; dataclass+numpy approaches C++.',
+    },
+    array: {
+      titleZh: '10 万元素数组', titleEn: '100k-element array',
+      rows: [
+        { label: 'C double[100k]', bytes: 800000, color: '#22C55E', noteZh: '8B × 100000', noteEn: '8B × 100k' },
+        { label: 'Python list[float]', bytes: 3640056, color: '#FBBF24', noteZh: '100k×24B对象 + 100k×8B指针 + 56B', noteEn: '100k×24B objs + 100k×8B ptrs + 56B' },
+        { label: 'array.array(d)', bytes: 800072, color: '#22D3EE', noteZh: '紧凑 C double 数组 + 头', noteEn: 'compact C doubles + header' },
+        { label: 'numpy float64[100k]', bytes: 800128, color: '#A78BFA', noteZh: '连续，仅 +128B 头', noteEn: 'contiguous, only +128B header' },
+      ],
+      noteZh: 'list 比 C 贵 4.5 倍；array/numpy 与 C 几乎相同。',
+      noteEn: 'list is 4.5x C; array/numpy match C almost exactly.',
+    },
+  };
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  function render(key: string) {
+    const data = CASES[key];
+    if (!data) return;
+    svg.innerHTML = '';
+
+    const title = document.createElementNS(SVGNS, 'text');
+    title.setAttribute('x', '20'); title.setAttribute('y', '22');
+    title.setAttribute('font-size', '15'); title.setAttribute('font-weight', '700');
+    title.setAttribute('fill', '#22D3EE');
+    title.textContent = lang() === 'en' ? data.titleEn : data.titleZh;
+    svg.appendChild(title);
+
+    const maxBytes = Math.max(...data.rows.map(r => r.bytes));
+    const barX = 180, barMaxW = 480, baseY = 45, rowH = 38;
+
+    for (let i = 0; i < data.rows.length; i++) {
+      const r = data.rows[i];
+      const y = baseY + i * rowH;
+      const w = Math.max(4, (r.bytes / maxBytes) * barMaxW);
+
+      const label = document.createElementNS(SVGNS, 'text');
+      label.setAttribute('x', '20'); label.setAttribute('y', String(y + 14));
+      label.setAttribute('font-size', '11'); label.setAttribute('font-weight', '600');
+      label.setAttribute('fill', r.color); label.setAttribute('font-family', 'monospace');
+      label.textContent = r.label;
+      svg.appendChild(label);
+
+      const bar = document.createElementNS(SVGNS, 'rect');
+      bar.setAttribute('x', String(barX)); bar.setAttribute('y', String(y + 2));
+      bar.setAttribute('width', String(w)); bar.setAttribute('height', '18');
+      bar.setAttribute('rx', '3'); bar.setAttribute('fill', r.color + 'cc');
+      svg.appendChild(bar);
+
+      const kb = r.bytes >= 1024 ? (r.bytes / 1024).toFixed(0) + ' KB' : r.bytes + ' B';
+      const sz = document.createElementNS(SVGNS, 'text');
+      sz.setAttribute('x', String(barX + w + 8)); sz.setAttribute('y', String(y + 16));
+      sz.setAttribute('font-size', '11'); sz.setAttribute('fill', '#CBD5E1');
+      sz.setAttribute('font-family', 'monospace'); sz.textContent = kb;
+      svg.appendChild(sz);
+
+      const note = document.createElementNS(SVGNS, 'text');
+      note.setAttribute('x', String(barX)); note.setAttribute('y', String(y + 30));
+      note.setAttribute('font-size', '9'); note.setAttribute('fill', '#64748B');
+      note.textContent = lang() === 'en' ? r.noteEn : r.noteZh;
+      svg.appendChild(note);
+    }
+
+    const noteY = baseY + data.rows.length * rowH + 8;
+    const note = document.createElementNS(SVGNS, 'text');
+    note.setAttribute('x', '20'); note.setAttribute('y', String(noteY));
+    note.setAttribute('font-size', '11'); note.setAttribute('fill', '#F472B6');
+    note.setAttribute('font-weight', '600');
+    note.textContent = lang() === 'en' ? data.noteEn : data.noteZh;
+    svg.appendChild(note);
+  }
+
+  function setActive(key: string) {
+    mcBtns.forEach(b => b.classList.toggle('btn-primary', b.dataset.case === key));
+    render(key);
+  }
+  mcBtns.forEach(b => b.addEventListener('click', () => setActive(b.dataset.case!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.mc-btn.btn-primary');
+    render(active?.dataset.case || 'int');
+  });
+  setActive('int');
+</script>

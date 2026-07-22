@@ -1,0 +1,460 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Python Object Model & Memory · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Languages / Python Objects</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">对象模型与内存管理</span><span slot="en">Object Model & Memory Management</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">"一切皆对象"是 Python 的核心设计——整数、函数、类、甚至类型本身都是堆上的 <code>PyObject</code>。这套模型的代价是<b>每个对象都有头部开销</b>：一个 <code>int</code> 在 C 里是 4 字节，在 Python 里是 28 字节。理解 <code>PyObject</code> 结构、类型系统（<code>PyTypeObject</code>）、以及<b>引用计数 + 分代 GC</b> 的双层回收机制——这些都写在 CPython 的 C 源码里——是后续性能优化的理论基础。点击下方查看对象内存布局。</span>
+          <span slot="en">"Everything is an object" is Python's core design — ints, functions, classes, even types themselves are heap-allocated <code>PyObject</code>s. The cost: <b>every object has header overhead</b> — an <code>int</code> is 4 bytes in C but 28 in Python. Understanding the <code>PyObject</code> layout, type system (<code>PyTypeObject</code>), and the dual-layer <b>refcount + generational GC</b> reclamation — all written in CPython's C source — is the theoretical foundation for later optimization. Click below to explore object layout.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：PyObject 内存布局 -->
+    <div class="glass p-5" data-viz="pyobj-layout">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <button class="btn obj-btn btn-primary" data-obj="int"><span data-lang="zh">int</span><span data-lang="en">int</span></button>
+        <button class="btn obj-btn" data-obj="list"><span data-lang="zh">list</span><span data-lang="en">list</span></button>
+        <button class="btn obj-btn" data-obj="dict"><span data-lang="zh">dict</span><span data-lang="en">dict</span></button>
+        <button class="btn obj-btn" data-obj="type"><span data-lang="zh">type</span><span data-lang="en">type</span></button>
+      </div>
+      <svg id="obj-svg" viewBox="0 0 800 340" class="w-full h-85 viz-stage"></svg>
+    </div>
+
+    <!-- PyObject 数据结构 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">PyObject：一切对象的基石</span><span slot="en">PyObject: The Foundation of All Objects</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">所有 Python 对象的 C 结构都以 <code>PyObject_HEAD</code> 开头——只有两个字段：<b>引用计数</b> <code>ob_refcnt</code> 和 <b>类型指针</b> <code>ob_type</code>。在 64 位系统上各 8 字节，共 <b>16 字节</b>头部。这 16 字节是<b>每个对象必须付出的固定税</b>，无论它多小。变长对象（list/str/dict）额外多一个 <code>ob_size</code>（8 字节），称为 <code>PyVarObject</code>。这套"头部 + 变长体"的设计让 CPython 用 C 实现了<b>动态类型</b>——类型信息不在变量上，而在对象上。</span><span slot="en">Every Python object's C struct begins with <code>PyObject_HEAD</code> — just two fields: <b>reference count</b> <code>ob_refcnt</code> and <b>type pointer</b> <code>ob_type</code>. On 64-bit, each is 8 bytes, totaling a <b>16-byte header</b>. This 16 bytes is the <b>fixed tax every object must pay</b>, no matter how small. Variable-length objects (list/str/dict) add an <code>ob_size</code> (8 bytes), called <code>PyVarObject</code>. This "header + variable body" design lets CPython implement <b>dynamic typing</b> in C — type info lives on the object, not the variable.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// CPython 对象的 C 定义（简化自 Include/object.h）
+// 所有对象都"继承"自 PyObject —— C 里用宏模拟继承
+
+// ===== 定长对象的头（int、float、None、True/False 等）=====
+struct PyObject &#123;
+    Py_ssize_t ob_refcnt;      // 引用计数（8 字节）
+    PyTypeObject *ob_type;     // 类型对象指针（8 字节）
+&#125;;                            // 共 16 字节
+
+// ===== 变长对象的头（list、str、tuple、bytes、dict 等）=====
+struct PyVarObject &#123;
+    Py_ssize_t ob_refcnt;      // 8
+    PyTypeObject *ob_type;     // 8
+    Py_ssize_t ob_size;        // 元素个数（8）—— 对 list 是 len()
+&#125;;                            // 共 24 字节，后面再接具体数据
+
+// ===== 具体类型：在头部后追加自己的字段 =====
+
+// Python int（任意精度，底层数组存"位"）
+struct PyLongObject &#123;
+    PyVarObject ob_base;       // 24 字节头（ob_size=位数）
+    digit ob_digit[1];         // 30 位/槽的数值数组（至少 4 字节）
+&#125;;                            // 总计 28 字节 —— 一个 int 28B！
+
+// Python float（C double 包装）
+struct PyFloatObject &#123;
+    PyObject ob_base;          // 16 字节头
+    double ob_fval;            // 8 字节
+&#125;;                            // 总计 24 字节 —— 一个 float 24B
+
+// Python list（指针数组）
+struct PyListObject &#123;
+    PyVarObject ob_base;       // 24 字节头
+    PyObject **ob_item;        // 指向 PyObject* 数组（8）
+    Py_ssize_t allocated;      // 已分配容量（8）
+&#125;;                            // 头 40 字节 + 数组（每元素 8 指针）
+
+// 对比 C：int 只占 4 字节，无任何头部
+// Python int 的 28B / C int 的 4B = 7 倍 —— "对象税"</code></pre>`}
+  py={`<pre><code># 用 sys.getsizeof 实测每个对象的内存占用
+import sys
+
+print(sys.getsizeof(0))        # 28  —— PyLongObject 最小
+print(sys.getsizeof(1))        # 28
+print(sys.getsizeof(2**30))    # 32  —— 超过 30 位，多一个 digit
+print(sys.getsizeof(2**60))    # 36  —— 再多一个 digit
+print(sys.getsizeof(2**90))    # 40
+
+print(sys.getsizeof(0.0))      # 24  —— PyFloatObject
+print(sys.getsizeof(""))       # 49  —— 空 str 的 PyUnicode 头
+print(sys.getsizeof("a"))      # 50  —— 每字符 +1（Latin1 编码时）
+print(sys.getsizeof([]))       # 56  —— 空 list 头（含 ob_item 指针）
+print(sys.getsizeof([1]))      # 64  —— +8（一个指针槽）
+print(sys.getsizeof(&#123;&#125;))      # 64  —— 空 dict（3.6+ 紧凑布局）
+print(sys.getsizeof(&#123;'a':1&#125;)) # 232 —— 紧凑 dict 预分配
+
+# 看类型对象本身也是 PyObject
+print(type(1))           # &lt;class 'int'&gt;
+print(type(int))         # &lt;class 'type'&gt;  —— type 是元类
+print(type(type))        # &lt;class 'type'&gt;  —— type 的类型还是 type
+
+# 验证"类型信息在对象上"
+x = 42
+print(x.__class__)       # &lt;class 'int'&gt;
+y = "hi"
+print(y.__class__)       # &lt;class 'str'&gt;
+# x 和 y 是同一种变量（都是 PyObject*），区别在 ob_type</code></pre>`}
+      />
+    </section>
+
+    <!-- 类型系统 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">类型系统：PyTypeObject 与"类型即对象"</span><span slot="en">Type System: PyTypeObject & "Types Are Objects"</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">在 C++ 中，类型是编译期的概念，运行时已擦除；在 Python 中，<b>类型本身也是一个对象</b>（<code>PyTypeObject</code>），存在堆上，持有该类型所有实例共享的<b>方法表、内存布局、协议实现</b>。<code>int</code>、<code>str</code>、自定义类都是 <code>type</code> 的实例——<code>type</code> 是自己的实例（<code>type(type) is type</code>），形成自举。方法查找走 <b>MRO</b>（方法解析顺序，C3 线性化）；操作符通过 <b>协议槽</b>（<code>tp_add</code>/<code>tp_hash</code> 等）分发，这就是 <code>1 + 1</code> 背后会调用 <code>int.__add__</code> 的原因。</span><span slot="en">In C++, types are compile-time concepts, erased at runtime; in Python, <b>the type itself is an object</b> (<code>PyTypeObject</code>), heap-allocated, holding the method table, memory layout, and protocol implementations shared by all instances of that type. <code>int</code>, <code>str</code>, and user classes are all instances of <code>type</code> — <code>type</code> is its own instance (<code>type(type) is type</code>), forming a bootstrap. Method lookup follows <b>MRO</b> (C3 linearization); operators dispatch via <b>protocol slots</b> (<code>tp_add</code>/<code>tp_hash</code> etc.) — that's why <code>1 + 1</code> ends up calling <code>int.__add__</code>.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// PyTypeObject（极度简化）—— 一个类型对象的 C 结构
+// 它本身也是 PyObject，所以也有 ob_refcnt + ob_type(=&type)
+
+struct PyTypeObject &#123;
+    PyVarObject ob_base;          // 24 字节头（类型是变长对象）
+
+    const char *tp_name;          // 类型名 "int" / "MyClass"
+    Py_ssize_t tp_basicsize;      // 实例的基本大小（创建时分配）
+    Py_ssize_t tp_itemsize;       // 每个变长元素的大小
+
+    // ===== 协议槽：操作符与内置函数的实现 =====
+    destructor  tp_dealloc;       // 析构（引用计数归零时调）
+    Py_hash_func tp_hash;         // hash() 实现
+    ternaryfunc tp_call;          // obj() 调用实现
+    // 一组 tp_as_number / tp_as_sequence / tp_as_mapping 指针表：
+    binaryfunc  nb_add;           // a + b  → int.__add__
+    binaryfunc  nb_multiply;      // a * b
+    lenfunc     sq_length;        // len(a)
+    // ... 共约 80 个槽位 ...
+
+    PyObject   *tp_dict;          // 类的 __dict__（存方法/属性）
+    PyObject   *tp_bases;         // 父类元组（继承）
+    PyObject   *tp_mro;           // 方法解析顺序（C3 线性化结果）
+    // ...
+&#125;;
+
+// 1 + 2 的完整调用路径：
+// ceval.c: BINARY_ADD
+//   → PyNumber_Add(l, r)
+//     → l->ob_type->tp_as_number->nb_add(l, r)   // 槽分发
+//       → long_add(l, r)                          // int 的具体实现
+// 对比 C++：编译期已绑定到 CPU 的 add 指令，零分发</code></pre>`}
+  py={`<pre><code># 体验"类型即对象"与 MRO
+print(type(42))            # &lt;class 'int'&gt;
+print(type(int))           # &lt;class 'type'&gt;   —— int 是 type 的实例
+print(type(type))          # &lt;class 'type'&gt;   —— type 是自己的实例（自举）
+
+# 自定义类 = type 的实例 = 在堆上创建一个 PyTypeObject
+class Animal:
+    def speak(self): return "..."
+
+class Dog(Animal):
+    def speak(self): return "Woof"
+
+# Dog 本身是个对象（PyTypeObject 实例）
+print(Dog.__name__)        # Dog
+print(Dog.__bases__)       # (Animal,)
+print(Dog.__mro__)         # (Dog, Animal, object) —— C3 线性化
+# 方法查找沿 __mro__ 顺序：先 Dog，再 Animal，最后 object
+
+# 操作符即协议槽
+class Vec:
+    def __init__(self, x, y): self.x, self.y = x, y
+    def __add__(self, o):     # 注册到 tp_as_number.nb_add
+        return Vec(self.x + o.x, self.y + o.y)
+
+v = Vec(1, 2) + Vec(3, 4)   # 走 BINARY_ADD → nb_add → __add__
+
+# 动态修改类型（C++ 做不到）
+def loud_speak(self): return self.speak().upper()
+Dog.bark = loud_speak       # 运行时给类加方法，所有实例立即生效
+print(Dog().bark())         # WOOF</code></pre>`}
+      />
+    </section>
+
+    <!-- 内存管理：引用计数 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">引用计数：主回收机制</span><span slot="en">Reference Counting: Primary Reclamation</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">Python 的<b>主要</b>内存回收是<b>引用计数</b>——每个对象维护 <code>ob_refcnt</code>，赋值/传参时 <code>Py_INCREF</code>，离开作用域/删除时 <code>Py_DECREF</code>。一旦归零，<b>立即</b>调用 <code>tp_dealloc</code> 释放（确定性回收，比 GC 及时）。但引用计数<b>无法处理循环引用</b>——两个对象互相引用时计数永不归零，这需要<b>分代 GC</b> 兜底。引用计数的开销<b>分摊在每条指令里</b>（VM 每次压栈/弹栈都增减计数），这是 CPython 慢的另一个结构性原因。</span><span slot="en">Python's <b>primary</b> reclamation is <b>reference counting</b> — each object maintains <code>ob_refcnt</code>, incremented (<code>Py_INCREF</code>) on assignment/param-passing, decremented (<code>Py_DECREF</code>) on scope-exit/deletion. On hitting zero, <code>tp_dealloc</code> is called <b>immediately</b> (deterministic, more timely than GC). But refcounting <b>cannot handle cycles</b> — two objects referencing each other keep counts above zero forever, requiring <b>generational GC</b> as backup. The refcounting cost is <b>smeared across every instruction</b> (the VM inc/dec on every push/pop), another structural reason CPython is slow.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// 引用计数的 C 实现（简化自 Include/object.h）
+
+// 增加引用计数（内联，几乎零开销）
+static inline void Py_INCREF(PyObject *op) &#123;
+    op->ob_refcnt++;           // 非原子！GIL 保证线程安全
+&#125;
+
+// 减少引用计数，归零则立即回收
+static inline void Py_DECREF(PyObject *op) &#123;
+    if (--op->ob_refcnt == 0) &#123;
+        _Py_Dealloc(op);       // 调用 tp_dealloc
+    &#125;
+&#125;
+
+void _Py_Dealloc(PyObject *op) &#123;
+    destructor dealloc = op->ob_type->tp_dealloc;
+    dealloc(op);               // 如 long_dealloc / list_dealloc
+&#125;
+
+// ===== 循环引用：引用计数的死穴 =====
+// 两个对象互相引用：
+//   a.other = b;  b.other = a;   （a.refcnt=2, b.refcnt=2）
+//   del a; del b;                 （各 -1，但互相还持有，refcnt=1）
+//   → 永远不归零！引用计数无能为力
+//
+// 解决：分代 GC 定期扫描，检测"只被循环内部引用"的对象群并回收
+
+// ===== 为什么引用计数开销大 =====
+// 每条字节码指令都伴随 Py_INCREF/Py_DECREF：
+//   LOAD_FAST: Py_INCREF(v)        —— 读局部变量就增计
+//   BINARY_ADD: Py_DECREF(l); Py_DECREF(r)  —— 弹栈就减计
+//   一个 a + b * c 要触发约 6 次引用计数操作
+// 对比 Java/C#: 仅在 GC root 扫描时才遍历，平时零计数开销</code></pre>`}
+  py={`<pre><code>import sys, gc, weakref
+
+# 观察引用计数
+a = [1, 2, 3]                    # refcnt = 1
+print(sys.getrefcount(a))        # 2 —— 多了一个 getrefcount 的参数引用
+
+b = a                            # refcnt = 2
+print(sys.getrefcount(a))        # 3
+
+del b                            # refcnt = 2
+print(sys.getrefcount(a))        # 2
+
+# 循环引用：引用计数失效
+class Node:
+    def __init__(self): self.peer = None
+    def __del__(self): print("freed")   # 观察回收时机
+
+def make_cycle():
+    x = Node(); y = Node()
+    x.peer = y; y.peer = x       # 循环！refcnt 各 = 2
+
+make_cycle()                     # x,y 离开作用域，各 refcnt=1
+# 引用计数不为 0，__del__ 未调用 —— 泄漏中
+gc.collect()                     # 分代 GC 兜底：检测循环并回收
+# freed / freed   —— GC 才真正释放
+
+# 弱引用：不增加引用计数（类似 C++ weak_ptr）
+obj = [1, 2, 3]
+weak = weakref.ref(obj)
+print(weak())         # [1, 2, 3]
+del obj               # refcnt=0，立即回收
+print(weak())         # None —— 引用计数即时回收的好处
+
+# 关闭 GC 看效果（纯引用计数模式）
+gc.disable()
+# 此时循环引用会真的泄漏 —— GC 是引用计数的必要补充</code></pre>`}
+      />
+    </section>
+
+    <!-- 分代 GC 与 pymalloc -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">分代 GC 与 pymalloc 内存池</span><span slot="en">Generational GC & pymalloc Memory Pool</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">为兜底循环引用，CPython 额外运行<b>分代 GC</b>：对象分三代（0/1/2），新对象进 0 代，存活过一轮 GC 晋升下一代；越老的对象扫描越少（"老对象大概率长寿"的启发式）。GC 只扫描<b>容器对象</b>（list/dict/实例），不扫 int/str（它们不能形成循环）。除回收外，CPython 还有 <b>pymalloc</b>——一个针对小对象（≤512B）的三级内存池（<b>arena → pool → block</b>），减少向系统 <code>malloc</code> 的请求次数，这是 Python 进程启动就占几十 MB 的原因之一。</span><span slot="en">To backstop cycles, CPython runs an extra <b>generational GC</b>: objects split into 3 generations (0/1/2); new objects enter gen 0, surviving a GC cycle promotes them; older objects are scanned less (the "old objects likely live long" heuristic). GC scans only <b>container objects</b> (list/dict/instances), not int/str (they can't form cycles). Beyond reclamation, CPython has <b>pymalloc</b> — a three-tier pool (arena → pool → block) for small objects (≤512B), reducing <code>malloc</code> syscalls — one reason a Python process occupies tens of MB at startup.</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-func-green"># 分代 GC</span>
+import gc
+print(gc.get_threshold())   <span class="text-func-amber"># (700, 10, 10) —— 0代分配数达700触发0代GC</span>
+<span class="text-ink-muted"># 0代GC跑10次触发1次1代；1代跑10次触发1次2代</span>
+print(gc.get_count())       <span class="text-func-amber"># 当前各代计数</span>
+
+<span class="text-primary-cyan"># 手动控制 GC（性能敏感场景）</span>
+gc.disable()                <span class="text-ink-muted"># 关闭，自己在合适时机 gc.collect()</span>
+<span class="text-ink-muted"># 游戏脚本/批处理常用：消除 GC 停顿不确定性</span>
+
+<span class="text-func-green"># pymalloc 内存池（C 层，Python 不可见）</span>
+<span class="text-ink-muted">#  小对象 (≤512B) → pymalloc 的 arena(256KB)/pool(4KB)/block(8/16/...512B)</span>
+<span class="text-ink-muted">#  大对象 (&gt;512B) → 直接 malloc/free</span>
+<span class="text-ink-muted">#  arena 一旦向 OS 申请就不归还 → 进程 RSS 只增不减（外观像"内存泄漏"）</span>
+
+<span class="text-func-red"># 验证：Python 进程基础占用</span>
+<span class="text-ink-muted">#  空解释器 ~10-15MB；import 常用库后 ~30MB+</span>
+<span class="text-ink-muted">#  对比 C 空程序 ~1KB —— 对象模型+内存池的固定成本</span>
+
+<span class="text-primary-purple"># 对比 C++ 的内存管理</span>
+<span class="text-ink-muted">#  C++: 手动/RAII，无运行时回收开销，对象可放栈上（零堆分配）</span>
+<span class="text-ink-muted">#  Python: 所有对象都在堆上，每对象 16B 头 + 引用计数 + GC 扫描</span>
+<span class="text-ink-muted">#  → 同等逻辑 Python 内存占用通常是 C++ 的 5-10 倍</span></code></pre>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">关联阅读：<a class="text-primary-cyan underline" href="/topics/py-vm">虚拟机与字节码</a>讲解 VM 如何操作这些对象；<a class="text-primary-cyan underline" href="/topics/py-optimization">性能优化</a>讲解如何压低这套对象模型的内存与 CPU 开销。</span><span slot="en">Related: <a class="text-primary-cyan underline" href="/topics/py-vm">VM & Bytecode</a> for how the VM operates these objects; <a class="text-primary-cyan underline" href="/topics/py-optimization">Performance</a> for reducing this model's memory and CPU overhead.</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // PyObject 内存布局可视化
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('obj-svg') as unknown as SVGSVGElement;
+  const objBtns = document.querySelectorAll<HTMLButtonElement>('.obj-btn');
+
+  interface Field { name: string; size: string; color: string; zh: string; en: string; }
+  interface ObjData {
+    titleZh: string; titleEn: string; total: string;
+    fields: Field[];
+    noteZh: string; noteEn: string;
+  }
+
+  const OBJS: Record<string, ObjData> = {
+    int: {
+      titleZh: 'int 对象 (PyLongObject)', titleEn: 'int object (PyLongObject)', total: '28 字节',
+      fields: [
+        { name: 'ob_refcnt', size: '8B', color: '#FBBF24', zh: '引用计数', en: 'refcount' },
+        { name: 'ob_type', size: '8B', color: '#A78BFA', zh: '→ int 类型', en: '→ int type' },
+        { name: 'ob_size', size: '8B', color: '#22D3EE', zh: '位数(变长头)', en: 'digit count' },
+        { name: 'ob_digit[0]', size: '4B', color: '#22C55E', zh: '数值(30位/槽)', en: 'value (30-bit)' },
+      ],
+      noteZh: 'C 的 int 仅 4 字节；Python int 28 字节（7 倍），且支持任意精度。',
+      noteEn: 'C int is 4 bytes; Python int is 28 bytes (7x), but supports arbitrary precision.',
+    },
+    list: {
+      titleZh: 'list 对象 (PyListObject)', titleEn: 'list object (PyListObject)', total: '56 + 8N 字节',
+      fields: [
+        { name: 'ob_refcnt', size: '8B', color: '#FBBF24', zh: '引用计数', en: 'refcount' },
+        { name: 'ob_type', size: '8B', color: '#A78BFA', zh: '→ list 类型', en: '→ list type' },
+        { name: 'ob_size', size: '8B', color: '#22D3EE', zh: 'len() 元素数', en: 'len()' },
+        { name: 'ob_item*', size: '8B', color: '#F472B6', zh: '→ 元素指针数组', en: '→ item array' },
+        { name: 'allocated', size: '8B', color: '#F87171', zh: '已分配容量', en: 'allocated cap' },
+        { name: 'item[0..N]*', size: '8×N', color: '#22C55E', zh: '每个元素是指针(8B)', en: 'each item is ptr' },
+      ],
+      noteZh: '空 list 56B；每元素额外 8B 指针 + 元素本身。类似 C++ vector<PyObject*>。',
+      noteEn: 'Empty list 56B; each item adds 8B pointer + the item itself. Like vector<PyObject*>.',
+    },
+    dict: {
+      titleZh: 'dict 对象 (PyDictObject, 3.6+)', titleEn: 'dict object (3.6+ compact)', total: '64+ 字节',
+      fields: [
+        { name: 'ob_refcnt', size: '8B', color: '#FBBF24', zh: '引用计数', en: 'refcount' },
+        { name: 'ob_type', size: '8B', color: '#A78BFA', zh: '→ dict 类型', en: '→ dict type' },
+        { name: 'ob_size', size: '8B', color: '#22D3EE', zh: 'len() 键值对数', en: 'len()' },
+        { name: 'ma_keys*', size: '8B', color: '#F472B6', zh: '→ 紧凑 keys 数组', en: '→ keys array' },
+        { name: 'ma_values*', size: '8B', color: '#22C55E', zh: '→ values 数组(或内联)', en: '→ values array' },
+        { name: 'keys/vals', size: '可变', color: '#F87171', zh: '稀疏索引+紧凑entries', en: 'sparse idx+entries' },
+      ],
+      noteZh: '3.6+ 紧凑 dict：两个数组，插入有序，内存比旧版省 20-25%。详见性能优化页。',
+      noteEn: '3.6+ compact dict: two arrays, insertion-ordered, ~20-25% smaller. See optimization page.',
+    },
+    type: {
+      titleZh: 'type 对象 (PyTypeObject)', titleEn: 'type object (PyTypeObject)', total: '~400+ 字节',
+      fields: [
+        { name: 'ob_refcnt', size: '8B', color: '#FBBF24', zh: '引用计数', en: 'refcount' },
+        { name: 'ob_type', size: '8B', color: '#A78BFA', zh: '→ type (自举)', en: '→ type (self)' },
+        { name: 'ob_size', size: '8B', color: '#22D3EE', zh: '变长头', en: 'var header' },
+        { name: 'tp_name*', size: '8B', color: '#F472B6', zh: '"int"/"Dog"', en: 'type name' },
+        { name: 'tp_basicsize', size: '8B', color: '#22C55E', zh: '实例大小', en: 'instance size' },
+        { name: 'slots...', size: '~80', color: '#F87171', zh: '协议槽:tp_dealloc/nb_add...', en: 'slots:tp_dealloc/nb_add...' },
+      ],
+      noteZh: '类型本身是个大对象，持有所有实例共享的方法表与协议槽。type(type) is type。',
+      noteEn: 'The type itself is a large object, holding method tables shared by all instances. type(type) is type.',
+    },
+  };
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  function render(key: string) {
+    const data = OBJS[key];
+    if (!data) return;
+    svg.innerHTML = '';
+
+    const title = document.createElementNS(SVGNS, 'text');
+    title.setAttribute('x', '20'); title.setAttribute('y', '25');
+    title.setAttribute('font-size', '15'); title.setAttribute('font-weight', '700');
+    title.setAttribute('fill', '#22D3EE');
+    title.textContent = `${lang() === 'en' ? data.titleEn : data.titleZh}  ·  ${data.total}`;
+    svg.appendChild(title);
+
+    // 内存块纵向排列
+    const startX = 60, startY = 50, blockW = 280, fieldH = 32;
+    for (let i = 0; i < data.fields.length; i++) {
+      const f = data.fields[i];
+      const y = startY + i * fieldH;
+      const rect = document.createElementNS(SVGNS, 'rect');
+      rect.setAttribute('x', String(startX)); rect.setAttribute('y', String(y));
+      rect.setAttribute('width', String(blockW)); rect.setAttribute('height', String(fieldH - 4));
+      rect.setAttribute('rx', '4'); rect.setAttribute('fill', f.color + '22');
+      rect.setAttribute('stroke', f.color + '88'); rect.setAttribute('stroke-width', '1.5');
+      svg.appendChild(rect);
+
+      const name = document.createElementNS(SVGNS, 'text');
+      name.setAttribute('x', String(startX + 12)); name.setAttribute('y', String(y + 20));
+      name.setAttribute('font-size', '12'); name.setAttribute('font-weight', '600');
+      name.setAttribute('fill', f.color); name.setAttribute('font-family', 'monospace');
+      name.textContent = f.name;
+      svg.appendChild(name);
+
+      const sz = document.createElementNS(SVGNS, 'text');
+      sz.setAttribute('x', String(startX + blockW - 12)); sz.setAttribute('y', String(y + 20));
+      sz.setAttribute('text-anchor', 'end'); sz.setAttribute('font-size', '11');
+      sz.setAttribute('fill', '#94A3B8'); sz.setAttribute('font-family', 'monospace');
+      sz.textContent = f.size;
+      svg.appendChild(sz);
+    }
+
+    // C++ 对比框（右侧）
+    const cx = 420, cy = 50;
+    const card = document.createElementNS(SVGNS, 'rect');
+    card.setAttribute('x', String(cx)); card.setAttribute('y', String(cy));
+    card.setAttribute('width', '360'); card.setAttribute('height', String(data.fields.length * fieldH - 4));
+    card.setAttribute('rx', '8'); card.setAttribute('fill', '#22C55E11');
+    card.setAttribute('stroke', '#22C55E55'); card.setAttribute('stroke-width', '1.5');
+    svg.appendChild(card);
+
+    const ct = document.createElementNS(SVGNS, 'text');
+    ct.setAttribute('x', String(cx + 16)); ct.setAttribute('y', String(cy + 24));
+    ct.setAttribute('font-size', '13'); ct.setAttribute('font-weight', '700');
+    ct.setAttribute('fill', '#22C55E');
+    ct.textContent = lang() === 'en' ? 'C++ Equivalent' : 'C++ 对比';
+    svg.appendChild(ct);
+
+    const compare: Record<string, [string, string]> = {
+      int: ['int (4B, 栈上)', 'int (4B, stack)'],
+      list: ['vector<T> (~24B头)', 'vector<T> (~24B header)'],
+      dict: ['unordered_map (~仅数据)', 'unordered_map (~data only)'],
+      type: ['编译期类型(运行时无)', 'compile-time (none at runtime)'],
+    };
+    const [zh, en] = compare[key];
+    const cmp = document.createElementNS(SVGNS, 'text');
+    cmp.setAttribute('x', String(cx + 16)); cmp.setAttribute('y', String(cy + 48));
+    cmp.setAttribute('font-size', '12'); cmp.setAttribute('fill', '#CBD5E1');
+    cmp.setAttribute('font-family', 'monospace');
+    cmp.textContent = lang() === 'en' ? en : zh;
+    svg.appendChild(cmp);
+
+    // 注释
+    const note = document.createElementNS(SVGNS, 'text');
+    const noteY = startY + data.fields.length * fieldH + 16;
+    // wrap note roughly
+    const noteText = lang() === 'en' ? data.noteEn : data.noteZh;
+    const words = noteText.split('');
+    let line = ''; let lineIdx = 0;
+    for (const ch of words) {
+      line += ch;
+      if (line.length > 38) {
+        const t = document.createElementNS(SVGNS, 'text');
+        t.setAttribute('x', String(startX)); t.setAttribute('y', String(noteY + lineIdx * 18));
+        t.setAttribute('font-size', '11'); t.setAttribute('fill', '#94A3B8');
+        t.textContent = line;
+        svg.appendChild(t);
+        line = ''; lineIdx++;
+      }
+    }
+    if (line) {
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(startX)); t.setAttribute('y', String(noteY + lineIdx * 18));
+      t.setAttribute('font-size', '11'); t.setAttribute('fill', '#94A3B8');
+      t.textContent = line;
+      svg.appendChild(t);
+    }
+  }
+
+  function setActive(key: string) {
+    objBtns.forEach(b => b.classList.toggle('btn-primary', b.dataset.obj === key));
+    render(key);
+  }
+  objBtns.forEach(b => b.addEventListener('click', () => setActive(b.dataset.obj!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.obj-btn.btn-primary');
+    render(active?.dataset.obj || 'int');
+  });
+  setActive('int');
+</script>

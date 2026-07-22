@@ -1,0 +1,309 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Programming Languages · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Languages / Overview</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">编程语言概览</span><span slot="en">Programming Languages Overview</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">编程语言是人与机器之间的契约。不同语言体现不同的<b>编程范式</b>——命令式关注"怎么做"，函数式关注"用什么算"，面向对象关注"谁来做"。游戏开发中，<b class="text-func-amber">C++</b> 主导引擎性能层，<b class="text-primary-cyan">Python</b> 主导工具链与脚本，<b class="text-func-green">C#</b> 在 Unity 中作为上层逻辑语言。点击下方卡片切换范式，对比同一段逻辑在不同范式下的写法。</span>
+          <span slot="en">Programming languages are contracts between humans and machines. Different languages embody different <b>paradigms</b> — imperative focuses on "how", functional on "what to compute", object-oriented on "who does it". In game development, <b class="text-func-amber">C++</b> dominates engine performance layers, <b class="text-primary-cyan">Python</b> drives tooling and scripting, <b class="text-func-green">C#</b> serves as Unity's logic language. Click the cards below to switch paradigms and compare how the same logic looks in each.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：范式切换卡片 -->
+    <div class="glass p-5" data-viz="paradigm-switch">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button class="btn paradigm-btn btn-primary" data-paradigm="imperative">
+          <span data-lang="zh">命令式</span><span data-lang="en">Imperative</span>
+        </button>
+        <button class="btn paradigm-btn" data-paradigm="oop">
+          <span data-lang="zh">面向对象</span><span data-lang="en">OOP</span>
+        </button>
+        <button class="btn paradigm-btn" data-paradigm="functional">
+          <span data-lang="zh">函数式</span><span data-lang="en">Functional</span>
+        </button>
+      </div>
+      <svg id="paradigm-svg" viewBox="0 0 800 320" class="w-full h-80 viz-stage"></svg>
+    </div>
+
+    <!-- 三大编程范式 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">三大编程范式</span><span slot="en">Three Major Paradigms</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">范式是组织代码的思维框架。同一问题——"计算列表中所有偶数的平方和"——在不同范式下有截然不同的表达。命令式逐步描述<b>状态变化</b>；面向对象将数据与行为<b>封装为对象</b>协作；函数式用<b>不可变数据 + 纯函数</b>组合表达，避免副作用。</span><span slot="en">A paradigm is a mental framework for organizing code. The same problem — "sum of squares of even numbers in a list" — looks fundamentally different in each paradigm. Imperative describes <b>state mutations</b> step by step; OOP <b>encapsulates</b> data + behavior into collaborating objects; functional composes <b>immutable data + pure functions</b>, avoiding side effects.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">范式</span><span slot="en">Paradigm</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">核心思想</span><span slot="en">Core idea</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">关键词</span><span slot="en">Keywords</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">代表语言</span><span slot="en">Languages</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber">命令式</td><td class="py-2 pr-4"><Bilingual><span slot="zh">一步步改变状态</span><span slot="en">Mutate state step by step</span></Bilingual></td><td class="py-2 pr-4 font-mono">loop, assign, branch</td><td class="py-2 pr-4">C, Go, Rust</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan">面向对象</td><td class="py-2 pr-4"><Bilingual><span slot="zh">数据 + 行为封装为对象</span><span slot="en">Encapsulate data + behavior into objects</span></Bilingual></td><td class="py-2 pr-4 font-mono">class, inherit, polymorphism</td><td class="py-2 pr-4">Java, C#, C++</td></tr>
+            <tr><td class="py-2 pr-4 text-func-green">函数式</td><td class="py-2 pr-4"><Bilingual><span slot="zh">纯函数 + 不可变数据组合</span><span slot="en">Compose pure functions + immutable data</span></Bilingual></td><td class="py-2 pr-4 font-mono">map, filter, reduce</td><td class="py-2 pr-4">Haskell, Lisp, Erlang</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4">
+        <CodeTabs
+  cpp={`<pre><code>// 命令式：逐步循环 + 累加
+int sum = 0;
+for (int i = 0; i &lt; n; i++) &#123;
+    if (nums[i] % 2 == 0) &#123;
+        sum += nums[i] * nums[i];
+    &#125;
+&#125;
+
+// 面向对象：封装为 Filter + Mapper + Reducer
+class EvenFilter &#123;
+public:
+    bool accept(int x) const &#123; return x % 2 == 0; &#125;
+&#125;;
+class SquareMapper &#123;
+public:
+    int map(int x) const &#123; return x * x; &#125;
+&#125;;
+class SumReducer &#123;
+    int acc = 0;
+public:
+    void reduce(int x) &#123; acc += x; &#125;
+    int result() const &#123; return acc; &#125;
+&#125;;
+
+// C++20 函数式：ranges 管道组合
+#include &lt;ranges&gt;
+#include &lt;numeric&gt;
+auto sum = nums
+    | std::views::filter([](int x) &#123; return x % 2 == 0; &#125;)
+    | std::views::transform([](int x) &#123; return x * x; &#125;)
+    | std::ranges::fold_left(0, std::plus&lt;&gt;());</code></pre>`}
+  py={`<pre><code># 命令式：逐步循环 + 累加
+total = 0
+for x in nums:
+    if x % 2 == 0:
+        total += x * x
+
+# 面向对象：封装为方法链
+class NumList:
+    def __init__(self, data):
+        self.data = data
+    def filter_even(self):
+        return NumList([x for x in self.data if x % 2 == 0])
+    def map_square(self):
+        return NumList([x * x for x in self.data])
+    def sum(self):
+        return sum(self.data)
+
+total = NumList(nums).filter_even().map_square().sum()
+
+# 函数式：高阶函数组合
+total = sum(
+    map(lambda x: x * x,
+        filter(lambda x: x % 2 == 0, nums))
+)
+
+# Pythonic 函数式：列表推导（推荐）
+total = sum(x * x for x in nums if x % 2 == 0)</code></pre>`}
+        />
+      </div>
+    </section>
+
+    <!-- 静态 vs 动态 / 编译 vs 解释 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">类型系统与执行模型</span><span slot="en">Type Systems & Execution Models</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">两个正交维度决定语言的"性格"：<b>类型检查时机</b>（静态编译期 vs 动态运行时）和<b>执行方式</b>（编译为机器码 vs 解释执行 / JIT）。静态类型在编译期捕获错误，性能更高；动态类型灵活快速，但错误延迟到运行时。游戏引擎核心用<b>静态编译</b>（C++），脚本层用<b>动态解释/JIT</b>（Lua/Python/C#）。</span><span slot="en">Two orthogonal axes define a language's "personality": <b>type-check timing</b> (static at compile time vs. dynamic at runtime) and <b>execution model</b> (compiled to machine code vs. interpreted / JIT). Static typing catches errors early and runs faster; dynamic typing is flexible but defers errors to runtime. Game engines use <b>static compilation</b> (C++) for the core, <b>dynamic interpretation/JIT</b> (Lua/Python/C#) for scripting.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">语言</span><span slot="en">Language</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">类型</span><span slot="en">Typing</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">执行</span><span slot="en">Execution</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">内存管理</span><span slot="en">Memory</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏角色</span><span slot="en">Game role</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber">C++</td><td class="py-2 pr-4">静态</td><td class="py-2 pr-4">编译</td><td class="py-2 pr-4">手动 + RAII</td><td class="py-2 pr-4"><Bilingual><span slot="zh">引擎核心、渲染、性能层</span><span slot="en">Engine core, rendering, perf layer</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green">C#</td><td class="py-2 pr-4">静态</td><td class="py-2 pr-4">JIT (CLR)</td><td class="py-2 pr-4">GC</td><td class="py-2 pr-4"><Bilingual><span slot="zh">Unity 游戏逻辑、MonoBeha​viour</span><span slot="en">Unity game logic, MonoBehaviour</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan">Python</td><td class="py-2 pr-4">动态</td><td class="py-2 pr-4">解释</td><td class="py-2 pr-4">GC (引用计数)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">工具链、构建脚本、AI/数据</span><span slot="en">Tooling, build scripts, AI/data</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple">Lua</td><td class="py-2 pr-4">动态</td><td class="py-2 pr-4">解释/JIT</td><td class="py-2 pr-4">GC</td><td class="py-2 pr-4"><Bilingual><span slot="zh">热更新脚本、玩法配置</span><span slot="en">Hot-reload scripts, gameplay config</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-blue-400">Rust</td><td class="py-2 pr-4">静态</td><td class="py-2 pr-4">编译</td><td class="py-2 pr-4">所有权 (无 GC)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">新兴引擎、安全系统编程</span><span slot="en">Emerging engines, safe systems</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 游戏开发语言定位 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">游戏开发语言分层</span><span slot="en">Game Dev Language Layers</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">现代游戏项目是<b>多语言协作</b>的分层架构，按性能要求与迭代速度分层：<br>
+          • <b class="text-func-amber">引擎层（C++）</b>：渲染管线、物理引擎、内存分配器——零开销抽象，手动控制生命周期。<br>
+          • <b class="text-func-green">逻辑层（C# / Lua）</b>：游戏玩法、AI 行为树、UI 交互——需要快速迭代与热更新。<br>
+          • <b class="text-primary-cyan">工具层（Python）</b>：资源导入管线、CI/CD、数据分析——胶水语言连接各环节。<br>
+          • <b class="text-primary-purple">着色器层（HLSL/GLSL）</b>：GPU 并行程序——见 <a class="text-primary-cyan underline" href="/topics/shaders">着色器</a> 页面。</span>
+          <span slot="en">Modern game projects are <b>multi-language</b> layered architectures, stratified by performance needs and iteration speed:<br>
+          • <b class="text-func-amber">Engine layer (C++)</b>: render pipeline, physics, memory allocators — zero-overhead abstraction, manual lifetime control.<br>
+          • <b class="text-func-green">Logic layer (C# / Lua)</b>: gameplay, AI behavior trees, UI — needs fast iteration & hot reload.<br>
+          • <b class="text-primary-cyan">Tooling layer (Python)</b>: asset import pipeline, CI/CD, data analysis — glue language.<br>
+          • <b class="text-primary-purple">Shader layer (HLSL/GLSL)</b>: GPU parallel programs — see <a class="text-primary-cyan underline" href="/topics/shaders">Shaders</a>.</span>
+        </Bilingual>
+      </p>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">延伸阅读：<a class="text-primary-cyan underline" href="/topics/cpp">C++ 概览</a>详解引擎层语言特性；<a class="text-primary-cyan underline" href="/topics/python">Python</a>讲解工具层；<a class="text-primary-cyan underline" href="/topics/gpu">GPU 架构</a>关联着色器层。</span><span slot="en">Further reading: <a class="text-primary-cyan underline" href="/topics/cpp">C++ Overview</a> for engine-layer details; <a class="text-primary-cyan underline" href="/topics/python">Python</a> for tooling; <a class="text-primary-cyan underline" href="/topics/gpu">GPU Architecture</a> for the shader layer.</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 范式切换：命令式 / OOP / 函数式 对比可视化
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('paradigm-svg') as unknown as SVGSVGElement;
+  const buttons = document.querySelectorAll<HTMLButtonElement>('.paradigm-btn');
+
+  interface FlowNode { x: number; y: number; w: number; h: number; labelZh: string; labelEn: string; color: string; }
+  interface FlowArrow { from: number; to: number; label?: string; }
+  interface ParadigmData { nodes: FlowNode[]; arrows: FlowArrow[]; descZh: string; descEn: string; }
+
+  const PARADIGMS: Record<string, ParadigmData> = {
+    imperative: {
+      nodes: [
+        { x: 60, y: 100, w: 140, h: 60, labelZh: '初始化 sum=0', labelEn: 'Init sum=0', color: '#FBBF24' },
+        { x: 280, y: 100, w: 140, h: 60, labelZh: '循环 i=0..n', labelEn: 'Loop i=0..n', color: '#FBBF24' },
+        { x: 500, y: 60, w: 140, h: 50, labelZh: 'if 偶数?', labelEn: 'if even?', color: '#A78BFA' },
+        { x: 500, y: 150, w: 140, h: 50, labelZh: 'sum += x²', labelEn: 'sum += x²', color: '#22C55E' },
+        { x: 680, y: 100, w: 100, h: 60, labelZh: '返回 sum', labelEn: 'return sum', color: '#22D3EE' },
+      ],
+      arrows: [
+        { from: 0, to: 1 }, { from: 1, to: 2, label: '是' }, { from: 2, to: 3 }, { from: 3, to: 1 }, { from: 1, to: 4 },
+      ],
+      descZh: '命令式：显式控制流——循环、分支、赋值，逐步改变 sum 的状态',
+      descEn: 'Imperative: explicit control flow — loops, branches, assignments, mutating sum step by step',
+    },
+    oop: {
+      nodes: [
+        { x: 60, y: 100, w: 140, h: 60, labelZh: 'EvenFilter', labelEn: 'EvenFilter', color: '#22D3EE' },
+        { x: 280, y: 100, w: 140, h: 60, labelZh: 'SquareMapper', labelEn: 'SquareMapper', color: '#22D3EE' },
+        { x: 500, y: 100, w: 140, h: 60, labelZh: 'SumReducer', labelEn: 'SumReducer', color: '#22D3EE' },
+        { x: 680, y: 100, w: 100, h: 60, labelZh: 'result()', labelEn: 'result()', color: '#22C55E' },
+      ],
+      arrows: [
+        { from: 0, to: 1, label: '过滤' }, { from: 1, to: 2, label: '映射' }, { from: 2, to: 3, label: '归约' },
+      ],
+      descZh: '面向对象：三个对象协作——Filter 过滤、Mapper 映射、Reducer 归约，各司其职',
+      descEn: 'OOP: three objects collaborate — Filter, Mapper, Reducer, each with a single responsibility',
+    },
+    functional: {
+      nodes: [
+        { x: 60, y: 100, w: 100, h: 60, labelZh: 'nums', labelEn: 'nums', color: '#22C55E' },
+        { x: 240, y: 100, w: 140, h: 60, labelZh: 'filter(even)', labelEn: 'filter(even)', color: '#22C55E' },
+        { x: 440, y: 100, w: 160, h: 60, labelZh: 'map(square)', labelEn: 'map(square)', color: '#22C55E' },
+        { x: 660, y: 100, w: 120, h: 60, labelZh: 'fold(+, 0)', labelEn: 'fold(+, 0)', color: '#22C55E' },
+      ],
+      arrows: [
+        { from: 0, to: 1 }, { from: 1, to: 2 }, { from: 2, to: 3 },
+      ],
+      descZh: '函数式：数据流经纯函数管道——无副作用、无可变状态、可组合',
+      descEn: 'Functional: data flows through a pure-function pipeline — no side effects, no mutation, composable',
+    },
+  };
+
+  function lang(): 'zh' | 'en' {
+    return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+  }
+
+  function render(paradigm: string) {
+    const data = PARADIGMS[paradigm];
+    if (!data) return;
+    svg.innerHTML = '';
+
+    // 箭头
+    for (const a of data.arrows) {
+      const from = data.nodes[a.from], to = data.nodes[a.to];
+      const x1 = from.x + from.w, y1 = from.y + from.h / 2;
+      const x2 = to.x, y2 = to.y + to.h / 2;
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', String(x1)); line.setAttribute('y1', String(y1));
+      line.setAttribute('x2', String(x2 - 6)); line.setAttribute('y2', String(y2));
+      line.setAttribute('stroke', 'rgba(148,163,184,0.5)'); line.setAttribute('stroke-width', '2');
+      line.setAttribute('marker-end', 'url(#paradigm-arrow)');
+      svg.appendChild(line);
+
+      if (a.label) {
+        const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 6;
+        const t = document.createElementNS(SVGNS, 'text');
+        t.setAttribute('x', String(mx)); t.setAttribute('y', String(my));
+        t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '11');
+        t.setAttribute('fill', '#94A3B8');
+        t.textContent = a.label;
+        svg.appendChild(t);
+      }
+    }
+
+    // 节点
+    for (const n of data.nodes) {
+      const rect = document.createElementNS(SVGNS, 'rect');
+      rect.setAttribute('x', String(n.x)); rect.setAttribute('y', String(n.y));
+      rect.setAttribute('width', String(n.w)); rect.setAttribute('height', String(n.h));
+      rect.setAttribute('rx', '8'); rect.setAttribute('fill', n.color + '22');
+      rect.setAttribute('stroke', n.color); rect.setAttribute('stroke-width', '2');
+      svg.appendChild(rect);
+
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(n.x + n.w / 2)); t.setAttribute('y', String(n.y + n.h / 2 + 5));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '13');
+      t.setAttribute('font-weight', '600'); t.setAttribute('fill', n.color);
+      t.setAttribute('font-family', 'monospace');
+      t.textContent = lang() === 'en' ? n.labelEn : n.labelZh;
+      svg.appendChild(t);
+    }
+
+    // 描述
+    const desc = document.createElementNS(SVGNS, 'text');
+    desc.setAttribute('x', '400'); desc.setAttribute('y', '250');
+    desc.setAttribute('text-anchor', 'middle'); desc.setAttribute('font-size', '13');
+    desc.setAttribute('fill', '#CBD5E1');
+    desc.textContent = lang() === 'en' ? data.descEn : data.descZh;
+    svg.appendChild(desc);
+
+    // 标题
+    const title = document.createElementNS(SVGNS, 'text');
+    title.setAttribute('x', '400'); title.setAttribute('y', '40');
+    title.setAttribute('text-anchor', 'middle'); title.setAttribute('font-size', '16');
+    title.setAttribute('font-weight', '700'); title.setAttribute('fill', '#22D3EE');
+    const titleMap: Record<string, [string, string]> = {
+      imperative: ['命令式范式', 'Imperative Paradigm'],
+      oop: ['面向对象范式', 'Object-Oriented Paradigm'],
+      functional: ['函数式范式', 'Functional Paradigm'],
+    };
+    title.textContent = lang() === 'en' ? titleMap[paradigm][1] : titleMap[paradigm][0];
+    svg.appendChild(title);
+  }
+
+  // arrow marker
+  const defs = document.createElementNS(SVGNS, 'defs');
+  const marker = document.createElementNS(SVGNS, 'marker');
+  marker.setAttribute('id', 'paradigm-arrow');
+  marker.setAttribute('viewBox', '0 0 10 10');
+  marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5');
+  marker.setAttribute('markerWidth', '6'); marker.setAttribute('markerHeight', '6');
+  marker.setAttribute('orient', 'auto');
+  const path = document.createElementNS(SVGNS, 'path');
+  path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+  path.setAttribute('fill', 'rgba(148,163,184,0.6)');
+  marker.appendChild(path);
+  defs.appendChild(marker);
+  svg.appendChild(defs);
+
+  function setActive(paradigm: string) {
+    buttons.forEach(b => {
+      const isActive = b.dataset.paradigm === paradigm;
+      b.classList.toggle('btn-primary', isActive);
+    });
+    render(paradigm);
+  }
+
+  buttons.forEach(b => b.addEventListener('click', () => setActive(b.dataset.paradigm!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.paradigm-btn.btn-primary');
+    render(active?.dataset.paradigm || 'imperative');
+  });
+  setActive('imperative');
+</script>

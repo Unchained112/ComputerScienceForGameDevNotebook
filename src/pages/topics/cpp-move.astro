@@ -1,0 +1,601 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Move Semantics · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Languages / C++ Move Semantics</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">移动语义与值类别</span><span slot="en">Move Semantics & Value Categories</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">C++11 的<b>移动语义</b>是现代 C++ 最重要的特性之一——它让"资源转移"变得显式且零拷贝。理解移动语义的前提是搞清<b>值类别</b>（lvalue/rvalue/xvalue/prvalue/glvalue）。<code>std::move</code> 不移动任何东西，只是个类型转换；<code>std::forward</code> 实现完美转发；RVO 让返回值优化比手动 <code>move</code> 更快。点击下方查看值类别五分法。</span>
+          <span slot="en">C++11's <b>move semantics</b> is one of modern C++'s most important features — it makes resource transfer explicit and zero-copy. The prerequisite is understanding <b>value categories</b> (lvalue/rvalue/xvalue/prvalue/glvalue). <code>std::move</code> doesn't move anything — it's a cast; <code>std::forward</code> enables perfect forwarding; RVO makes return-value optimization faster than manual <code>move</code>. Click below to explore the five value categories.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：值类别五分法图解 -->
+    <div class="glass p-5" data-viz="value-categories">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button class="btn vc-btn btn-primary" data-cat="overview">
+          <span data-lang="zh">总览</span><span data-lang="en">Overview</span>
+        </button>
+        <button class="btn vc-btn" data-cat="lvalue">
+          <span data-lang="zh">lvalue</span><span data-lang="en">lvalue</span>
+        </button>
+        <button class="btn vc-btn" data-cat="prvalue">
+          <span data-lang="zh">prvalue</span><span data-lang="en">prvalue</span>
+        </button>
+        <button class="btn vc-btn" data-cat="xvalue">
+          <span data-lang="zh">xvalue</span><span data-lang="en">xvalue</span>
+        </button>
+      </div>
+      <svg id="vc-svg" viewBox="0 0 800 300" class="w-full h-80 viz-stage"></svg>
+    </div>
+
+    <!-- 值类别详解 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">值类别五分法</span><span slot="en">The Five Value Categories</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">C++11 将表达式分为五大类别（取代 C 时代的 lvalue/rvalue 二分法）：<b>lvalue</b>有身份、不可移动（具名变量）；<b>prvalue</b>无身份、可移动（临时对象、字面量）；<b>xvalue</b>有身份且可移动（<code>std::move(x)</code> 的结果）。三者两两组合：<b>glvalue = lvalue + xvalue</b>（有身份），<b>rvalue = prvalue + xvalue</b>（可移动）。</span><span slot="en">C++11 classifies expressions into five categories (replacing C's lvalue/rvalue dichotomy): <b>lvalue</b> has identity, not movable (named variables); <b>prvalue</b> no identity, movable (temporaries, literals); <b>xvalue</b> has identity and movable (result of <code>std::move(x)</code>). Combinations: <b>glvalue = lvalue + xvalue</b> (has identity), <b>rvalue = prvalue + xvalue</b> (movable).</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">类别</span><span slot="en">Category</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">有身份</span><span slot="en">Has identity</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">可移动</span><span slot="en">Movable</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">示例</span><span slot="en">Example</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green font-mono">lvalue</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4 text-func-red">✗</td><td class="py-2 pr-4 font-mono">int x; x</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber font-mono">prvalue</td><td class="py-2 pr-4 text-func-red">✗</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4 font-mono">42, x+1, make_shared()</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple font-mono">xvalue</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4 font-mono">std::move(x)</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan font-mono">glvalue</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4 text-ink-muted">—</td><td class="py-2 pr-4 font-mono">lvalue + xvalue</td></tr>
+            <tr><td class="py-2 pr-4 text-func-red font-mono">rvalue</td><td class="py-2 pr-4 text-ink-muted">—</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4 font-mono">prvalue + xvalue</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 右值引用与移动构造 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">右值引用与移动构造</span><span slot="en">Rvalue References & Move Constructors</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><code>T&amp;&amp;</code> 是<b>右值引用</b>——只能绑定到可移动的对象（rvalue）。移动构造函数 <code>T(T&amp;&amp; other)</code> 偷走 <code>other</code> 的资源（指针、句柄），将 <code>other</code> 置为"空壳"状态，避免昂贵的深拷贝。移动后，源对象处于<b>有效但未指定</b>的状态——通常只能析构或重新赋值。</span><span slot="en"><code>T&amp;&amp;</code> is an <b>rvalue reference</b> — binds only to movable objects (rvalues). The move constructor <code>T(T&amp;&amp; other)</code> steals <code>other</code>'s resources (pointers, handles), leaving <code>other</code> in an "empty shell" state, avoiding expensive deep copies. After a move, the source is in a <b>valid but unspecified</b> state — typically only safe to destruct or reassign.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>#include &lt;vector&gt;
+#include &lt;cstring&gt;
+
+class String &#123;
+    char* data;
+    size_t len;
+public:
+    // 构造
+    String(const char* s = "") : len(strlen(s)) &#123;
+        data = new char[len + 1];
+        memcpy(data, s, len + 1);
+    &#125;
+
+    // 拷贝构造（深拷贝，昂贵）
+    String(const String&amp; other) : len(other.len) &#123;
+        data = new char[len + 1];
+        memcpy(data, other.data, len + 1);
+        std::cout &lt;&lt; "copy (" &lt;&lt; len &lt;&lt; " bytes)\\n";
+    &#125;
+
+    // 移动构造（偷资源，O(1)）
+    String(String&amp;&amp; other) noexcept : data(other.data), len(other.len) &#123;
+        other.data = nullptr;   // 置空源对象
+        other.len = 0;
+        std::cout &lt;&lt; "move (O(1))\\n";
+    &#125;
+
+    // 拷贝赋值
+    String&amp; operator=(const String&amp; other) &#123;
+        if (this != &amp;other) &#123;
+            delete[] data;
+            len = other.len;
+            data = new char[len + 1];
+            memcpy(data, other.data, len + 1);
+        &#125;
+        return *this;
+    &#125;
+
+    // 移动赋值
+    String&amp; operator=(String&amp;&amp; other) noexcept &#123;
+        if (this != &amp;other) &#123;
+            delete[] data;        // 释放自己的资源
+            data = other.data;    // 偷对方的资源
+            len = other.len;
+            other.data = nullptr;
+            other.len = 0;
+        &#125;
+        return *this;
+    &#125;
+
+    ~String() &#123; delete[] data; &#125;
+&#125;;
+
+String makeString() &#123;
+    return String("hello world");  // RVO 优化，可能零拷贝
+&#125;
+
+int main() &#123;
+    String a = makeString();        // RVO 或移动构造
+    String b = a;                   // 拷贝构造：copy (11 bytes)
+    String c = std::move(a);        // 移动构造：move (O(1))
+    // a 现在是空壳，只能析构或重新赋值
+    a = String("reborn");           // 移动赋值
+&#125;
+
+// STL 容器自动受益
+std::vector&lt;String&gt; vec;
+vec.push_back(String("item"));     // 移动构造（因为有移动版本）
+String s = vec[0];                 // 拷贝构造
+vec.push_back(std::move(s));       // 显式移动
+
+// 关键：移动构造必须 noexcept
+// 否则 vector 扩容时会回退到拷贝（异常安全要求）
+// 检查：static_assert(std::is_nothrow_move_constructible_v<String>);</code></pre>`}
+  py={`<pre><code># Python 无移动语义——一切赋值都是引用传递
+# 但可模拟"移动"概念（语义层面）
+
+class String:
+    def __init__(self, s=""):
+        self._data = list(s)  # 可变列表模拟 char[]
+
+    @property
+    def data(self):
+        return ''.join(self._data)
+
+    # Python 无拷贝/移动构造函数
+    # 赋值 = 绑定引用，不复制对象
+    def copy(self):
+        """显式深拷贝"""
+        import copy
+        return copy.deepcopy(self)
+
+    def move(self):
+        """模拟移动：偷走数据，返回新对象"""
+        new = String.__new__(String)
+        new._data = self._data   # 偷引用
+        self._data = []           # 源置空
+        return new
+
+a = String("hello")
+b = a              # 引用绑定，不拷贝
+c = a.copy()       # 显式深拷贝
+d = a.move()       # 模拟移动：a._data 变空
+
+print(a.data)      # ''（已被 move 掏空）
+print(d.data)      # 'hello'
+
+# C++ move vs Python：
+# C++:  编译器在重载决议时选择移动/拷贝，零开销
+# Python: 无重载，需显式调用，且 GC 管理内存</code></pre>`}
+      />
+    </section>
+
+    <!-- std::move 与 std::forward -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">std::move 与 std::forward 的真相</span><span slot="en">The Truth About std::move & std::forward</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>std::move 不移动任何东西</b>——它只是一个 <code>static_cast&lt;T&amp;&amp;&gt;</code>，将表达式转换为右值引用，从而让编译器选择移动构造。<b>std::forward</b>（完美转发）依赖<b>引用折叠</b>规则：模板参数 <code>T&amp;&amp;</code> 接收左值时折叠为 <code>T&amp;</code>，接收右值时保持 <code>T&amp;&amp;</code>——从而原样转发值类别。</span><span slot="en"><b>std::move doesn't move anything</b> — it's just a <code>static_cast&lt;T&amp;&amp;&gt;</code> that converts an expression to an rvalue reference, letting the compiler pick the move constructor. <b>std::forward</b> (perfect forwarding) relies on <b>reference collapsing</b>: template parameter <code>T&amp;&amp;</code> collapses to <code>T&amp;</code> when receiving an lvalue, stays <code>T&amp;&amp;</code> for an rvalue — thus preserving the value category.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// ===== std::move 的真相 =====
+// std::move 的实现（简化）：
+template &lt;typename T&gt;
+std::remove_reference_t&lt;T&gt;&amp;&amp; move(T&amp;&amp; arg) noexcept &#123;
+    return static_cast&lt;std::remove_reference_t&lt;T&gt;&amp;&amp;&gt;(arg);
+&#125;
+// 它只是一个 static_cast！不执行任何移动操作。
+// 真正的"移动"发生在移动构造函数/赋值运算符内部。
+
+int x = 42;
+int&amp;&amp; r = std::move(x);  // r 是 x 的右值引用，x 未变
+// x 仍是 42！只是现在可以被移动了。
+
+// ===== 引用折叠规则 =====
+// T&  &   → T&     （左值引用 + 左值引用 = 左值引用）
+// T&  &&  → T&     （左值引用 + 右值引用 = 左值引用）
+// T&& &   → T&     （右值引用 + 左值引用 = 左值引用）
+// T&& &&  → T&&    （右值引用 + 右值引用 = 右值引用）
+// 规则：只要有一个 &，结果就是 &
+
+// ===== 完美转发 =====
+template &lt;typename T&gt;
+void wrapper(T&amp;&amp; arg) &#123;
+    // arg 在函数内部是 lvalue（有名字！）
+    // 需要-forward 恢复原始值类别
+    target(std::forward&lt;T&gt;(arg));
+&#125;
+
+// std::forward 的实现（简化）：
+template &lt;typename T&gt;
+T&amp;&amp; forward(std::remove_reference_t&lt;T&gt;&amp; arg) noexcept &#123;
+    return static_cast&lt;T&amp;&amp;&gt;(arg);
+&#125;
+
+// 实际效果：
+String s("hello");
+wrapper(s);                // T=String&, arg 是 lvalue
+                           // forward<String&> → String& && → String&
+                           // 转发为 lvalue → 拷贝
+wrapper(String("temp"));   // T=String, arg 是 lvalue（有名字）
+                           // forward<String> → String&&
+                           // 转发为 rvalue → 移动
+
+// ===== make_unique 的完美转发 =====
+template &lt;typename T, typename... Args&gt;
+std::unique_ptr&lt;T&gt; make_unique(Args&amp;&amp;... args) &#123;
+    return std::unique_ptr&lt;T&gt;(new T(std::forward&lt;Args&gt;(args)...));
+&#125;
+// 无论传入 lvalue 还是 rvalue，都原样转发给 T 的构造函数
+
+// ===== emplace_back 的完美转发 =====
+std::vector&lt;String&gt; vec;
+String s("hello");
+vec.emplace_back(s);           // 转发 lvalue → 拷贝构造
+vec.emplace_back(std::move(s)); // 转发 rvalue → 移动构造
+vec.emplace_back("temp");      // 转发 prvalue → String(const char*)</code></pre>`}
+  py={`<pre><code># Python 无完美转发——函数参数无值类别区分
+# 所有参数都是引用传递，无需区分 lvalue/rvalue
+
+def wrapper(arg):
+    """Python 'wrapper' 无需 forward"""
+    target(arg)  # 直接传递，无拷贝
+
+# 但 Python 无法区分"应该拷贝还是移动"
+# 一切都是引用，行为统一
+
+# 模拟 make_unique 的可变参数转发
+def make_instance(cls, *args, **kwargs):
+    """等价 make_unique：转发所有参数给构造函数"""
+    return cls(*args, **kwargs)
+
+class String:
+    def __init__(self, s=""):
+        self.data = s
+
+s = String("hello")
+new1 = make_instance(String, s)       # 传递引用
+new2 = make_instance(String, "temp")  # 传递引用
+# Python 中两者行为相同——无拷贝/移动区分
+
+# C++ 完美转发 vs Python：
+# C++: 编译期保留值类别，选择拷贝/移动
+# Python: 运行时统一引用传递，无区分</code></pre>`}
+      />
+    </section>
+
+    <!-- RVO / NRVO -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">RVO / NRVO：别对返回值 std::move</span><span slot="en">RVO / NRVO: Don't std::move Return Values</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><b>RVO</b>（Return Value Optimization）和 <b>NRVO</b>（Named RVO）是编译器的<b>拷贝消除</b>优化——直接在调用者的栈帧上构造返回值，零拷贝、零移动。C++17 起，<b>RVO 是强制的</b>（保证拷贝消除）。常见错误：<code>return std::move(local);</code>——这会<b>阻止 NRVO</b>，反而触发移动（比 NRVO 慢）。规则：<b>永远不要对返回的局部变量 std::move</b>。</span><span slot="en"><b>RVO</b> (Return Value Optimization) and <b>NRVO</b> (Named RVO) are compiler <b>copy elision</b> optimizations — constructing the return value directly in the caller's stack frame, zero-copy, zero-move. Since C++17, <b>RVO is mandatory</b>. Common mistake: <code>return std::move(local);</code> — this <b>prevents NRVO</b>, forcing a move (slower than NRVO). Rule: <b>never std::move a returned local variable</b>.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>// ===== RVO（无名返回值优化，C++17 强制） =====
+String makeString() &#123;
+    return String("hello");   // prvalue，C++17 保证拷贝消除
+&#125;
+String s = makeString();       // 零拷贝零移动！直接在 s 的位置构造
+
+// ===== NRVO（具名返回值优化，编译器可选） =====
+String makeString2() &#123;
+    String local("hello");    // 具名局部变量
+    // ... 使用 local ...
+    return local;             // NRVO：编译器可能消除拷贝
+&#125;
+String s2 = makeString2();    // 可能零拷贝（取决于编译器）
+
+// ===== 错误：return std::move(local) 阻止 NRVO =====
+String makeStringBad() &#123;
+    String local("hello");
+    return std::move(local);  // ← 错误！强制转换为 rvalue
+    // 编译器无法 NRVO，必须移动构造
+    // 比 NRVO 慢（虽然比拷贝快）
+&#125;
+
+// ===== 正确：直接 return local =====
+String makeStringGood() &#123;
+    String local("hello");
+    return local;             // ← 正确！编译器尝试 NRVO
+    // 若 NRVO 失败，仍会自动移动（C++11 起）
+&#125;
+
+// ===== 游戏场景：返回大型容器 =====
+std::vector&lt;Entity&gt; getActiveEntities() &#123;
+    std::vector&lt;Entity&gt; result;
+    result.reserve(1000);
+    for (auto&amp; e : allEntities) &#123;
+        if (e.active) result.push_back(e);
+    &#125;
+    return result;   // NRVO 或自动移动，零拷贝
+&#125;
+
+// ===== move 的正确使用场景 =====
+// 1. 明确不再需要的变量
+void process(String data) &#123; /* ... */ &#125;
+String s = loadString();
+process(std::move(s));    // s 不再需要，移动给 process
+// s 现在是空壳
+
+// 2. 容器中转移元素
+std::vector&lt;String&gt; cache;
+String loaded = loadString();
+cache.push_back(std::move(loaded));   // 移动进容器
+
+// 3. 成员变量赋值（move-and-swap 惯用法）
+class Manager &#123;
+    std::vector&lt;Entity&gt; entities;
+public:
+    void setEntities(std::vector&lt;Entity&gt; e) &#123;
+        entities = std::move(e);   // 移动赋值，零拷贝
+    &#125;
+&#125;;
+
+// 总结规则：
+// return local;          ✓ 编译器 NRVO 或自动 move
+// return std::move(local); ✗ 阻止 NRVO，别这么做
+// std::move(不再需要的变量)  ✓ 显式表达意图</code></pre>`}
+  py={`<pre><code># Python 无 RVO——一切引用传递，无拷贝/移动概念
+
+def make_list():
+    result = []
+    for i in range(1000):
+        result.append(i)
+    return result   # 返回引用，调用者绑定同一对象
+
+my_list = make_list()  # 无拷贝，直接引用
+
+# Python 函数返回永远不会拷贝（除非显式 copy()）
+# 所以无需 RVO 优化
+
+# 但 Python 的 "copy" 需显式调用：
+import copy
+shallow = copy.copy(my_list)   # 浅拷贝
+deep = copy.deepcopy(my_list)  # 深拷贝（递归）
+
+# C++ RVO vs Python：
+# C++: 值语义，默认拷贝，RVO 消除拷贝
+# Python: 引用语义，默认不拷贝，需显式 copy</code></pre>`}
+      />
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">关联阅读：<a class="text-primary-cyan underline" href="/topics/cpp-raii">RAII 与智能指针</a>讲解所有权与 <code>make_unique</code>；<a class="text-primary-cyan underline" href="/topics/cpp-memory">内存与指针</a>讲解栈堆布局。</span><span slot="en">Related: <a class="text-primary-cyan underline" href="/topics/cpp-raii">RAII & Smart Pointers</a> for ownership and <code>make_unique</code>; <a class="text-primary-cyan underline" href="/topics/cpp-memory">Memory & Pointers</a> for stack/heap layout.</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 值类别五分法可视化
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('vc-svg') as unknown as SVGSVGElement;
+  const vcBtns = document.querySelectorAll<HTMLButtonElement>('.vc-btn');
+
+  interface CatData {
+    titleZh: string; titleEn: string;
+    descZh: string; descEn: string;
+    examplesZh: string[]; examplesEn: string[];
+    color: string;
+  }
+
+  const CATS: Record<string, CatData> = {
+    overview: {
+      titleZh: '值类别五分法', titleEn: 'Five Value Categories',
+      descZh: '表达式按"有身份(i)"和"可移动(m)"两个维度分为五类',
+      descEn: 'Expressions are classified by "has identity(i)" and "movable(m)" into five categories',
+      examplesZh: [], examplesEn: [],
+      color: '#22D3EE',
+    },
+    lvalue: {
+      titleZh: 'lvalue（左值）', titleEn: 'lvalue',
+      descZh: '有身份、不可移动。通常是具名变量、可取地址的表达式。',
+      descEn: 'Has identity, not movable. Typically named variables, addressable expressions.',
+      examplesZh: ['int x; → x 是 lvalue', 'arr[i] → 下标表达式', '*p → 解引用', 'std::cout → 流对象'],
+      examplesEn: ['int x; → x is lvalue', 'arr[i] → subscript', '*p → dereference', 'std::cout → stream object'],
+      color: '#22C55E',
+    },
+    prvalue: {
+      titleZh: 'prvalue（纯右值）', titleEn: 'prvalue',
+      descZh: '无身份、可移动。临时对象、字面量、算术表达式。',
+      descEn: 'No identity, movable. Temporaries, literals, arithmetic results.',
+      examplesZh: ['42 → 整数字面量', 'x + 1 → 算术结果', 'String("hi") → 临时对象', 'true → 布尔字面量'],
+      examplesEn: ['42 → integer literal', 'x + 1 → arithmetic result', 'String("hi") → temporary', 'true → bool literal'],
+      color: '#FBBF24',
+    },
+    xvalue: {
+      titleZh: 'xvalue（将亡值）', titleEn: 'xvalue',
+      descZh: '有身份且可移动。std::move 的结果、返回右值引用的函数调用。',
+      descEn: 'Has identity and movable. Result of std::move, function returning rvalue ref.',
+      examplesZh: ['std::move(x) → 转为 xvalue', 'std::forward<T>(x) → 条件转换', '返回 T&& 的函数调用', 'std::move(x).member'],
+      examplesEn: ['std::move(x) → becomes xvalue', 'std::forward<T>(x) → conditional', 'function returning T&&', 'std::move(x).member'],
+      color: '#A78BFA',
+    },
+  };
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  function render(cat: string) {
+    svg.innerHTML = '';
+    const data = CATS[cat];
+    if (!data) return;
+
+    if (cat === 'overview') {
+      // 绘制树形分类图
+      const cx = 400, cy = 150;
+      // 根节点 expression
+      const root = document.createElementNS(SVGNS, 'rect');
+      root.setAttribute('x', String(cx - 80)); root.setAttribute('y', '20');
+      root.setAttribute('width', '160'); root.setAttribute('height', '40');
+      root.setAttribute('rx', '8'); root.setAttribute('fill', '#22D3EE22');
+      root.setAttribute('stroke', '#22D3EE'); root.setAttribute('stroke-width', '2');
+      svg.appendChild(root);
+      const rootT = document.createElementNS(SVGNS, 'text');
+      rootT.setAttribute('x', String(cx)); rootT.setAttribute('y', '45');
+      rootT.setAttribute('text-anchor', 'middle'); rootT.setAttribute('font-size', '14');
+      rootT.setAttribute('font-weight', '700'); rootT.setAttribute('fill', '#22D3EE');
+      rootT.textContent = 'expression';
+      svg.appendChild(rootT);
+
+      // glvalue / rvalue
+      const gl = document.createElementNS(SVGNS, 'rect');
+      gl.setAttribute('x', '100'); gl.setAttribute('y', '110');
+      gl.setAttribute('width', '180'); gl.setAttribute('height', '40');
+      gl.setAttribute('rx', '8'); gl.setAttribute('fill', '#22C55E22');
+      gl.setAttribute('stroke', '#22C55E'); gl.setAttribute('stroke-width', '2');
+      svg.appendChild(gl);
+      const glT = document.createElementNS(SVGNS, 'text');
+      glT.setAttribute('x', '190'); glT.setAttribute('y', '135');
+      glT.setAttribute('text-anchor', 'middle'); glT.setAttribute('font-size', '13');
+      glT.setAttribute('font-weight', '700'); glT.setAttribute('fill', '#22C55E');
+      glT.textContent = 'glvalue (has identity)';
+      svg.appendChild(glT);
+
+      const rv = document.createElementNS(SVGNS, 'rect');
+      rv.setAttribute('x', '520'); rv.setAttribute('y', '110');
+      rv.setAttribute('width', '180'); rv.setAttribute('height', '40');
+      rv.setAttribute('rx', '8'); rv.setAttribute('fill', '#F8717122');
+      rv.setAttribute('stroke', '#F87171'); rv.setAttribute('stroke-width', '2');
+      svg.appendChild(rv);
+      const rvT = document.createElementNS(SVGNS, 'text');
+      rvT.setAttribute('x', '610'); rvT.setAttribute('y', '135');
+      rvT.setAttribute('text-anchor', 'middle'); rvT.setAttribute('font-size', '13');
+      rvT.setAttribute('font-weight', '700'); rvT.setAttribute('fill', '#F87171');
+      rvT.textContent = 'rvalue (movable)';
+      svg.appendChild(rvT);
+
+      // 连线
+      const l1 = document.createElementNS(SVGNS, 'line');
+      l1.setAttribute('x1', String(cx)); l1.setAttribute('y1', '60');
+      l1.setAttribute('x2', '190'); l1.setAttribute('y2', '110');
+      l1.setAttribute('stroke', 'rgba(148,163,184,0.4)'); l1.setAttribute('stroke-width', '1.5');
+      svg.appendChild(l1);
+      const l2 = document.createElementNS(SVGNS, 'line');
+      l2.setAttribute('x1', String(cx)); l2.setAttribute('y1', '60');
+      l2.setAttribute('x2', '610'); l2.setAttribute('y2', '110');
+      l2.setAttribute('stroke', 'rgba(148,163,184,0.4)'); l2.setAttribute('stroke-width', '1.5');
+      svg.appendChild(l2);
+
+      // 三个叶子
+      const leaves = [
+        { x: 40, y: 210, w: 130, label: 'lvalue', color: '#22C55E', sub: 'i=✓ m=✗' },
+        { x: 335, y: 210, w: 130, label: 'xvalue', color: '#A78BFA', sub: 'i=✓ m=✓' },
+        { x: 630, y: 210, w: 130, label: 'prvalue', color: '#FBBF24', sub: 'i=✗ m=✓' },
+      ];
+      for (const lf of leaves) {
+        const r = document.createElementNS(SVGNS, 'rect');
+        r.setAttribute('x', String(lf.x)); r.setAttribute('y', String(lf.y));
+        r.setAttribute('width', String(lf.w)); r.setAttribute('height', '50');
+        r.setAttribute('rx', '8'); r.setAttribute('fill', lf.color + '22');
+        r.setAttribute('stroke', lf.color); r.setAttribute('stroke-width', '2');
+        svg.appendChild(r);
+        const t = document.createElementNS(SVGNS, 'text');
+        t.setAttribute('x', String(lf.x + lf.w / 2)); t.setAttribute('y', String(lf.y + 22));
+        t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '14');
+        t.setAttribute('font-weight', '700'); t.setAttribute('fill', lf.color);
+        t.setAttribute('font-family', 'monospace');
+        t.textContent = lf.label;
+        svg.appendChild(t);
+        const s = document.createElementNS(SVGNS, 'text');
+        s.setAttribute('x', String(lf.x + lf.w / 2)); s.setAttribute('y', String(lf.y + 40));
+        s.setAttribute('text-anchor', 'middle'); s.setAttribute('font-size', '11');
+        s.setAttribute('fill', '#94A3B8'); s.setAttribute('font-family', 'monospace');
+        s.textContent = lf.sub;
+        svg.appendChild(s);
+      }
+
+      // 连线到叶子
+      const l3 = document.createElementNS(SVGNS, 'line');
+      l3.setAttribute('x1', '190'); l3.setAttribute('y1', '150');
+      l3.setAttribute('x2', '105'); l3.setAttribute('y2', '210');
+      l3.setAttribute('stroke', 'rgba(148,163,184,0.4)'); l3.setAttribute('stroke-width', '1.5');
+      svg.appendChild(l3);
+      const l4 = document.createElementNS(SVGNS, 'line');
+      l4.setAttribute('x1', '280'); l4.setAttribute('y1', '150');
+      l4.setAttribute('x2', '400'); l4.setAttribute('y2', '210');
+      l4.setAttribute('stroke', 'rgba(148,163,184,0.4)'); l4.setAttribute('stroke-width', '1.5');
+      svg.appendChild(l4);
+      const l5 = document.createElementNS(SVGNS, 'line');
+      l5.setAttribute('x1', '520'); l5.setAttribute('y1', '150');
+      l5.setAttribute('x2', '695'); l5.setAttribute('y2', '210');
+      l5.setAttribute('stroke', 'rgba(148,163,184,0.4)'); l5.setAttribute('stroke-width', '1.5');
+      svg.appendChild(l5);
+      const l6 = document.createElementNS(SVGNS, 'line');
+      l6.setAttribute('x1', '700'); l6.setAttribute('y1', '150');
+      l6.setAttribute('x2', '400'); l6.setAttribute('y2', '210');
+      l6.setAttribute('stroke', 'rgba(148,163,184,0.4)'); l6.setAttribute('stroke-width', '1.5');
+      svg.appendChild(l6);
+
+      const note = document.createElementNS(SVGNS, 'text');
+      note.setAttribute('x', '400'); note.setAttribute('y', '285');
+      note.setAttribute('text-anchor', 'middle'); note.setAttribute('font-size', '12');
+      note.setAttribute('fill', '#94A3B8');
+      note.textContent = lang() === 'en' ? 'i = has identity, m = movable' : 'i = 有身份, m = 可移动';
+      svg.appendChild(note);
+    } else {
+      // 单个类别详情
+      const title = document.createElementNS(SVGNS, 'text');
+      title.setAttribute('x', '400'); title.setAttribute('y', '40');
+      title.setAttribute('text-anchor', 'middle'); title.setAttribute('font-size', '18');
+      title.setAttribute('font-weight', '700'); title.setAttribute('fill', data.color);
+      title.setAttribute('font-family', 'monospace');
+      title.textContent = lang() === 'en' ? data.titleEn : data.titleZh;
+      svg.appendChild(title);
+
+      const desc = document.createElementNS(SVGNS, 'text');
+      desc.setAttribute('x', '400'); desc.setAttribute('y', '75');
+      desc.setAttribute('text-anchor', 'middle'); desc.setAttribute('font-size', '13');
+      desc.setAttribute('fill', '#CBD5E1');
+      // wrap
+      const descText = lang() === 'en' ? data.descEn : data.descZh;
+      const words = descText.split('');
+      let line = '';
+      let dy = 0;
+      for (let i = 0; i < words.length; i++) {
+        const test = line + words[i];
+        if (test.length > 50) {
+          const t = document.createElementNS(SVGNS, 'text');
+          t.setAttribute('x', '400'); t.setAttribute('y', String(75 + dy));
+          t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '13');
+          t.setAttribute('fill', '#CBD5E1');
+          t.textContent = line;
+          svg.appendChild(t);
+          line = words[i];
+          dy += 20;
+        } else {
+          line = test;
+        }
+      }
+      if (line) {
+        const t = document.createElementNS(SVGNS, 'text');
+        t.setAttribute('x', '400'); t.setAttribute('y', String(75 + dy));
+        t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '13');
+        t.setAttribute('fill', '#CBD5E1');
+        t.textContent = line;
+        svg.appendChild(t);
+      }
+
+      const examples = lang() === 'en' ? data.examplesEn : data.examplesZh;
+      const exTitle = document.createElementNS(SVGNS, 'text');
+      exTitle.setAttribute('x', '400'); exTitle.setAttribute('y', String(75 + dy + 35));
+      exTitle.setAttribute('text-anchor', 'middle'); exTitle.setAttribute('font-size', '14');
+      exTitle.setAttribute('font-weight', '600'); exTitle.setAttribute('fill', data.color);
+      exTitle.textContent = lang() === 'en' ? 'Examples' : '示例';
+      svg.appendChild(exTitle);
+
+      for (let i = 0; i < examples.length; i++) {
+        const t = document.createElementNS(SVGNS, 'text');
+        t.setAttribute('x', '400'); t.setAttribute('y', String(75 + dy + 65 + i * 24));
+        t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '13');
+        t.setAttribute('fill', '#CBD5E1'); t.setAttribute('font-family', 'monospace');
+        t.textContent = '• ' + examples[i];
+        svg.appendChild(t);
+      }
+    }
+  }
+
+  function setActive(cat: string) {
+    vcBtns.forEach(b => b.classList.toggle('btn-primary', b.dataset.cat === cat));
+    render(cat);
+  }
+  vcBtns.forEach(b => b.addEventListener('click', () => setActive(b.dataset.cat!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.vc-btn.btn-primary');
+    render(active?.dataset.cat || 'overview');
+  });
+  setActive('overview');
+</script>

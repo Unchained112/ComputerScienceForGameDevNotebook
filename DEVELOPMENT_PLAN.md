@@ -122,18 +122,24 @@
 - `render-paths`（渲染路径：前向 vs 延迟）：前向渲染多 Pass 光照循环 vs 延迟渲染 G-Buffer 合成；性能/带宽取舍、透明度处理、MSAA 兼容性；Forward+ / Cluster Forward 前瞻简介。
 - `global-illumination`（全局光照）：直接光 vs 间接光（漫反射/镜面反射 GI）；实时 GI 技术谱系——屏幕空间（SSAO / SSDGI / SSGI）、体素化（VXGI / LPV / SDF GI）、 irradiance 字段（DDGI / Probe-based）、光追（RTGI / Path Tracing）；光栅化 GI 与光追 GI 对比；Lumen / RTGI 简述。
 
-### 批次 12 · 编程语言·概览与 C++（6 页）
+### 批次 12 · 编程语言·概览与 C++（9 页）
 - `languages`（编程语言概览）：命令式/函数式/OOP 范式对比；各语言定位。
-- `cpp`（C++ 概览）：编译模型、与 C 的区别。
+- `cpp`（C++ 概览）：编译模型、与 C 的区别；**C++ 标准演进时间线**（C++11/14/17/20/23 各版本里程碑交互）。
 - `cpp-memory`（内存管理与指针）：栈/堆布局、指针与引用、内存对齐。
-- `cpp-templates`（模板与泛型）：函数/类模板、SFINAE/concepts 简介。
+- `cpp-templates`（模板与泛型）：函数/类模板、SFINAE；**C++20 concepts** 约束、**ranges** 管道式算法、**fold expressions**、variadic templates、**modules** 简介。
 - `cpp-stl`（STL 容器与算法）：`vector/map/unordered_map` 复杂度对照表；`sort`/`find` 等。
-- `cpp-raii`（RAII 与智能指针）：`unique_ptr`/`shared_ptr` 生命周期示例。
+- `cpp-raii`（RAII 与智能指针）：`unique_ptr`/`shared_ptr` 生命周期；**`weak_ptr` 打环**、`make_unique`/`make_shared` 与异常安全。
+- `cpp-move`（移动语义与值类别）⭐：值类别五分法（lvalue/rvalue/xvalue/prvalue/glvalue）图解；右值引用 `T&&`、移动构造/赋值；`std::move`/`std::forward` 本质；完美转发与引用折叠；RVO/NRVO；游戏场景（避免 `vector<Entity>` 深拷贝）。
+- `cpp-concurrency`（多线程与并发）⭐：`std::thread`、`mutex`/`lock_guard`/`unique_lock`/`shared_mutex`、`atomic` 与内存序、`condition_variable`（生产者-消费者时序图交互）、`future`/`promise`/`async`、数据竞争、无锁 CAS、**C++20 协程**简介（线程 vs 协程 vs async 对比）；游戏关联（帧并行/ECS 并发/异步资源加载）。
+- `cpp-modern`（现代 C++ 语法特性总览 C++11~23）⭐：`auto`/`decltype`、Lambda 表达式、`nullptr`/`enum class`/`constexpr`、统一初始化 `{}`；C++17 结构化绑定/`if constexpr`/`optional`/`variant`/`string_view`；C++20 `<=>`/`std::format`；C++23 `std::expected`/`std::print`/deducing this；特性时间线交互。
 
-### 批次 13 · 编程语言·Python（3 页）
+### 批次 13 · 编程语言·Python（6 页）
 - `python`（Python 概览）：解释型、GIL、与 C++ 的性能/生态取舍。
 - `py-syntax`（语法与数据结构）：列表推导、生成器、dict/set 速查。
 - `py-stdlib`（标准库与工具链）：`collections`、`itertools`、`pathlib`、`venv`/`pip`。
+- `py-vm`（虚拟机与字节码）⭐：解释型语言的两段式真相（编译+解释）；字节码生成与 Code Object（`co_consts`/`co_varnames`/`co_stacksize`）；CPython 栈式虚拟机实现（`ceval.c` 大 switch 循环、computed goto）；帧栈与函数调用（生成器/协程本质是可挂起 Frame）；`dis` 反汇编实战；与 AOT/JIT 对比。
+- `py-objects`（对象模型与内存管理）⭐：`PyObject`/`PyVarObject` 的 C 结构（`ob_refcnt`+`ob_type`+`ob_size`，16B/24B 头部税）；类型系统（`PyTypeObject`、类型即对象、`type` 自举、MRO C3 线性化、协议槽 `tp_add`/`tp_hash` 分发）；引用计数主回收（`Py_INCREF`/`Py_DECREF`、循环引用死穴）；分代 GC 兜底（三代、只扫容器）；pymalloc 三级内存池（arena/pool/block）；与 C++ 对象模型对比。
+- `py-optimization`（性能优化）⭐：为什么 Python 占内存（对象头税+全堆分配+容器间接）；内存优化（`__slots__`、`intern`、对象池、numpy 绕过模型）；CPU 优化（GIL 限制、算法优先、numpy 向量化、Cython/C 扩展、多进程绕 GIL、PyPy JIT）；dict 优化与游戏脚本实践（3.6+ 紧凑 dict、共享 key dict、`dataclass(slots=True)`、SoA vs DoA、numpy 批量属性）。
 
 ### 批次 14 · 数据库（8 页，分两小组，同批执行）
 - `databases`（数据库概览）：关系型 vs NoSQL 选型矩阵。
@@ -160,8 +166,8 @@
 | 9 | 网络·模型与传输 | 4 | 已完成 |
 | 10 | 网络·应用层与 RPC | 4 | 已完成 |
 | 11 | 图形学基础（全） | 9 | 已完成 |
-| 12 | 编程语言·概览与 C++ | 6 | 待开发 |
-| 13 | 编程语言·Python | 3 | 待开发 |
+| 12 | 编程语言·概览与 C++ | 9 | 已完成 |
+| 13 | 编程语言·Python | 6 | 已完成 |
 | 14 | 数据库（全） | 8 | 待开发 |
 
 > 完成一批后，将对应"状态"改为 `已完成`，并可在备注列标注 PR/提交号。

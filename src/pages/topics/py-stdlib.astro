@@ -1,0 +1,381 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Python Stdlib & Tooling · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Languages / Python Stdlib</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">标准库与工具链</span><span slot="en">Stdlib & Tooling</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">Python 的"自带电池"（batteries included）哲学让它无需第三方库就能完成大量工作——<code>collections</code> 提供专用容器，<code>itertools</code> 提供迭代器代数，<code>pathlib</code> 提供现代路径操作，<code>venv</code>/<code>pip</code> 提供环境与依赖管理。掌握标准库是写出 Pythonic 代码的前提——很多第三方库只是对标准库的薄包装。点击下方模块查看功能与游戏开发场景。</span>
+          <span slot="en">Python's "batteries included" philosophy lets it accomplish much without third-party libs — <code>collections</code> for specialized containers, <code>itertools</code> for iterator algebra, <code>pathlib</code> for modern path ops, <code>venv</code>/<code>pip</code> for environment & dependency management. Mastering the stdlib is prerequisite to Pythonic code — many third-party libs are thin wrappers over it. Click a module below to see its purpose and game-dev use cases.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：标准库模块速查 -->
+    <div class="glass p-5" data-viz="stdlib-grid">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <button class="btn mod-btn btn-primary" data-mod="collections">collections</button>
+        <button class="btn mod-btn" data-mod="itertools">itertools</button>
+        <button class="btn mod-btn" data-mod="functools">functools</button>
+        <button class="btn mod-btn" data-mod="pathlib">pathlib</button>
+        <button class="btn mod-btn" data-mod="dataclasses">dataclasses</button>
+        <button class="btn mod-btn" data-mod="enum">enum</button>
+        <button class="btn mod-btn" data-mod="json">json</button>
+        <button class="btn mod-btn" data-mod="typing">typing</button>
+      </div>
+      <svg id="mod-svg" viewBox="0 0 800 240" class="w-full h-64 viz-stage"></svg>
+    </div>
+
+    <!-- collections -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">collections：专用容器</span><span slot="en">collections: Specialized Containers</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><code>collections</code> 提供五种比内置 <code>dict</code>/<code>list</code>/<code>tuple</code> 更适合特定场景的容器：<b>namedtuple</b>（命名字段的轻量不可变对象，类似 C struct）、<b>deque</b>（双端队列，头尾 O(1)）、<b>Counter</b>（计数器）、<b>defaultdict</b>（带默认值的字典）、<b>OrderedDict</b>（3.7 前 dict 无序时的选择，现已少用）。它们都是用 C 实现的，性能不输手写循环。</span><span slot="en"><code>collections</code> provides five containers better suited to specific scenarios than built-in <code>dict</code>/<code>list</code>/<code>tuple</code>: <b>namedtuple</b> (lightweight immutable with named fields, like a C struct), <b>deque</b> (double-ended queue, O(1) at both ends), <b>Counter</b>, <b>defaultdict</b> (dict with defaults), <b>OrderedDict</b> (mattered before 3.7's ordered dicts, now less used). All C-implemented, matching hand-written loop performance.</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-primary-cyan">from</span> collections <span class="text-primary-cyan">import</span> namedtuple, deque, Counter, defaultdict
+
+<span class="text-func-green"># namedtuple: 轻量不可变对象（类似 C struct，比 dict 省内存）</span>
+Point = namedtuple(<span class="text-func-amber">'Point'</span>, [<span class="text-func-amber">'x'</span>, <span class="text-func-amber">'y'</span>, <span class="text-func-amber">'z'</span>])
+p = Point(1, 2, 3)          <span class="text-ink-muted"># 比 dict 省 ~40B，比 class 简洁</span>
+print(p.x, p.y)              <span class="text-ink-muted"># 字段访问，非 p['x']</span>
+
+<span class="text-func-green"># deque: 双端队列，头尾 O(1)（list 头部插入是 O(n)）</span>
+cooldowns = deque(maxlen=5)  <span class="text-ink-muted"># 固定长度，自动淘汰旧元素</span>
+cooldowns.appendleft(skill)  <span class="text-ink-muted"># O(1)</span>
+cooldowns.pop()              <span class="text-ink-muted"># O(1)</span>
+
+<span class="text-func-green"># Counter: 计数器（dict 子类）</span>
+drops = Counter(loot_table)
+print(drops.most_common(3))  <span class="text-func-amber"># 掉落最多的 3 种物品</span>
+
+<span class="text-func-green"># defaultdict: 带默认值的字典</span>
+inventory = defaultdict(int) <span class="text-ink-muted"># 缺失键自动返回 0</span>
+inventory[<span class="text-func-amber">'potion'</span>] += 1    <span class="text-ink-muted"># 无需 if key in inventory</span>
+
+<span class="text-func-red"># 游戏场景</span>
+<span class="text-ink-muted">#  - namedtuple: 配置行/坐标/颜色（不可变，可哈希做 dict 键）</span>
+<span class="text-ink-muted">#  - deque: 技能冷却队列、最近操作历史、帧缓冲</span>
+<span class="text-ink-muted">#  - Counter: 掉落统计、成就进度、词频分析</span>
+<span class="text-ink-muted">#  - defaultdict: 分组映射（team → players）、邻接表</span></code></pre>
+    </section>
+
+    <!-- itertools -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">itertools：迭代器代数</span><span slot="en">itertools: Iterator Algebra</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><code>itertools</code> 提供一组<b>惰性迭代器</b>组合工具——它们返回生成器而非列表，处理大数据集时内存 O(1)。四大核心：<b>chain</b>（拼接多个可迭代对象）、<b>groupby</b>（按键分组，需先排序）、<b>combinations</b>（无序组合）、<b>product</b>（笛卡尔积）。游戏开发中常用于<b>枚举组合</b>（技能搭配、装备套装）和<b>批量遍历</b>（棋盘、网格）。</span><span slot="en"><code>itertools</code> provides a set of <b>lazy iterator</b> combinators — they return generators, not lists, keeping memory O(1) for large datasets. Four core tools: <b>chain</b> (concatenate iterables), <b>groupby</b> (group by key, requires pre-sort), <b>combinations</b> (unordered combos), <b>product</b> (Cartesian product). Common in game dev for <b>enumerating combinations</b> (skill builds, gear sets) and <b>batch traversal</b> (boards, grids).</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-primary-cyan">from</span> itertools <span class="text-primary-cyan">import</span> chain, groupby, combinations, product
+
+<span class="text-func-green"># chain: 拼接多个可迭代对象（无需 + 拼接列表）</span>
+all_items = chain(weapons, armors, potions)  <span class="text-ink-muted"># 惰性，零拷贝</span>
+
+<span class="text-func-green"># groupby: 分组（必须先排序！groupby 只合并连续相同键）</span>
+players = sorted(players, key=<span class="text-primary-purple">lambda</span> p: p[<span class="text-func-amber">'team'</span>])
+<span class="text-primary-purple">for</span> team, members <span class="text-primary-purple">in</span> groupby(players, key=<span class="text-primary-purple">lambda</span> p: p[<span class="text-func-amber">'team'</span>]):
+    print(team, list(members))
+
+<span class="text-func-green"># combinations: 无序组合（C(n,k)）</span>
+skills = [<span class="text-func-amber">'fire'</span>, <span class="text-func-amber">'ice'</span>, <span class="text-func-amber">'thunder'</span>, <span class="text-func-amber">'heal'</span>]
+<span class="text-primary-purple">for</span> combo <span class="text-primary-purple">in</span> combinations(skills, 3):     <span class="text-ink-muted"># 4选3 = 4种搭配</span>
+    test_combo(combo)
+
+<span class="text-func-green"># product: 笛卡尔积（有序，含重复）</span>
+<span class="text-primary-purple">for</span> x, y <span class="text-primary-purple">in</span> product(range(8), range(8)):    <span class="text-ink-muted"># 8×8 棋盘 = 64格</span>
+    board[x][y] = init()
+
+<span class="text-func-red"># 游戏场景</span>
+<span class="text-ink-muted">#  - combinations: 技能搭配枚举、装备套装穷举、牌型判定</span>
+<span class="text-ink-muted">#  - product: 棋盘/网格遍历、参数空间搜索、A/B 测试矩阵</span>
+<span class="text-ink-muted">#  - chain: 合并多源数据（武器+防具+消耗品）统一遍历</span>
+<span class="text-ink-muted">#  - groupby: 按队伍/等级/类型分组统计</span></code></pre>
+    </section>
+
+    <!-- pathlib -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">pathlib：现代路径操作</span><span slot="en">pathlib: Modern Path Operations</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><code>pathlib</code>（3.4+）用<b>面向对象</b>方式操作路径，替代 <code>os.path</code> 的函数式拼接。<code>/</code> 运算符拼接路径（而非字符串 <code>+</code>），自动处理平台分隔符（Windows <code>\</code> vs Unix <code>/</code>）。属性访问获取扩展名、文件名、父目录。游戏工具链中用于资源路径管理、批量文件扫描、配置读写。</span><span slot="en"><code>pathlib</code> (3.4+) uses an <b>object-oriented</b> approach to paths, replacing <code>os.path</code>'s function-style拼接. The <code>/</code> operator joins paths (not string <code>+</code>), auto-handling platform separators (Windows <code>\</code> vs Unix <code>/</code>). Property access gets suffix, stem, parent. Used in game tooling for asset path management, batch file scanning, config I/O.</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-primary-cyan">from</span> pathlib <span class="text-primary-cyan">import</span> Path
+
+<span class="text-func-green"># / 运算符拼接路径（自动跨平台）</span>
+<span class="text-ink-muted"># 旧: os.path.join('assets', 'textures', 'hero.png')</span>
+tex = Path(<span class="text-func-amber">'assets'</span>) / <span class="text-func-amber">'textures'</span> / <span class="text-func-amber">'hero.png'</span>
+
+<span class="text-func-green"># 属性访问</span>
+print(tex.exists())     <span class="text-func-amber"># True</span>
+print(tex.suffix)       <span class="text-func-amber"># '.png'</span>
+print(tex.stem)         <span class="text-func-amber"># 'hero'</span>
+print(tex.parent)       <span class="text-func-amber"># 'assets/textures'</span>
+print(tex.name)         <span class="text-func-amber"># 'hero.png'</span>
+
+<span class="text-func-green"># 批量查找（rglob 递归）</span>
+<span class="text-primary-purple">for</span> f <span class="text-primary-purple">in</span> Path(<span class="text-func-amber">'scripts'</span>).rglob(<span class="text-func-amber">'*.py'</span>):    <span class="text-ink-muted"># 递归找所有 .py</span>
+    lint(f)
+
+<span class="text-func-green"># 一行读写文件</span>
+data = tex.read_text(encoding=<span class="text-func-amber">'utf-8'</span>)
+Path(<span class="text-func-amber">'output.log'</span>).write_text(msg)
+
+<span class="text-func-red"># 游戏工具链：资源导入管线</span>
+assets = Path(<span class="text-func-amber">'assets'</span>)
+<span class="text-primary-purple">for</span> fbx <span class="text-primary-purple">in</span> assets.rglob(<span class="text-func-amber">'*.fbx'</span>):           <span class="text-ink-muted"># 找所有模型</span>
+    out = Path(<span class="text-func-amber">'build'</span>) / fbx.with_suffix(<span class="text-func-amber">'.mesh'</span>).name
+    import_fbx(fbx, out)                       <span class="text-ink-muted"># 转换并输出</span></code></pre>
+    </section>
+
+    <!-- venv / pip -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">venv / pip：环境与依赖管理</span><span slot="en">venv / pip: Environment & Dependency Management</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">Python 项目的两大基础设施：<b>venv</b> 创建隔离的虚拟环境（每个项目独立依赖版本，避免全局污染），<b>pip</b> 安装与管理第三方包。现代项目推荐用 <code>pyproject.toml</code>（PEP 518/621）声明项目元数据与依赖，配合 <code>pip-tools</code> 锁定精确版本。游戏工具链团队应统一虚拟环境与依赖锁定策略，避免"在我机器上能跑"问题。</span><span slot="en">Two foundational tools for Python projects: <b>venv</b> creates isolated virtual environments (per-project dependency versions, avoiding global pollution), <b>pip</b> installs and manages third-party packages. Modern projects should use <code>pyproject.toml</code> (PEP 518/621) for project metadata and dependencies, with <code>pip-tools</code> for precise version locking. Game tooling teams should standardize venv and dependency locking to avoid "works on my machine".</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-func-green"># 虚拟环境：每个项目独立依赖</span>
+python -m venv .venv              <span class="text-ink-muted"># 创建虚拟环境</span>
+.venv\Scripts\activate            <span class="text-ink-muted"># Windows 激活</span>
+source .venv/bin/activate         <span class="text-ink-muted"># Linux/Mac 激活</span>
+deactivate                        <span class="text-ink-muted"># 退出虚拟环境</span>
+
+<span class="text-func-green"># pip: 包管理</span>
+pip install numpy                 <span class="text-ink-muted"># 安装最新版</span>
+pip install "pydantic&gt;=2.0"        <span class="text-ink-muted"># 指定版本约束</span>
+pip install -r requirements.txt   <span class="text-ink-muted"># 批量安装</span>
+pip freeze &gt; requirements.txt      <span class="text-ink-muted"># 导出当前依赖</span>
+
+<span class="text-primary-cyan"># pyproject.toml（现代项目标准，替代 setup.py）</span>
+<span class="text-ink-muted"># [project]</span>
+<span class="text-ink-muted"># name = "game-tools"</span>
+<span class="text-ink-muted"># version = "1.0.0"</span>
+<span class="text-ink-muted"># dependencies = ["numpy&gt;=1.24", "pydantic&gt;=2.0", "rich"]</span>
+<span class="text-ink-muted"># [project.optional-dependencies]</span>
+<span class="text-ink-muted"># dev = ["mypy", "ruff", "pytest"]</span>
+
+<span class="text-primary-purple"># pip-tools: 精确版本锁定（推荐团队使用）</span>
+pip install pip-tools
+pip-compile pyproject.toml -o requirements.lock    <span class="text-ink-muted"># 生成锁定文件</span>
+pip-sync requirements.lock                          <span class="text-ink-muted"># 同步精确版本</span>
+
+<span class="text-func-red"># 游戏工具链团队最佳实践</span>
+<span class="text-ink-muted">#  1. 每个项目用独立 .venv（gitignore）</span>
+<span class="text-ink-muted">#  2. pyproject.toml 声明依赖范围</span>
+<span class="text-ink-muted">#  3. requirements.lock 锁定精确版本（提交到 git）</span>
+<span class="text-ink-muted">#  4. CI 用 pip-sync 还原一致环境</span></code></pre>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">关联阅读：<a class="text-primary-cyan underline" href="/topics/python">Python 概览</a> · <a class="text-primary-cyan underline" href="/topics/py-syntax">语法与数据结构</a>（推导式/生成器配合 itertools）· <a class="text-primary-cyan underline" href="/topics/py-optimization">性能优化</a>（collections 的性能取舍）。</span><span slot="en">Related: <a class="text-primary-cyan underline" href="/topics/python">Python Overview</a> · <a class="text-primary-cyan underline" href="/topics/py-syntax">Syntax</a> (comprehensions/generators with itertools) · <a class="text-primary-cyan underline" href="/topics/py-optimization">Performance</a> (collections trade-offs).</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 标准库模块速查可视化
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('mod-svg') as unknown as SVGSVGElement;
+  const modBtns = document.querySelectorAll<HTMLButtonElement>('.mod-btn');
+
+  interface ModData {
+    name: string; catZh: string; catEn: string; color: string;
+    descZh: string; descEn: string;
+    useZh: string; useEn: string;
+    gameZh: string; gameEn: string;
+  }
+
+  const MODULES: Record<string, ModData> = {
+    collections: {
+      name: 'collections', catZh: '数据容器', catEn: 'Data Containers', color: '#22D3EE',
+      descZh: '专用容器：deque 双端队列、Counter 计数器、defaultdict 默认字典、namedtuple 命名元组',
+      descEn: 'Specialized containers: deque, Counter, defaultdict, namedtuple',
+      useZh: 'Counter("aabbcc") → {a:2, b:2, c:2}',
+      useEn: 'Counter("aabbcc") → {a:2, b:2, c:2}',
+      gameZh: '掉落计数、技能冷却队列、配置默认值',
+      gameEn: 'Drop counting, cooldown queue, config defaults',
+    },
+    itertools: {
+      name: 'itertools', catZh: '迭代工具', catEn: 'Iteration', color: '#A78BFA',
+      descZh: '迭代器代数：chain 拼接、groupby 分组、combinations 组合、product 笛卡尔积',
+      descEn: 'Iterator algebra: chain, groupby, combinations, product',
+      useZh: 'product([0,1],[0,1]) → 4 种组合',
+      useEn: 'product([0,1],[0,1]) → 4 combos',
+      gameZh: '技能搭配枚举、装备组合穷举、棋盘遍历',
+      gameEn: 'Skill combo enumeration, gear combos, board traversal',
+    },
+    functools: {
+      name: 'functools', catZh: '迭代工具', catEn: 'Iteration', color: '#A78BFA',
+      descZh: '高阶函数：lru_cache 缓存、partial 偏函数、reduce 归约、wraps 装饰器辅助',
+      descEn: 'Higher-order funcs: lru_cache, partial, reduce, wraps',
+      useZh: '@lru_cache(maxsize=None) → 自动记忆化',
+      useEn: '@lru_cache(maxsize=None) → auto memoization',
+      gameZh: '路径查找记忆化、配置解析缓存、回调绑定',
+      gameEn: 'Pathfinding memoization, config cache, callback binding',
+    },
+    pathlib: {
+      name: 'pathlib', catZh: '文件系统', catEn: 'Filesystem', color: '#22C55E',
+      descZh: '面向对象路径操作：/ 拼接、.suffix/.stem/.parent 属性、rglob 递归查找',
+      descEn: 'OO path ops: / join, .suffix/.stem/.parent, rglob',
+      useZh: 'Path("a")/"b"/"c.png" → a/b/c.png',
+      useEn: 'Path("a")/"b"/"c.png" → a/b/c.png',
+      gameZh: '资源路径管理、批量文件扫描、导入管线',
+      gameEn: 'Asset path mgmt, batch scan, import pipeline',
+    },
+    dataclasses: {
+      name: 'dataclasses', catZh: '数据容器', catEn: 'Data Containers', color: '#22D3EE',
+      descZh: '数据类（3.7+）：自动生成 __init__/__repr__/__eq__，支持 slots/frozen',
+      descEn: 'Data classes (3.7+): auto __init__/__repr__/__eq__, slots/frozen',
+      useZh: '@dataclass(slots=True) class Entity: ...',
+      useEn: '@dataclass(slots=True) class Entity: ...',
+      gameZh: '实体/配置数据结构、slots 省内存',
+      gameEn: 'Entity/config structs, slots save memory',
+    },
+    enum: {
+      name: 'enum', catZh: '数据容器', catEn: 'Data Containers', color: '#22D3EE',
+      descZh: '枚举类型（3.4+）：IntEnum/Flag/IntFlag，类型安全的常量集合',
+      descEn: 'Enumerations (3.4+): IntEnum/Flag/IntFlag, type-safe constants',
+      useZh: 'class Color(Enum): RED=1; GREEN=2',
+      useEn: 'class Color(Enum): RED=1; GREEN=2',
+      gameZh: '物品类型、状态机状态、错误码',
+      gameEn: 'Item types, FSM states, error codes',
+    },
+    json: {
+      name: 'json', catZh: '序列化', catEn: 'Serialization', color: '#FBBF24',
+      descZh: 'JSON 读写：load/dump 文件级，loads/dumps 字符串级',
+      descEn: 'JSON I/O: load/dump for files, loads/dumps for strings',
+      useZh: 'json.load(open("cfg.json")) → dict',
+      useEn: 'json.load(open("cfg.json")) → dict',
+      gameZh: '配置文件、存档序列化、网络协议',
+      gameEn: 'Config files, save serialization, network protocol',
+    },
+    typing: {
+      name: 'typing', catZh: '工具链', catEn: 'Tooling', color: '#F87171',
+      descZh: '类型注解（3.5+）：Optional/Union/List/Dict/Callable，配合 mypy/pyright 静态检查',
+      descEn: 'Type hints (3.5+): Optional/Union/List/Dict/Callable, with mypy/pyright',
+      useZh: 'def f(x: int) -> str: ...',
+      useEn: 'def f(x: int) -> str: ...',
+      gameZh: '工具链代码可维护性、配置 schema 校验',
+      gameEn: 'Tooling code maintainability, config schema validation',
+    },
+  };
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  function render(key: string) {
+    const data = MODULES[key];
+    if (!data) return;
+    svg.innerHTML = '';
+
+    // 模块名 + 分类标签
+    const name = document.createElementNS(SVGNS, 'text');
+    name.setAttribute('x', '30'); name.setAttribute('y', '38');
+    name.setAttribute('font-size', '20'); name.setAttribute('font-weight', '700');
+    name.setAttribute('fill', data.color); name.setAttribute('font-family', 'monospace');
+    name.textContent = data.name;
+    svg.appendChild(name);
+
+    const cat = document.createElementNS(SVGNS, 'rect');
+    cat.setAttribute('x', String(30 + data.name.length * 12 + 12)); cat.setAttribute('y', '22');
+    cat.setAttribute('width', String((lang() === 'en' ? data.catEn : data.catZh).length * 8 + 20));
+    cat.setAttribute('height', '22'); cat.setAttribute('rx', '11');
+    cat.setAttribute('fill', data.color + '22'); cat.setAttribute('stroke', data.color);
+    cat.setAttribute('stroke-width', '1');
+    svg.appendChild(cat);
+    const catT = document.createElementNS(SVGNS, 'text');
+    catT.setAttribute('x', String(30 + data.name.length * 12 + 22)); catT.setAttribute('y', '37');
+    catT.setAttribute('font-size', '11'); catT.setAttribute('font-weight', '600');
+    catT.setAttribute('fill', data.color);
+    catT.textContent = lang() === 'en' ? data.catEn : data.catZh;
+    svg.appendChild(catT);
+
+    // 功能描述卡片
+    const descCard = document.createElementNS(SVGNS, 'rect');
+    descCard.setAttribute('x', '30'); descCard.setAttribute('y', '60');
+    descCard.setAttribute('width', '740'); descCard.setAttribute('height', '50');
+    descCard.setAttribute('rx', '8'); descCard.setAttribute('fill', data.color + '11');
+    descCard.setAttribute('stroke', data.color + '44'); descCard.setAttribute('stroke-width', '1');
+    svg.appendChild(descCard);
+
+    const descT = document.createElementNS(SVGNS, 'text');
+    descT.setAttribute('x', '45'); descT.setAttribute('y', '82');
+    descT.setAttribute('font-size', '13'); descT.setAttribute('fill', '#CBD5E1');
+    const descText = lang() === 'en' ? data.descEn : data.descZh;
+    descT.textContent = descText.length > 70 ? descText.slice(0, 70) + '…' : descText;
+    svg.appendChild(descT);
+
+    const label1 = document.createElementNS(SVGNS, 'text');
+    label1.setAttribute('x', '45'); label1.setAttribute('y', '100');
+    label1.setAttribute('font-size', '11'); label1.setAttribute('fill', '#94A3B8');
+    label1.textContent = lang() === 'en' ? 'Typical use:' : '典型用法：';
+    svg.appendChild(label1);
+    const useT = document.createElementNS(SVGNS, 'text');
+    useT.setAttribute('x', String(45 + (lang() === 'en' ? 72 : 54))); useT.setAttribute('y', '100');
+    useT.setAttribute('font-size', '11'); useT.setAttribute('fill', '#FBBF24');
+    useT.setAttribute('font-family', 'monospace');
+    useT.textContent = lang() === 'en' ? data.useEn : data.useZh;
+    svg.appendChild(useT);
+
+    // 典型用法卡片
+    const useCard = document.createElementNS(SVGNS, 'rect');
+    useCard.setAttribute('x', '30'); useCard.setAttribute('y', '125');
+    useCard.setAttribute('width', '360'); useCard.setAttribute('height', '95');
+    useCard.setAttribute('rx', '8'); useCard.setAttribute('fill', '#1E293B88');
+    useCard.setAttribute('stroke', 'rgba(148,163,184,0.2)'); useCard.setAttribute('stroke-width', '1');
+    svg.appendChild(useCard);
+    const useTitle = document.createElementNS(SVGNS, 'text');
+    useTitle.setAttribute('x', '45'); useTitle.setAttribute('y', '148');
+    useTitle.setAttribute('font-size', '12'); useTitle.setAttribute('font-weight', '600');
+    useTitle.setAttribute('fill', '#94A3B8');
+    useTitle.textContent = lang() === 'en' ? 'Key APIs' : '核心 API';
+    svg.appendChild(useTitle);
+
+    // 游戏场景卡片
+    const gameCard = document.createElementNS(SVGNS, 'rect');
+    gameCard.setAttribute('x', '410'); gameCard.setAttribute('y', '125');
+    gameCard.setAttribute('width', '360'); gameCard.setAttribute('height', '95');
+    gameCard.setAttribute('rx', '8'); gameCard.setAttribute('fill', data.color + '11');
+    gameCard.setAttribute('stroke', data.color + '44'); gameCard.setAttribute('stroke-width', '1');
+    svg.appendChild(gameCard);
+    const gameTitle = document.createElementNS(SVGNS, 'text');
+    gameTitle.setAttribute('x', '425'); gameTitle.setAttribute('y', '148');
+    gameTitle.setAttribute('font-size', '12'); gameTitle.setAttribute('font-weight', '600');
+    gameTitle.setAttribute('fill', data.color);
+    gameTitle.textContent = lang() === 'en' ? 'Game Dev' : '游戏开发';
+    svg.appendChild(gameTitle);
+
+    const gameText = lang() === 'en' ? data.gameEn : data.gameZh;
+    const gameT = document.createElementNS(SVGNS, 'text');
+    gameT.setAttribute('x', '425'); gameT.setAttribute('y', '172');
+    gameT.setAttribute('font-size', '12'); gameT.setAttribute('fill', '#CBD5E1');
+    gameT.textContent = gameText.length > 44 ? gameText.slice(0, 44) : gameText;
+    svg.appendChild(gameT);
+    if (gameText.length > 44) {
+      const gameT2 = document.createElementNS(SVGNS, 'text');
+      gameT2.setAttribute('x', '425'); gameT2.setAttribute('y', '190');
+      gameT2.setAttribute('font-size', '12'); gameT2.setAttribute('fill', '#CBD5E1');
+      gameT2.textContent = gameText.slice(44);
+      svg.appendChild(gameT2);
+    }
+
+    // 用法代码（左侧卡片内）
+    const useCode = lang() === 'en' ? data.useEn : data.useZh;
+    const uc = document.createElementNS(SVGNS, 'text');
+    uc.setAttribute('x', '45'); uc.setAttribute('y', '175');
+    uc.setAttribute('font-size', '11'); uc.setAttribute('font-family', 'monospace');
+    uc.setAttribute('fill', '#22D3EE');
+    uc.textContent = useCode.length > 42 ? useCode.slice(0, 42) : useCode;
+    svg.appendChild(uc);
+    if (useCode.length > 42) {
+      const uc2 = document.createElementNS(SVGNS, 'text');
+      uc2.setAttribute('x', '45'); uc2.setAttribute('y', '193');
+      uc2.setAttribute('font-size', '11'); uc2.setAttribute('font-family', 'monospace');
+      uc2.setAttribute('fill', '#22D3EE');
+      uc2.textContent = useCode.slice(42);
+      svg.appendChild(uc2);
+    }
+  }
+
+  function setActive(key: string) {
+    modBtns.forEach(b => b.classList.toggle('btn-primary', b.dataset.mod === key));
+    render(key);
+  }
+  modBtns.forEach(b => b.addEventListener('click', () => setActive(b.dataset.mod!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.mod-btn.btn-primary');
+    render(active?.dataset.mod || 'collections');
+  });
+  setActive('collections');
+</script>

@@ -1,0 +1,329 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+import CodeTabs from '../../components/CodeTabs.astro';
+---
+<BaseLayout title="Python Syntax & Data Structures · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Languages / Python Syntax</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">语法与数据结构</span><span slot="en">Syntax & Data Structures</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">Python 的语法以<b>简洁表达力</b>著称——列表推导一行完成 filter + transform + collect，生成器用 <code>yield</code> 实现惰性求值，<code>dict</code>/<code>set</code> 提供高频 O(1) 查找。这些"Pythonic"写法不仅是语法糖，更是一种思维范式：用最少的代码表达最多的意图。点击下方对比传统循环与列表推导的执行流程。</span>
+          <span slot="en">Python's syntax is renowned for <b>concise expressiveness</b> — list comprehensions do filter + transform + collect in one line, generators achieve lazy evaluation via <code>yield</code>, and <code>dict</code>/<code>set</code> provide frequent O(1) lookups. These "Pythonic" patterns aren't just syntactic sugar but a mindset: express maximum intent in minimal code. Click below to compare traditional loops vs comprehensions.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：推导式 vs 传统循环 -->
+    <div class="glass p-5" data-viz="comprehension-flow">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <button class="btn cmp-btn btn-primary" data-style="loop">
+          <span data-lang="zh">传统循环</span><span data-lang="en">Traditional Loop</span>
+        </button>
+        <button class="btn cmp-btn" data-style="comp">
+          <span data-lang="zh">列表推导</span><span data-lang="en">Comprehension</span>
+        </button>
+      </div>
+      <svg id="cmp-svg" viewBox="0 0 800 240" class="w-full h-64 viz-stage"></svg>
+    </div>
+
+    <!-- 推导式 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">列表 / 字典 / 集合推导式</span><span slot="en">List / Dict / Set Comprehensions</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">推导式是 Python 最具代表性的语法——用<b>一行表达式</b>完成"遍历 + 过滤 + 变换 + 收集"，等价于传统循环但更简洁、往往更快（CPython 对推导式有专门优化）。三种形式：列表推导 <code>[...]</code>、字典推导 <code>&#123;...&#125;</code>、集合推导 <code>&#123;...&#125;</code>。把方括号换成圆括号 <code>(...)</code> 就是<b>生成器表达式</b>——惰性求值，不预分配列表。</span><span slot="en">Comprehensions are Python's signature syntax — a <b>single expression</b> doing "iterate + filter + transform + collect", equivalent to a loop but more concise and often faster (CPython optimizes comprehensions specially). Three forms: list <code>[...]</code>, dict <code>&#123;...&#125;</code>, set <code>&#123;...&#125;</code>. Swapping brackets to parens <code>(...)</code> yields a <b>generator expression</b> — lazy, no pre-allocation.</span></Bilingual></p>
+      <CodeTabs
+  cpp={`<pre><code>#include &lt;ranges&gt;
+#include &lt;vector&gt;
+#include &lt;map&gt;
+#include &lt;set&gt;
+
+// C++20 ranges: 推导式的最近等价（filter + transform 管道）
+auto squares = nums
+    | std::views::filter([](int x) &#123; return x % 2 == 0; &#125;)
+    | std::views::transform([](int x) &#123; return x * x; &#125;);
+// views 是惰性的（类似生成器），需 collect
+std::vector&lt;int&gt; vec(squares.begin(), squares.end());
+
+// C++ 没有内置推导式语法 —— ranges 是最接近的等价
+// Python 推导式更简洁；C++ 编译期类型检查更安全
+
+// 集合推导等价
+std::set&lt;int&gt; unique;
+for (int x : nums) unique.insert(x);  // 无 ranges 快捷方式
+
+// 字典推导等价
+std::map&lt;char,int&gt; counts;
+for (char c : text) counts[c]++;      // 无 ranges 快捷方式</code></pre>`}
+  py={`<pre><code># 列表推导：filter + transform + collect 一行完成
+squares = [x * x for x in nums if x % 2 == 0]
+
+# 字典推导
+char_count = &#123;c: text.count(c) for c in set(text)&#125;
+
+# 集合推导
+unique_tags = &#123;tag.lower() for tag in tags&#125;
+
+# 生成器表达式（惰性，不分配列表 —— 类似 C++ views）
+total = sum(x * x for x in nums if x % 2 == 0)
+
+# 嵌套推导（谨慎使用，可读性优先）
+matrix = [[i * j for j in range(3)] for i in range(3)]
+
+# 条件表达式
+status = ["even" if x % 2 == 0 else "odd" for x in nums]
+
+# 游戏配置：ID → 攻击力 映射
+item_power = &#123;id: data["atk"] for id, data in items.items() if data["rarity"] >= 3&#125;</code></pre>`}
+      />
+    </section>
+
+    <!-- 生成器与 yield -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">生成器与 yield：惰性求值</span><span slot="en">Generators & yield: Lazy Evaluation</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">生成器是 Python 实现<b>惰性求值</b>的核心机制——用 <code>yield</code> 产出一个值后<b>挂起</b>函数（保留局部变量与 PC），下次调用 <code>next()</code> 时从挂起处继续。这意味着处理百万级数据时内存只需 O(1)——无需先把结果全塞进列表。生成器的本质是"可挂起的 Frame"（详见<a class="text-primary-cyan underline" href="/topics/py-vm">虚拟机页</a>）。<code>yield from</code> 可委托给子生成器，实现 pipeline 链式处理。</span><span slot="en">Generators are Python's core mechanism for <b>lazy evaluation</b> — <code>yield</code> produces a value then <b>suspends</b> the function (preserving locals & PC), resuming on the next <code>next()</code> call. This means processing millions of items with O(1) memory — no need to materialize the full list. Generators are essentially "suspendable frames" (see <a class="text-primary-cyan underline" href="/topics/py-vm">VM page</a>). <code>yield from</code> delegates to sub-generators for pipeline chaining.</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-func-green"># 生成器：yield 实现惰性求值</span>
+def squares(n):
+    for x in range(n):
+        yield x * x       <span class="text-ink-muted"># 产出一个值后挂起，不分配完整列表</span>
+
+gen = squares(10)
+print(next(gen))  <span class="text-func-amber"># 0 —— 首次调用执行到 yield 挂起</span>
+print(next(gen))  <span class="text-func-amber"># 1 —— 从挂起处继续执行</span>
+
+<span class="text-primary-cyan"># 无限序列（list 做不到，会内存爆炸）</span>
+def naturals():
+    n = 0
+    while True:
+        yield n
+        n += 1
+
+<span class="text-primary-cyan"># pipeline 链式处理（每步惰性，内存 O(1)）</span>
+evens = (x for x in naturals() if x % 2 == 0)  <span class="text-ink-muted"># 生成器表达式</span>
+first5 = [next(evens) for _ in range(5)]        <span class="text-func-amber"># [0, 2, 4, 6, 8] —— 只取需要的</span>
+
+<span class="text-primary-purple"># yield from：委托给子生成器（3.3+）</span>
+def chained(*gens):
+    for g in gens:
+        yield from g          <span class="text-ink-muted"># 等价于 for x in g: yield x，但更高效</span>
+
+<span class="text-func-red"># 游戏场景：流式读取大日志/存档</span>
+def read_records(path):
+    with open(path) as f:
+        for line in f:
+            yield parse(line)   <span class="text-ink-muted"># 逐行解析，不全量加载</span>
+<span class="text-ink-muted"># 处理 10GB 存档只需几 MB 内存 —— 生成器的威力</span></code></pre>
+    </section>
+
+    <!-- dict/set 速查表 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">dict / set 速查表</span><span slot="en">dict / set Cheat Sheet</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh"><code>dict</code> 是 Python 脚本里<b>最高频</b>的结构——配置表、实体属性、消息映射、缓存全靠它。3.7 起 dict <b>保持插入顺序</b>（3.6 实现细节，3.7 语言保证）。<code>set</code> 是只有键的 dict，用于去重和成员测试。<b>关键性能点</b>：<code>in</code> 操作对 dict/set 是 O(1)，对 list 是 O(n)——查表永远用 dict/set，别用 list。dict 的底层结构（紧凑布局、共享 key）详见<a class="text-primary-cyan underline" href="/topics/py-optimization">性能优化页</a>。</span><span slot="en"><code>dict</code> is the <b>most frequent</b> structure in Python scripts — config tables, entity attributes, message maps, caches. Since 3.7, dicts <b>preserve insertion order</b> (3.6 implementation detail, 3.7 language guarantee). <code>set</code> is a dict with only keys, for dedup and membership testing. <b>Key perf point</b>: <code>in</code> is O(1) for dict/set but O(n) for list — always use dict/set for lookups, never list. Dict internals (compact layout, shared keys) in the <a class="text-primary-cyan underline" href="/topics/py-optimization">Performance page</a>.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">操作</span><span slot="en">Operation</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">复杂度</span><span slot="en">Complexity</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">示例</span><span slot="en">Example</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏场景</span><span slot="en">Game use</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-green">in (dict/set)</td><td class="py-2 pr-4 text-func-green">O(1)</td><td class="py-2 pr-4 font-mono">key in d</td><td class="py-2 pr-4"><Bilingual><span slot="zh">查活跃 ID 集合</span><span slot="en">Active ID set lookup</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-red">in (list)</td><td class="py-2 pr-4 text-func-red">O(n)</td><td class="py-2 pr-4 font-mono">item in lst</td><td class="py-2 pr-4"><Bilingual><span slot="zh">避免！改用 set</span><span slot="en">Avoid! Use set</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono">d[key] / get</td><td class="py-2 pr-4 text-func-green">O(1)</td><td class="py-2 pr-4 font-mono">d.get(k, default)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">配置查表</span><span slot="en">Config lookup</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono">推导创建</td><td class="py-2 pr-4">O(n)</td><td class="py-2 pr-4 font-mono">&#123;k:v for k,v in items&#125;</td><td class="py-2 pr-4"><Bilingual><span slot="zh">批量构建映射</span><span slot="en">Bulk map build</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono">合并解包</td><td class="py-2 pr-4">O(n)</td><td class="py-2 pr-4 font-mono">&#123;**d1, **d2&#125;</td><td class="py-2 pr-4"><Bilingual><span slot="zh">合并默认配置</span><span slot="en">Merge default config</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono">del / pop</td><td class="py-2 pr-4 text-func-green">O(1)</td><td class="py-2 pr-4 font-mono">del d[k] / d.pop(k)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">移除失效实体</span><span slot="en">Remove dead entity</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono">遍历 items</td><td class="py-2 pr-4">O(n)</td><td class="py-2 pr-4 font-mono">for k,v in d.items()</td><td class="py-2 pr-4"><Bilingual><span slot="zh">3.7+ 有序遍历</span><span slot="en">Ordered traversal (3.7+)</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 font-mono text-primary-cyan">f-string</td><td class="py-2 pr-4">O(1)</td><td class="py-2 pr-4 font-mono">f"&#123;name&#125;:&#123;hp&#125;"</td><td class="py-2 pr-4"><Bilingual><span slot="zh">日志 / 调试输出</span><span slot="en">Logging / debug</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Pythonic 写法精髓 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Pythonic 写法精髓</span><span slot="en">The Essence of Pythonic Code</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">"Pythonic"不只是写得短，而是用语言提供的<b>语义工具</b>表达意图——让代码更安全、更可读、更易维护。四大利器：<code>with</code> 上下文管理器（自动资源管理，类似 C++ RAII）、<code>@decorator</code> 装饰器（函数包装，AOP 思想）、<b>类型注解</b>（3.5+，配合 mypy/pyright 做静态检查）、<b>海象运算符 <code>:=</code></b>（3.8+，赋值表达式，消除"计算-判断-使用"的冗余）。</span><span slot="en">"Pythonic" isn't just brevity — it's using the language's <b>semantic tools</b> to express intent, making code safer, more readable, more maintainable. Four essentials: <code>with</code> context managers (automatic resource management, like C++ RAII), <code>@decorator</code> (function wrapping, AOP thinking), <b>type annotations</b> (3.5+, with mypy/pyright for static checks), and the <b>walrus operator <code>:=</code></b> (3.8+, assignment expressions, eliminating "compute-check-use" redundancy).</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-func-green"># 1. 上下文管理器 with（自动资源管理，类似 C++ RAII）</span>
+with open('config.json') as f:    <span class="text-ink-muted"># 离开 with 块自动 close，即使异常也安全</span>
+    data = json.load(f)
+
+class Timer:
+    def __enter__(self): self.t0 = time.time(); return self
+    def __exit__(self, *exc): print(f"&#123;time.time()-self.t0:.3f&#125;s")
+
+with Timer():                     <span class="text-func-amber"># 自定义上下文管理器</span>
+    heavy_computation()
+
+<span class="text-primary-cyan"># 2. 装饰器 @（函数包装，AOP 思想）</span>
+import functools
+def log_call(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        print(f"call &#123;func.__name__&#125;(&#123;args&#125;)")
+        return func(*args, **kwargs)
+    return wrapper
+
+@log_call
+def attack(target, damage): ...   <span class="text-ink-muted"># 每次调用自动打印日志</span>
+
+<span class="text-primary-purple"># 3. 类型注解（3.5+，静态检查工具 mypy/pyright 用）</span>
+def heal(target: Entity, amount: int) -&gt; bool:
+    target.hp += amount
+    return target.hp &gt; 0
+
+<span class="text-func-amber"># 4. 海象运算符 :=（3.8+，赋值表达式）</span>
+if (n := len(data)) &gt; 10:
+    print(f"too long: &#123;n&#125;")       <span class="text-ink-muted"># n 在 if 块内可用，无需单独一行</span>
+
+while (line := file.readline()):
+    process(line)                  <span class="text-ink-muted"># 读一行用一行，无中间变量</span>
+
+<span class="text-func-red"># 游戏配置：读取 + 校验 + 默认值</span>
+config = &#123;**DEFAULTS, **json.load(open('game.json'))&#125;  <span class="text-ink-muted"># 合并默认值</span></code></pre>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">关联阅读：<a class="text-primary-cyan underline" href="/topics/python">Python 概览</a> · <a class="text-primary-cyan underline" href="/topics/py-stdlib">标准库</a>（collections/itertools 扩展数据结构）· <a class="text-primary-cyan underline" href="/topics/py-objects">对象模型</a>（dict 底层结构）· <a class="text-primary-cyan underline" href="/topics/py-optimization">性能优化</a>（dict 内存优化）。</span><span slot="en">Related: <a class="text-primary-cyan underline" href="/topics/python">Python Overview</a> · <a class="text-primary-cyan underline" href="/topics/py-stdlib">Stdlib</a> (collections/itertools) · <a class="text-primary-cyan underline" href="/topics/py-objects">Object Model</a> (dict internals) · <a class="text-primary-cyan underline" href="/topics/py-optimization">Performance</a> (dict memory).</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 推导式 vs 传统循环 流程对比
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('cmp-svg') as unknown as SVGSVGElement;
+  const cmpBtns = document.querySelectorAll<HTMLButtonElement>('.cmp-btn');
+
+  interface FlowNode { x: number; y: number; w: number; h: number; labelZh: string; labelEn: string; color: string; }
+  interface FlowArrow { from: number; to: number; label?: string; }
+  interface FlowData { nodes: FlowNode[]; arrows: FlowArrow[]; codeZh: string; codeEn: string; descZh: string; descEn: string; }
+
+  const FLOWS: Record<string, FlowData> = {
+    loop: {
+      nodes: [
+        { x: 20, y: 110, w: 100, h: 50, labelZh: 'result = []', labelEn: 'result = []', color: '#FBBF24' },
+        { x: 150, y: 110, w: 120, h: 50, labelZh: 'for x in nums', labelEn: 'for x in nums', color: '#22D3EE' },
+        { x: 310, y: 70, w: 100, h: 40, labelZh: 'if x%2==0', labelEn: 'if x%2==0', color: '#A78BFA' },
+        { x: 310, y: 150, w: 80, h: 36, labelZh: '跳过', labelEn: 'skip', color: '#64748B' },
+        { x: 440, y: 70, w: 80, h: 40, labelZh: 'x*x', labelEn: 'x*x', color: '#22C55E' },
+        { x: 550, y: 70, w: 100, h: 40, labelZh: 'result.append', labelEn: 'append', color: '#22C55E' },
+        { x: 680, y: 110, w: 100, h: 50, labelZh: 'return result', labelEn: 'return', color: '#22D3EE' },
+      ],
+      arrows: [
+        { from: 0, to: 1 }, { from: 1, to: 2, label: '✓' }, { from: 2, to: 3, label: '✗' },
+        { from: 3, to: 1 }, { from: 2, to: 4 }, { from: 4, to: 5 }, { from: 5, to: 1 }, { from: 1, to: 6 },
+      ],
+      codeZh: 'result = []\nfor x in nums:\n    if x % 2 == 0:\n        result.append(x * x)',
+      codeEn: 'result = []\nfor x in nums:\n    if x % 2 == 0:\n        result.append(x * x)',
+      descZh: '传统循环：7 个步骤、2 个中间变量、显式控制流——啰嗦但直白',
+      descEn: 'Traditional loop: 7 steps, 2 temp vars, explicit control flow — verbose but straightforward',
+    },
+    comp: {
+      nodes: [
+        { x: 30, y: 110, w: 140, h: 50, labelZh: 'for x in nums', labelEn: 'for x in nums', color: '#22D3EE' },
+        { x: 200, y: 110, w: 120, h: 50, labelZh: 'if x%2==0', labelEn: 'if x%2==0', color: '#A78BFA' },
+        { x: 350, y: 110, w: 90, h: 50, labelZh: 'x*x', labelEn: 'x*x', color: '#22C55E' },
+        { x: 470, y: 110, w: 130, h: 50, labelZh: 'collect []', labelEn: 'collect []', color: '#22C55E' },
+        { x: 630, y: 110, w: 120, h: 50, labelZh: 'return', labelEn: 'return', color: '#22D3EE' },
+      ],
+      arrows: [
+        { from: 0, to: 1 }, { from: 1, to: 2 }, { from: 2, to: 3 }, { from: 3, to: 4 },
+      ],
+      codeZh: 'result = [x * x for x in nums if x % 2 == 0]',
+      codeEn: 'result = [x * x for x in nums if x % 2 == 0]',
+      descZh: '列表推导：一行表达式、零中间变量、filter+transform+collect 三合一',
+      descEn: 'Comprehension: one expression, zero temp vars, filter+transform+collect in one',
+    },
+  };
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  // arrow marker
+  const defs = document.createElementNS(SVGNS, 'defs');
+  const marker = document.createElementNS(SVGNS, 'marker');
+  marker.setAttribute('id', 'cmp-arrow');
+  marker.setAttribute('viewBox', '0 0 10 10');
+  marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5');
+  marker.setAttribute('markerWidth', '6'); marker.setAttribute('markerHeight', '6');
+  marker.setAttribute('orient', 'auto');
+  const path = document.createElementNS(SVGNS, 'path');
+  path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+  path.setAttribute('fill', 'rgba(148,163,184,0.6)');
+  marker.appendChild(path);
+  defs.appendChild(marker);
+  svg.appendChild(defs);
+
+  function render(style: string) {
+    const data = FLOWS[style];
+    if (!data) return;
+    svg.innerHTML = '';
+    svg.appendChild(defs);
+
+    // 代码展示（顶部）
+    const codeText = lang() === 'en' ? data.codeEn : data.codeZh;
+    const lines = codeText.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', '400'); t.setAttribute('y', String(22 + i * 16));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '12');
+      t.setAttribute('font-family', 'monospace'); t.setAttribute('fill', '#FBBF24');
+      t.textContent = lines[i];
+      svg.appendChild(t);
+    }
+
+    // 箭头
+    for (const a of data.arrows) {
+      const from = data.nodes[a.from], to = data.nodes[a.to];
+      const x1 = from.x + from.w, y1 = from.y + from.h / 2;
+      const x2 = to.x, y2 = to.y + to.h / 2;
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', String(x1)); line.setAttribute('y1', String(y1));
+      line.setAttribute('x2', String(x2 - 6)); line.setAttribute('y2', String(y2));
+      line.setAttribute('stroke', 'rgba(148,163,184,0.5)'); line.setAttribute('stroke-width', '2');
+      line.setAttribute('marker-end', 'url(#cmp-arrow)');
+      svg.appendChild(line);
+      if (a.label) {
+        const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 6;
+        const lt = document.createElementNS(SVGNS, 'text');
+        lt.setAttribute('x', String(mx)); lt.setAttribute('y', String(my));
+        lt.setAttribute('text-anchor', 'middle'); lt.setAttribute('font-size', '11');
+        lt.setAttribute('fill', '#94A3B8');
+        lt.textContent = a.label;
+        svg.appendChild(lt);
+      }
+    }
+
+    // 节点
+    for (const n of data.nodes) {
+      const rect = document.createElementNS(SVGNS, 'rect');
+      rect.setAttribute('x', String(n.x)); rect.setAttribute('y', String(n.y));
+      rect.setAttribute('width', String(n.w)); rect.setAttribute('height', String(n.h));
+      rect.setAttribute('rx', '8'); rect.setAttribute('fill', n.color + '22');
+      rect.setAttribute('stroke', n.color); rect.setAttribute('stroke-width', '2');
+      svg.appendChild(rect);
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(n.x + n.w / 2)); t.setAttribute('y', String(n.y + n.h / 2 + 5));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '12');
+      t.setAttribute('font-weight', '600'); t.setAttribute('fill', n.color);
+      t.setAttribute('font-family', 'monospace');
+      t.textContent = lang() === 'en' ? n.labelEn : n.labelZh;
+      svg.appendChild(t);
+    }
+
+    // 描述
+    const desc = document.createElementNS(SVGNS, 'text');
+    desc.setAttribute('x', '400'); desc.setAttribute('y', '215');
+    desc.setAttribute('text-anchor', 'middle'); desc.setAttribute('font-size', '12');
+    desc.setAttribute('fill', '#F472B6'); desc.setAttribute('font-weight', '600');
+    desc.textContent = lang() === 'en' ? data.descEn : data.descZh;
+    svg.appendChild(desc);
+  }
+
+  function setActive(style: string) {
+    cmpBtns.forEach(b => b.classList.toggle('btn-primary', b.dataset.style === style));
+    render(style);
+  }
+  cmpBtns.forEach(b => b.addEventListener('click', () => setActive(b.dataset.style!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.cmp-btn.btn-primary');
+    render(active?.dataset.style || 'loop');
+  });
+  setActive('loop');
+</script>
