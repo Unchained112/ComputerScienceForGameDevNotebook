@@ -1,0 +1,370 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Normalization & Joins · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Databases / Normalization</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">范式与连接</span><span slot="en">Normalization & Joins</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh"><b>范式</b>是一套消除数据冗余与异常的设计规则。从 1NF 到 3NF，每提升一级，冗余减少一层，但 JOIN 增多一步。游戏开发中常在<b>3NF 与反范式</b>之间权衡：核心交易数据严格范式化保证一致性；读多写少的展示数据适度反范式化换取查询速度。点击下方逐步查看从混乱表到 3NF 的规范化演变。</span>
+          <span slot="en"><b>Normalization</b> is a set of design rules that eliminate data redundancy and anomalies. From 1NF to 3NF, each level reduces redundancy but adds a JOIN. Game development balances <b>3NF vs denormalization</b>: core transactional data is strictly normalized for consistency; read-heavy display data is moderately denormalized for query speed. Click below to step through the evolution from a messy table to 3NF.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：1NF→2NF→3NF 演变 -->
+    <div class="glass p-5" data-viz="normalization">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <button class="btn norm-btn" data-nf="0">
+          <span data-lang="zh">未规范化</span><span data-lang="en">Unnormalized</span>
+        </button>
+        <button class="btn norm-btn btn-primary" data-nf="1">1NF</button>
+        <button class="btn norm-btn" data-nf="2">2NF</button>
+        <button class="btn norm-btn" data-nf="3">3NF</button>
+      </div>
+      <svg id="norm-svg" viewBox="0 0 800 380" class="w-full h-95 viz-stage"></svg>
+    </div>
+
+    <!-- 范式判定 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">范式判定：逐级消除什么？</span><span slot="en">Normalization: What Each Level Eliminates</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">每一级范式针对一种特定的<b>数据异常</b>：<b>1NF</b> 消除"一个单元格里塞多个值"（原子性）；<b>2NF</b> 消除"非主属性依赖主键的一部分"（部分依赖，只发生在联合主键）；<b>3NF</b> 消除"非主属性依赖另一个非主属性"（传递依赖）。口诀：<b>"1NF 原子、2NF 无部分、3NF 无传递"</b>。</span><span slot="en">Each normal form targets a specific <b>data anomaly</b>: <b>1NF</b> eliminates "multiple values in one cell" (atomicity); <b>2NF</b> eliminates "non-key attribute depends on part of a composite key" (partial dependency, only with composite PKs); <b>3NF</b> eliminates "non-key attribute depends on another non-key attribute" (transitive dependency). Mnemonic: <b>"1NF atomic, 2NF no partial, 3NF no transitive"</b>.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">范式</span><span slot="en">Normal Form</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">要求</span><span slot="en">Requirement</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">消除的异常</span><span slot="en">Anomaly Eliminated</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber">1NF</td><td class="py-2 pr-4"><Bilingual><span slot="zh">每列原子不可分</span><span slot="en">Each column is atomic</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">重复组、多值单元格</span><span slot="en">Repeating groups, multi-value cells</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green">2NF</td><td class="py-2 pr-4"><Bilingual><span slot="zh">1NF + 无部分依赖</span><span slot="en">1NF + no partial dependency</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">联合主键下部分依赖导致的冗余</span><span slot="en">Redundancy from partial composite-key dependency</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-primary-cyan">3NF</td><td class="py-2 pr-4"><Bilingual><span slot="zh">2NF + 无传递依赖</span><span slot="en">2NF + no transitive dependency</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">非主属性间的传递依赖</span><span slot="en">Transitive dependency between non-key attrs</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 规范化示例 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">规范化实战：玩家订单表</span><span slot="en">Normalization in Practice: Player Orders</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">以"玩家购买物品"为例，展示从混乱的一张表到三张关联表的规范化过程。注意每一步消除了什么异常、引入了什么 JOIN 代价。</span><span slot="en">Using "player buys items" as an example, here's the normalization process from one messy table to three related tables. Note what anomaly each step eliminates and the JOIN cost it introduces.</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-func-red">-- ❌ 未规范化：一张大表（玩家+公会+物品全塞一起）</span>
+orders_unnormalized:
+  order_id | player_name | guild_name | guild_level | items
+  ---------|-------------|------------|-------------|------------------
+  1        | 张三        | 战神殿     | 10          | 剑, 盾, 药水
+  <span class="text-ink-muted">-- 问题：items 列有多值（违反 1NF）；guild_name/level 重复（冗余）</span>
+
+<span class="text-func-amber">-- ✓ 1NF：拆分多值为多行（原子性）</span>
+orders_1nf:
+  order_id | player_name | guild_name | guild_level | item_name
+  1        | 张三        | 战神殿     | 10          | 剑
+  1        | 张三        | 战神殿     | 10          | 盾
+  1        | 张三        | 战神殿     | 10          | 药水
+  <span class="text-ink-muted">-- 问题：guild 信息重复 3 次（更新异常：改公会名要改 3 行）</span>
+
+<span class="text-func-green">-- ✓ 2NF：拆出玩家与公会（消除部分依赖）</span>
+orders(order_id PK, player_id FK, item_name)     <span class="text-ink-muted">-- 订单只留关联</span>
+players(player_id PK, name, guild_id FK)         <span class="text-ink-muted">-- 玩家独立</span>
+
+<span class="text-primary-cyan">-- ✓ 3NF：拆出公会表（消除传递依赖：guild_level 依赖 guild_name）</span>
+orders(order_id PK, player_id FK, item_name)
+players(player_id PK, name, guild_id FK)
+guilds(guild_id PK, name, level)                  <span class="text-ink-muted">-- 公会独立</span>
+  <span class="text-ink-muted">-- 改公会名只需改 guilds 一行 ✓</span></code></pre>
+    </section>
+
+    <!-- 反范式 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">反范式：何时打破规则？</span><span slot="en">Denormalization: When to Break the Rules?</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">3NF 不是终点——<b>反范式</b>是有意引入冗余以换取查询性能。判断标准：如果某查询<b>频繁执行</b>且需要<b>多表 JOIN</b>，而涉及的冗余数据<b>更新极少</b>，就值得反范式化。游戏场景经典案例：排行榜需要"玩家名+分数"，若每次都 JOIN players 表太慢，可在 scores 表中冗余存 player_name。</span><span slot="en">3NF isn't the end — <b>denormalization</b> deliberately introduces redundancy for query performance. The rule: if a query is <b>frequently executed</b>, requires <b>multiple JOINs</b>, and the redundant data is <b>rarely updated</b>, denormalize it. Classic game example: leaderboards need "player name + score"; JOINing players every time is slow, so store player_name redundantly in the scores table.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">维度</span><span slot="en">Dimension</span></Bilingual></th><th class="py-2 pr-4 text-primary-cyan"><Bilingual><span slot="zh">范式化（3NF）</span><span slot="en">Normalized (3NF)</span></Bilingual></th><th class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">反范式</span><span slot="en">Denormalized</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">冗余</span><span slot="en">Redundancy</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">最小</span><span slot="en">Minimal</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">有意增加</span><span slot="en">Deliberately added</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">写入</span><span slot="en">Writes</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">单表更新，快</span><span slot="en">Single-table, fast</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">多处同步更新，慢</span><span slot="en">Multi-place sync, slow</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">读取</span><span slot="en">Reads</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">需 JOIN，较慢</span><span slot="en">Needs JOINs, slower</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">少 JOIN，快</span><span slot="en">Fewer JOINs, faster</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">适用</span><span slot="en">Best for</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">写多读少、一致性高</span><span slot="en">Write-heavy, high consistency</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">读多写少、展示优先</span><span slot="en">Read-heavy, display-first</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <pre class="glass p-4 overflow-x-auto text-sm mt-4"><code><span class="text-func-amber">-- 反范式示例：排行榜冗余玩家名</span>
+<span class="text-ink-muted">-- 范式化设计（每次查排行榜都要 JOIN）：</span>
+<span class="text-primary-cyan">SELECT</span> p.name, s.score
+<span class="text-primary-cyan">FROM</span> scores s <span class="text-primary-cyan">JOIN</span> players p <span class="text-primary-cyan">ON</span> s.player_id = p.id
+<span class="text-primary-cyan">ORDER BY</span> s.score <span class="text-primary-purple">DESC</span> <span class="text-primary-cyan">LIMIT</span> 100;
+<span class="text-ink-muted">-- 排行榜每秒查询数百次，JOIN 成为瓶颈</span>
+
+<span class="text-ink-muted">-- 反范式设计（冗余 player_name，避免 JOIN）：</span>
+<span class="text-primary-cyan">CREATE TABLE</span> leaderboard (
+    player_id   <span class="text-func-green">INT PRIMARY KEY</span>,
+    player_name VARCHAR(50) <span class="text-func-red">NOT NULL</span>,   <span class="text-func-amber">-- 冗余字段</span>
+    score       <span class="text-func-green">INT</span>,
+    updated_at  <span class="text-func-green">TIMESTAMP</span>
+);
+<span class="text-primary-cyan">SELECT</span> player_name, score <span class="text-primary-cyan">FROM</span> leaderboard
+<span class="text-primary-cyan">ORDER BY</span> score <span class="text-primary-purple">DESC</span> <span class="text-primary-cyan">LIMIT</span> 100;
+<span class="text-ink-muted">-- 零 JOIN，查询快 ✓；代价：玩家改名时需同步更新此表</span></code></pre>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 1NF→2NF→3NF 规范化演变交互
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('norm-svg') as unknown as SVGSVGElement;
+  const normButtons = document.querySelectorAll<HTMLButtonElement>('.norm-btn');
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  interface Col { name: string; isPK: boolean; isFK: boolean; highlight: boolean; }
+  interface TableShape { name: string; x: number; y: number; cols: Col[]; }
+  interface NFStage { tables: TableShape[]; titleZh: string; titleEn: string; descZh: string; descEn: string; color: string; }
+
+  const STAGES: Record<string, NFStage> = {
+    '0': {
+      tables: [{
+        name: 'orders (未规范化)', x: 200, y: 50,
+        cols: [
+          { name: 'order_id', isPK: true, isFK: false, highlight: true },
+          { name: 'player_name', isPK: false, isFK: false, highlight: false },
+          { name: 'guild_name', isPK: false, isFK: false, highlight: true },
+          { name: 'guild_level', isPK: false, isFK: false, highlight: true },
+          { name: 'items (剑,盾,药水)', isPK: false, isFK: false, highlight: true },
+        ],
+      }],
+      titleZh: '未规范化：一张大表', titleEn: 'Unnormalized: One Big Table',
+      descZh: '问题：items 列多值（非原子）；guild 信息重复冗余',
+      descEn: 'Issues: items column has multiple values (non-atomic); guild info is redundant',
+      color: '#EF4444',
+    },
+    '1': {
+      tables: [{
+        name: 'orders (1NF)', x: 200, y: 50,
+        cols: [
+          { name: 'order_id', isPK: true, isFK: false, highlight: true },
+          { name: 'player_name', isPK: false, isFK: false, highlight: false },
+          { name: 'guild_name', isPK: false, isFK: false, highlight: true },
+          { name: 'guild_level', isPK: false, isFK: false, highlight: true },
+          { name: 'item_name', isPK: false, isFK: false, highlight: true },
+        ],
+      }],
+      titleZh: '1NF：拆分多值为多行', titleEn: '1NF: Split Multi-Values into Rows',
+      descZh: 'items 列已原子化 ✓；但 guild 信息仍重复（更新异常）',
+      descEn: 'items column is now atomic ✓; but guild info still redundant (update anomaly)',
+      color: '#FBBF24',
+    },
+    '2': {
+      tables: [
+        {
+          name: 'orders (2NF)', x: 50, y: 50,
+          cols: [
+            { name: 'order_id', isPK: true, isFK: false, highlight: false },
+            { name: 'player_id', isPK: false, isFK: true, highlight: true },
+            { name: 'item_name', isPK: false, isFK: false, highlight: false },
+          ],
+        },
+        {
+          name: 'players (2NF)', x: 350, y: 50,
+          cols: [
+            { name: 'player_id', isPK: true, isFK: false, highlight: false },
+            { name: 'name', isPK: false, isFK: false, highlight: false },
+            { name: 'guild_name', isPK: false, isFK: false, highlight: true },
+            { name: 'guild_level', isPK: false, isFK: false, highlight: true },
+          ],
+        },
+      ],
+      titleZh: '2NF：拆出玩家表（消除部分依赖）', titleEn: '2NF: Extract Players (Remove Partial Dependency)',
+      descZh: 'guild 信息只在 players 表存一次 ✓；但 guild_name→guild_level 传递依赖',
+      descEn: 'Guild info stored once in players ✓; but guild_name→guild_level is transitive',
+      color: '#22C55E',
+    },
+    '3': {
+      tables: [
+        {
+          name: 'orders (3NF)', x: 30, y: 50,
+          cols: [
+            { name: 'order_id', isPK: true, isFK: false, highlight: false },
+            { name: 'player_id', isPK: false, isFK: true, highlight: false },
+            { name: 'item_name', isPK: false, isFK: false, highlight: false },
+          ],
+        },
+        {
+          name: 'players (3NF)', x: 290, y: 50,
+          cols: [
+            { name: 'player_id', isPK: true, isFK: false, highlight: false },
+            { name: 'name', isPK: false, isFK: false, highlight: false },
+            { name: 'guild_id', isPK: false, isFK: true, highlight: true },
+          ],
+        },
+        {
+          name: 'guilds (3NF)', x: 540, y: 50,
+          cols: [
+            { name: 'guild_id', isPK: true, isFK: false, highlight: false },
+            { name: 'name', isPK: false, isFK: false, highlight: false },
+            { name: 'level', isPK: false, isFK: false, highlight: false },
+          ],
+        },
+      ],
+      titleZh: '3NF：拆出公会表（消除传递依赖）', titleEn: '3NF: Extract Guilds (Remove Transitive Dependency)',
+      descZh: '三表通过外键关联 ✓；改公会名只改 guilds 一行；查询需 JOIN',
+      descEn: 'Three tables linked via FK ✓; rename guild in one row; queries need JOINs',
+      color: '#22D3EE',
+    },
+  };
+
+  function render(nf: string) {
+    svg.innerHTML = '';
+    const stage = STAGES[nf];
+    if (!stage) return;
+    const colH = 24, headerH = 28, tableW = 200;
+    const pkColor = '#FBBF24', fkColor = '#22D3EE', hlColor = stage.color;
+
+    // 标题
+    const titleBg = document.createElementNS(SVGNS, 'rect');
+    titleBg.setAttribute('x', '20'); titleBg.setAttribute('y', '10');
+    titleBg.setAttribute('width', '760'); titleBg.setAttribute('height', '32');
+    titleBg.setAttribute('rx', '8'); titleBg.setAttribute('fill', stage.color + '15');
+    titleBg.setAttribute('stroke', stage.color + '44'); titleBg.setAttribute('stroke-width', '1.5');
+    svg.appendChild(titleBg);
+
+    const title = document.createElementNS(SVGNS, 'text');
+    title.setAttribute('x', '40'); title.setAttribute('y', '31');
+    title.setAttribute('font-size', '15'); title.setAttribute('font-weight', '700');
+    title.setAttribute('fill', stage.color);
+    title.textContent = lang() === 'en' ? stage.titleEn : stage.titleZh;
+    svg.appendChild(title);
+
+    // 绘制表
+    for (const tbl of stage.tables) {
+      const totalH = headerH + tbl.cols.length * colH;
+
+      // 表背景
+      const bg = document.createElementNS(SVGNS, 'rect');
+      bg.setAttribute('x', String(tbl.x)); bg.setAttribute('y', String(tbl.y));
+      bg.setAttribute('width', String(tableW)); bg.setAttribute('height', String(totalH));
+      bg.setAttribute('rx', '8'); bg.setAttribute('fill', 'rgba(148,163,184,0.06)');
+      bg.setAttribute('stroke', 'rgba(148,163,184,0.2)'); bg.setAttribute('stroke-width', '1.5');
+      svg.appendChild(bg);
+
+      // 表头
+      const headerBg = document.createElementNS(SVGNS, 'rect');
+      headerBg.setAttribute('x', String(tbl.x)); headerBg.setAttribute('y', String(tbl.y));
+      headerBg.setAttribute('width', String(tableW)); headerBg.setAttribute('height', String(headerH));
+      headerBg.setAttribute('rx', '8'); headerBg.setAttribute('fill', 'rgba(8,145,178,0.15)');
+      svg.appendChild(headerBg);
+
+      const tableName = document.createElementNS(SVGNS, 'text');
+      tableName.setAttribute('x', String(tbl.x + 10)); tableName.setAttribute('y', String(tbl.y + 19));
+      tableName.setAttribute('font-size', '13'); tableName.setAttribute('font-weight', '700');
+      tableName.setAttribute('fill', '#22D3EE');
+      tableName.textContent = tbl.name;
+      svg.appendChild(tableName);
+
+      // 列
+      for (let i = 0; i < tbl.cols.length; i++) {
+        const col = tbl.cols[i];
+        const cy = tbl.y + headerH + i * colH + colH / 2;
+
+        if (col.highlight) {
+          const hl = document.createElementNS(SVGNS, 'rect');
+          hl.setAttribute('x', String(tbl.x)); hl.setAttribute('y', String(tbl.y + headerH + i * colH));
+          hl.setAttribute('width', String(tableW)); hl.setAttribute('height', String(colH));
+          hl.setAttribute('fill', hlColor + '12');
+          svg.appendChild(hl);
+        }
+
+        // 标记
+        if (col.isPK) {
+          const pk = document.createElementNS(SVGNS, 'text');
+          pk.setAttribute('x', String(tbl.x + 6)); pk.setAttribute('y', String(cy + 4));
+          pk.setAttribute('font-size', '9'); pk.setAttribute('font-weight', '700');
+          pk.setAttribute('fill', pkColor);
+          pk.textContent = 'PK';
+          svg.appendChild(pk);
+        } else if (col.isFK) {
+          const fk = document.createElementNS(SVGNS, 'text');
+          fk.setAttribute('x', String(tbl.x + 6)); fk.setAttribute('y', String(cy + 4));
+          fk.setAttribute('font-size', '9'); fk.setAttribute('font-weight', '700');
+          fk.setAttribute('fill', fkColor);
+          fk.textContent = 'FK';
+          svg.appendChild(fk);
+        }
+
+        const colName = document.createElementNS(SVGNS, 'text');
+        colName.setAttribute('x', String(tbl.x + 34)); colName.setAttribute('y', String(cy + 4));
+        colName.setAttribute('font-size', '12');
+        colName.setAttribute('fill', col.highlight ? hlColor : '#CBD5E1');
+        colName.textContent = col.name;
+        svg.appendChild(colName);
+      }
+    }
+
+    // 3NF 时绘制关联线
+    if (nf === '3') {
+      const drawArrow = (x1: number, y1: number, x2: number, y2: number) => {
+        const path = document.createElementNS(SVGNS, 'path');
+        path.setAttribute('d', `M ${x1} ${y1} C ${(x1+x2)/2} ${y1}, ${(x1+x2)/2} ${y2}, ${x2} ${y2}`);
+        path.setAttribute('stroke', '#22D3EE'); path.setAttribute('stroke-width', '1.5');
+        path.setAttribute('fill', 'none'); path.setAttribute('stroke-dasharray', '4,3');
+        svg.appendChild(path);
+      };
+      // orders.player_id -> players.player_id
+      drawArrow(230, 50 + 28 + 1 * 24 + 12, 290, 50 + 28 + 0 * 24 + 12);
+      // players.guild_id -> guilds.guild_id
+      drawArrow(490, 50 + 28 + 2 * 24 + 12, 540, 50 + 28 + 0 * 24 + 12);
+    }
+
+    // 说明
+    const descY = 260;
+    const descBg = document.createElementNS(SVGNS, 'rect');
+    descBg.setAttribute('x', '20'); descBg.setAttribute('y', String(descY));
+    descBg.setAttribute('width', '760'); descBg.setAttribute('height', '60');
+    descBg.setAttribute('rx', '8'); descBg.setAttribute('fill', stage.color + '0A');
+    descBg.setAttribute('stroke', stage.color + '22'); descBg.setAttribute('stroke-width', '1');
+    svg.appendChild(descBg);
+
+    const desc = document.createElementNS(SVGNS, 'text');
+    desc.setAttribute('x', '40'); desc.setAttribute('y', String(descY + 28));
+    desc.setAttribute('font-size', '13'); desc.setAttribute('fill', '#CBD5E1');
+    desc.textContent = lang() === 'en' ? stage.descEn : stage.descZh;
+    svg.appendChild(desc);
+
+    // 图例
+    const legendY = descY + 50;
+    const pkLegend = document.createElementNS(SVGNS, 'text');
+    pkLegend.setAttribute('x', '40'); pkLegend.setAttribute('y', String(legendY));
+    pkLegend.setAttribute('font-size', '11'); pkLegend.setAttribute('fill', '#FBBF24');
+    pkLegend.textContent = lang() === 'en' ? 'PK=Primary Key' : 'PK=主键';
+    svg.appendChild(pkLegend);
+
+    const fkLegend = document.createElementNS(SVGNS, 'text');
+    fkLegend.setAttribute('x', '160'); fkLegend.setAttribute('y', String(legendY));
+    fkLegend.setAttribute('font-size', '11'); fkLegend.setAttribute('fill', '#22D3EE');
+    fkLegend.textContent = lang() === 'en' ? 'FK=Foreign Key' : 'FK=外键';
+    svg.appendChild(fkLegend);
+
+    const hlLegend = document.createElementNS(SVGNS, 'text');
+    hlLegend.setAttribute('x', '280'); hlLegend.setAttribute('y', String(legendY));
+    hlLegend.setAttribute('font-size', '11'); hlLegend.setAttribute('fill', stage.color);
+    hlLegend.textContent = lang() === 'en' ? 'Highlight=change at this step' : '高亮=本步变化的列';
+    svg.appendChild(hlLegend);
+  }
+
+  function setActive(nf: string) {
+    normButtons.forEach(b => {
+      b.classList.toggle('btn-primary', b.dataset.nf === nf);
+    });
+    render(nf);
+  }
+
+  normButtons.forEach(b => b.addEventListener('click', () => setActive(b.dataset.nf!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.norm-btn.btn-primary');
+    render(active?.dataset.nf || '1');
+  });
+  setActive('1');
+</script>

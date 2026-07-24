@@ -12,8 +12,8 @@ import CodeTabs from '../../components/CodeTabs.astro';
       </h1>
       <p class="text-ink-muted leading-relaxed">
         <Bilingual>
-          <span slot="zh">C++ 是游戏引擎的<b>事实标准</b>——Unreal、Unity (IL2CPP)、自研引擎核心均以 C++ 编写。它提供<b>零开销抽象</b>：既能像 C 一样贴近硬件操控内存，又能用模板、RAII、智能指针等高级特性保证安全。从 C++11 起，语言每三年一次标准迭代，现代 C++ 已与 2003 年的"C with Classes"截然不同。点击下方时间线节点，查看每个标准的关键特性。</span>
-          <span slot="en">C++ is the <b>de facto standard</b> for game engines — Unreal, Unity (IL2CPP), and custom engine cores are all written in C++. It offers <b>zero-overhead abstraction</b>: as close to hardware as C for memory control, yet with templates, RAII, and smart pointers for safety. Since C++11, the standard evolves every three years; modern C++ is vastly different from 2003's "C with Classes". Click timeline nodes below to explore each standard's key features.</span>
+          <span slot="zh">C++ 是游戏引擎的<b>事实标准</b>——Unreal、Unity (IL2CPP)、自研引擎核心均以 C++ 编写。它提供<b>零开销抽象</b>：既能像 C 一样贴近硬件操控内存，又能用模板、RAII、智能指针等高级特性保证安全。从 C++11 起，语言每三年一次标准迭代，现代 C++ 已与 2003 年的"C with Classes"截然不同。本页从<b>基础语法</b>、<b>主流编译器</b>到<b>工程工具链与常用库</b>一站式覆盖，助你从零入门到实战。点击下方时间线节点，查看每个标准的关键特性。</span>
+          <span slot="en">C++ is the <b>de facto standard</b> for game engines — Unreal, Unity (IL2CPP), and custom engine cores are all written in C++. It offers <b>zero-overhead abstraction</b>: as close to hardware as C for memory control, yet with templates, RAII, and smart pointers for safety. Since C++11, the standard evolves every three years; modern C++ is vastly different from 2003's "C with Classes". This page covers everything from <b>basic syntax</b>, <b>mainstream compilers</b>, to the <b>engineering toolchain & common libraries</b> — from zero to practice. Click timeline nodes below to explore each standard's key features.</span>
         </Bilingual>
       </p>
     </header>
@@ -29,6 +29,111 @@ import CodeTabs from '../../components/CodeTabs.astro';
       </div>
       <svg id="cpp-tl-svg" viewBox="0 0 800 300" class="w-full h-80 viz-stage"></svg>
     </div>
+
+    <!-- 基础语法速览 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">基础语法速览</span><span slot="en">Basic Syntax Cheat Sheet</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">C++ 是<b>静态强类型</b>语言——每个变量类型在编译期确定，编译器据此分配内存、生成最优指令。掌握基本类型、初始化、控制流与函数，是阅读后续高级主题的前提。下方表格列出游戏开发中最常用的基本类型及其典型用途。</span><span slot="en">C++ is <b>statically & strongly typed</b> — every variable's type is fixed at compile time, letting the compiler allocate memory and emit optimal instructions. Mastering basic types, initialization, control flow, and functions is prerequisite to the advanced topics ahead. The table below lists the most common types in game development and their typical uses.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">类型</span><span slot="en">Type</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">字宽</span><span slot="en">Width</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏用途</span><span slot="en">Game Use Case</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-amber">int</td><td class="py-2 pr-4">4 B</td><td class="py-2 pr-4"><Bilingual><span slot="zh">通用整数（计数、循环、ID）</span><span slot="en">General integer (count, loop, ID)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-amber">int64_t</td><td class="py-2 pr-4">8 B</td><td class="py-2 pr-4"><Bilingual><span slot="zh">大数值（经验值、时间戳、金钱）</span><span slot="en">Large values (XP, timestamps, currency)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-primary-cyan">float</td><td class="py-2 pr-4">4 B</td><td class="py-2 pr-4"><Bilingual><span slot="zh">单精度浮点（GPU 着色器默认）</span><span slot="en">Single-precision (GPU shader default)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-primary-cyan">double</td><td class="py-2 pr-4">8 B</td><td class="py-2 pr-4"><Bilingual><span slot="zh">双精度（物理模拟、避免精度丢失）</span><span slot="en">Double-precision (physics, precision-critical)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-green">char</td><td class="py-2 pr-4">1 B</td><td class="py-2 pr-4"><Bilingual><span slot="zh">字符 / 字节缓冲</span><span slot="en">Character / byte buffer</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-green">bool</td><td class="py-2 pr-4">1 B</td><td class="py-2 pr-4"><Bilingual><span slot="zh">标志位（是否存活、碰撞开关）</span><span slot="en">Flags (alive, collision toggle)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-primary-purple">auto</td><td class="py-2 pr-4"><Bilingual><span slot="zh">推导</span><span slot="en">deduced</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">简化复杂类型（迭代器、Lambda）</span><span slot="en">Simplify complex types (iterators, lambdas)</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 font-mono text-ink-muted">void</td><td class="py-2 pr-4">—</td><td class="py-2 pr-4"><Bilingual><span slot="zh">无返回值（函数 / 通用指针）</span><span slot="en">No return (functions / generic pointer)</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4">
+        <CodeTabs
+  cpp={`<pre><code>// ===== 变量声明与初始化 =====
+int hp = 100;            // 拷贝初始化（C 风格）
+int mp&#123;50&#125;;             // 统一初始化（C++11，防窄化）
+auto damage = 42.5f;      // auto 推导为 float
+const int MAX_PLAYERS = 4;// 运行期常量
+constexpr int TILE = 32;  // 编译期常量（可用于数组大小）
+
+// ===== 控制流 =====
+if (hp &lt;= 0) &#123;
+    onDeath();
+&#125; else if (hp &lt; 10) &#123;
+    onLowHp();
+&#125;
+
+for (int i = 0; i &lt; 10; ++i) process(i);  // 经典 for
+
+std::vector&lt;int&gt; ids = &#123;1, 2, 3&#125;;
+for (auto id : ids) sendPacket(id);          // range-for
+
+switch (state) &#123;                            // switch
+    case State::IDLE:   idle();      break;
+    case State::RUN:    run();       break;
+    default:            unknown();
+&#125;
+
+// ===== 函数：声明/定义分离 + 参数传递 =====
+// math.h —— 声明
+int  computeDamage(int base, float multiplier = 1.0f);  // 默认参数
+void buff(Entity&amp; e);     // 传引用（原地修改，零拷贝）
+void log(const Entity* e); // 传指针（可空，不修改）
+
+// math.cpp —— 定义
+int computeDamage(int base, float multiplier) &#123;
+    return static_cast&lt;int&gt;(base * multiplier);
+&#125;
+
+// ===== 命名空间 =====
+namespace game &#123;
+    namespace ui &#123;
+        void drawButton();   // game::ui::drawButton()
+    &#125;
+&#125;
+// 用 using 简化（切忌在头文件中用 using namespace！）
+using namespace game::ui;
+drawButton();   // 直接调用</code></pre>`}
+  py={`<pre><code># ===== 变量声明与初始化 =====
+hp = 100                 # 动态类型，运行期确定
+mp = 50
+damage = 42.5            # 无 float/double 之分（都是 float）
+MAX_PLAYERS = 4          # 无 const 关键字，靠约定
+TILE = 32                # 无 constexpr
+
+# ===== 控制流 =====
+if hp &lt;= 0:
+    on_death()
+elif hp &lt; 10:
+    on_low_hp()
+
+for i in range(10): process(i)   # range 是迭代器
+
+ids = [1, 2, 3]
+for id in ids: send_packet(id)   # 直接迭代
+
+state_map = {0: idle, 1: run}    # 无 switch，用字典分发
+state_map.get(state, unknown)()
+
+# ===== 函数：无声明/定义分离，默认参数 =====
+def compute_damage(base, multiplier=1.0):
+    return int(base * multiplier)
+
+def buff(e):             # 引用语义（一切皆对象引用）
+    e.hp += 10
+
+# ===== 命名空间：用模块/包替代 =====
+# game/ui.py
+def draw_button(): ...
+
+# main.py
+from game.ui import draw_button
+draw_button()</code></pre>`}
+        />
+      </div>
+    </section>
 
     <!-- 编译模型 -->
     <section class="glass p-5">
@@ -88,6 +193,49 @@ print(add(2, 3))  # 运行时查找 math_impl 模块
       </div>
     </section>
 
+    <!-- 主流编译器 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">主流编译器：GCC / Clang / MSVC</span><span slot="en">Mainstream Compilers: GCC / Clang / MSVC</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">C++ 没有官方编译器，三大主流实现各有所长：<b class="text-func-amber">GCC</b> 是 Linux 的事实标准，开源且后端成熟；<b class="text-primary-cyan">Clang/LLVM</b> 由 Apple 主推，模块化架构、错误诊断友好、IDE 集成最佳；<b class="text-func-green">MSVC</b> 是 Windows/Visual Studio 原生编译器，与 DirectX/Windows SDK 深度绑定。游戏引擎通常<b>跨编译器支持</b>——Unreal Engine 同时兼容这三者。</span><span slot="en">C++ has no official compiler; the three major implementations each excel in different areas: <b class="text-func-amber">GCC</b> is the Linux de facto standard, open-source with a mature backend; <b class="text-primary-cyan">Clang/LLVM</b>, driven by Apple, offers modular architecture, friendly diagnostics, and the best IDE integration; <b class="text-func-green">MSVC</b> is the native Windows/Visual Studio compiler, tightly bound to DirectX/Windows SDK. Game engines typically support all three — Unreal Engine compiles with any of them.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">维度</span><span slot="en">Aspect</span></Bilingual></th><th class="py-2 pr-4 text-func-amber">GCC</th><th class="py-2 pr-4 text-primary-cyan">Clang</th><th class="py-2 pr-4 text-func-green">MSVC</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">默认平台</span><span slot="en">Default platform</span></Bilingual></td><td class="py-2 pr-4">Linux</td><td class="py-2 pr-4">macOS</td><td class="py-2 pr-4">Windows</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">命令</span><span slot="en">Command</span></Bilingual></td><td class="py-2 pr-4 font-mono">g++</td><td class="py-2 pr-4 font-mono">clang++</td><td class="py-2 pr-4 font-mono">cl.exe</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">开源协议</span><span slot="en">License</span></Bilingual></td><td class="py-2 pr-4">GPL</td><td class="py-2 pr-4">Apache 2.0</td><td class="py-2 pr-4"><Bilingual><span slot="zh">闭源（免费）</span><span slot="en">Proprietary (free)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">C++23 支持</span><span slot="en">C++23 support</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">较完整</span><span slot="en">Good</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">较完整</span><span slot="en">Good</span></Bilingual></td><td class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">跟进中</span><span slot="en">Catching up</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">错误诊断</span><span slot="en">Diagnostics</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">一般</span><span slot="en">Fair</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">最佳（精准定位+修复建议）</span><span slot="en">Best (precise + fix-it hints)</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">较好</span><span slot="en">Good</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">编译速度</span><span slot="en">Compile speed</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">中等</span><span slot="en">Medium</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">快</span><span slot="en">Fast</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">中等</span><span slot="en">Medium</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">调试体验</span><span slot="en">Debugging</span></Bilingual></td><td class="py-2 pr-4">GDB</td><td class="py-2 pr-4">LLDB</td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">Visual Studio（最强）</span><span slot="en">Visual Studio (best)</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">游戏引擎偏好</span><span slot="en">Engine preference</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">跨平台引擎后端</span><span slot="en">Cross-platform backends</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">Apple 平台 / 跨平台</span><span slot="en">Apple / cross-platform</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">Windows 原生 / Xbox</span><span slot="en">Windows native / Xbox</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-ink-muted mt-3 mb-2"><Bilingual><span slot="zh">常用编译选项速查（GCC/Clang 通用，MSVC 语法不同）：</span><span slot="en">Common compile flags (GCC/Clang; MSVC syntax differs):</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-func-amber"># 标准与优化</span>
+g++ -std=c++20 -O2 -Wall -Wextra main.cpp -o game
+
+<span class="text-func-amber"># 调试符号（配合 GDB/LLDB）</span>
+g++ -std=c++20 -g -O0 main.cpp -o game_debug
+
+<span class="text-func-amber"># 地址消毒（检测内存越界/use-after-free，开发期必备）</span>
+g++ -std=c++20 -fsanitize=address -g main.cpp -o game_asan
+
+<span class="text-func-amber"># 链接第三方库（如 SDL2）</span>
+g++ -std=c++20 main.cpp -o game `sdl2-config --cflags --libs`
+
+<span class="text-primary-cyan"># 选项速查表</span>
+<span class="text-ink-muted">#   -std=c++20      指定语言标准</span>
+<span class="text-ink-muted">#   -O0/-O1/-O2/-O3 优化等级（0=不优化便于调试，3=最高）</span>
+<span class="text-ink-muted">#   -Wall -Wextra   启用常见警告（生产必开）</span>
+<span class="text-ink-muted">#   -Werror          警告视为错误（严格模式）</span>
+<span class="text-ink-muted">#   -g               生成调试符号</span>
+<span class="text-ink-muted">#   -fsanitize=address/thread/undefined  内存/线程/未定义行为检测</span>
+<span class="text-ink-muted">#   -I&lt;dir&gt;          添加头文件搜索路径</span>
+<span class="text-ink-muted">#   -L&lt;dir&gt; -l&lt;lib&gt; 添加库搜索路径与链接库</span></code></pre>
+    </section>
+
     <!-- 与 C 的区别 -->
     <section class="glass p-5">
       <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">C++ 与 C 的关键区别</span><span slot="en">Key Differences: C++ vs C</span></Bilingual></h2>
@@ -105,8 +253,79 @@ print(add(2, 3))  # 运行时查找 math_impl 模块
           </tbody>
         </table>
       </div>
-      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">深入阅读：<a class="text-primary-cyan underline" href="/topics/cpp-memory">内存与指针</a>、<a class="text-primary-cyan underline" href="/topics/cpp-raii">RAII 与智能指针</a>、<a class="text-primary-cyan underline" href="/topics/cpp-templates">模板与泛型</a>、<a class="text-primary-cyan underline" href="/topics/cpp-move">移动语义</a>、<a class="text-primary-cyan underline" href="/topics/cpp-concurrency">多线程并发</a>、<a class="text-primary-cyan underline" href="/topics/cpp-modern">现代 C++ 特性</a>。</span><span slot="en">Deep dive: <a class="text-primary-cyan underline" href="/topics/cpp-memory">Memory & Pointers</a>, <a class="text-primary-cyan underline" href="/topics/cpp-raii">RAII & Smart Pointers</a>, <a class="text-primary-cyan underline" href="/topics/cpp-templates">Templates</a>, <a class="text-primary-cyan underline" href="/topics/cpp-move">Move Semantics</a>, <a class="text-primary-cyan underline" href="/topics/cpp-concurrency">Concurrency</a>, <a class="text-primary-cyan underline" href="/topics/cpp-modern">Modern C++</a>.</span></Bilingual></p>
     </section>
+
+    <!-- 工程工具链与常用库 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">工程工具链与常用库</span><span slot="en">Engineering Toolchain & Common Libraries</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">C++ 的"难"不只在于语言本身，还在于<b>工程基础设施</b>——没有官方包管理器（不像 Python 的 pip、Node 的 npm），构建依赖历史包袱。现代 C++ 工程的标准组合是：<b class="text-primary-cyan">CMake</b>（构建系统生成器）+ <b class="text-func-amber">vcpkg</b>/<b class="text-func-amber">Conan</b>（包管理）+ <b class="text-func-green">Ninja</b>（更快构建后端）。掌握这套工具链，才能在真实项目中高效开发。</span><span slot="en">C++ is "hard" not just for the language, but for its <b>engineering infrastructure</b> — there's no official package manager (unlike Python's pip or Node's npm), and build tooling carries historical baggage. The modern standard stack is: <b class="text-primary-cyan">CMake</b> (build system generator) + <b class="text-func-amber">vcpkg</b>/<b class="text-func-amber">Conan</b> (package management) + <b class="text-func-green">Ninja</b> (faster build backend). Mastering this toolchain is essential for productive real-world development.</span></Bilingual></p>
+
+      <h3 class="text-sm font-semibold mb-2 text-primary-cyan"><Bilingual><span slot="zh">构建系统与包管理</span><span slot="en">Build Systems & Package Managers</span></Bilingual></h3>
+      <div class="overflow-x-auto mb-4">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">工具</span><span slot="en">Tool</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">类别</span><span slot="en">Category</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">定位</span><span slot="en">Role</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-primary-cyan">CMake</td><td class="py-2 pr-4"><Bilingual><span slot="zh">构建生成器</span><span slot="en">Build generator</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">事实标准，生成 Makefile/Ninja/VS 工程</span><span slot="en">De facto standard; generates Makefile/Ninja/VS projects</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-green">Ninja</td><td class="py-2 pr-4"><Bilingual><span slot="zh">构建后端</span><span slot="en">Build backend</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">比 Make 快，增量构建首选</span><span slot="en">Faster than Make; best for incremental builds</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-amber">vcpkg</td><td class="py-2 pr-4"><Bilingual><span slot="zh">包管理</span><span slot="en">Package manager</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">Microsoft 出品，CMake 集成最佳</span><span slot="en">Microsoft; best CMake integration</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-amber">Conan</td><td class="py-2 pr-4"><Bilingual><span slot="zh">包管理</span><span slot="en">Package manager</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">去中心化，私有仓库友好</span><span slot="en">Decentralized; private-repo friendly</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 font-mono text-primary-purple">Bazel</td><td class="py-2 pr-4"><Bilingual><span slot="zh">构建系统</span><span slot="en">Build system</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">Google 出品，大型 monorepo、可复现构建</span><span slot="en">Google; large monorepos, reproducible builds</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="text-sm font-semibold mb-2 text-primary-cyan"><Bilingual><span slot="zh">最小 CMakeLists.txt 示例</span><span slot="en">Minimal CMakeLists.txt Example</span></Bilingual></h3>
+      <pre class="glass p-4 overflow-x-auto text-sm mb-4"><code><span class="text-func-amber"># CMakeLists.txt —— C++ 游戏项目最小配置</span>
+cmake_minimum_required(VERSION 3.20)
+project(GameEngine LANGUAGES CXX)
+
+<span class="text-func-green"># 设置 C++ 标准</span>
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+<span class="text-func-green"># 可执行目标 + 源文件</span>
+add_executable(game
+    src/main.cpp
+    src/engine.cpp
+    src/renderer.cpp
+)
+
+<span class="text-func-green"># 链接第三方库（vcpkg 安装后自动可用）</span>
+target_link_libraries(game PRIVATE
+    SDL2::SDL2          <span class="text-ink-muted"># 窗口/输入/音频</span>
+    fmt::fmt            <span class="text-ink-muted"># 格式化库</span>
+    spdlog::spdlog      <span class="text-ink-muted"># 日志</span>
+)
+
+<span class="text-func-amber"># 构建命令：</span>
+<span class="text-ink-muted">#   cmake -B build -G Ninja        # 配置（生成 Ninja 文件）</span>
+<span class="text-ink-muted">#   cmake --build build            # 编译</span>
+<span class="text-ink-muted">#   ./build/game                   # 运行</span></code></pre>
+
+      <h3 class="text-sm font-semibold mb-2 text-primary-cyan"><Bilingual><span slot="zh">常用库速查（按场景分类）</span><span slot="en">Common Libraries (by Use Case)</span></Bilingual></h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">分类</span><span slot="en">Category</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">库</span><span slot="en">Library</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">用途</span><span slot="en">Use Case</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber" rowspan="2"><Bilingual><span slot="zh">标准库扩展</span><span slot="en">Stdlib ext</span></Bilingual></td><td class="py-2 pr-4 font-mono">Boost</td><td class="py-2 pr-4"><Bilingual><span slot="zh">"准标准库"，覆盖网络/文件系统/序列化等</span><span slot="en">"Quasi-stdlib": networking/fs/serialization etc.</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono">&#123;fmt&#125;</td><td class="py-2 pr-4"><Bilingual><span slot="zh">格式化库（已入 C++20 std::format）</span><span slot="en">Formatting (basis of C++20 std::format)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan" rowspan="2"><Bilingual><span slot="zh">数学/线性代数</span><span slot="en">Math/LinAlg</span></Bilingual></td><td class="py-2 pr-4 font-mono">Eigen</td><td class="py-2 pr-4"><Bilingual><span slot="zh">头文件矩阵库，物理/动画计算</span><span slot="en">Header-only matrix lib; physics/animation</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono">GLM</td><td class="py-2 pr-4"><Bilingual><span slot="zh">OpenGL/Vulkan 数学库（vec/mat/quaternion）</span><span slot="en">OpenGL/Vulkan math (vec/mat/quat)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green" rowspan="2"><Bilingual><span slot="zh">序列化</span><span slot="en">Serialization</span></Bilingual></td><td class="py-2 pr-4 font-mono">Protobuf</td><td class="py-2 pr-4"><Bilingual><span slot="zh">Google 网络协议（需编译 schema）</span><span slot="en">Google wire protocol (schema-based)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono">FlatBuffers</td><td class="py-2 pr-4"><Bilingual><span slot="zh">零拷贝序列化，游戏存档/网络</span><span slot="en">Zero-copy serialization; game saves/network</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple"><Bilingual><span slot="zh">日志</span><span slot="en">Logging</span></Bilingual></td><td class="py-2 pr-4 font-mono">spdlog</td><td class="py-2 pr-4"><Bilingual><span slot="zh">高性能异步日志（C++ 事实标准）</span><span slot="en">Fast async logger (C++ de facto standard)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-red" rowspan="2"><Bilingual><span slot="zh">测试</span><span slot="en">Testing</span></Bilingual></td><td class="py-2 pr-4 font-mono">GoogleTest</td><td class="py-2 pr-4"><Bilingual><span slot="zh">Google 单元测试框架</span><span slot="en">Google unit test framework</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono">Catch2</td><td class="py-2 pr-4"><Bilingual><span slot="zh">头文件测试框架，BDD 风格</span><span slot="en">Header-only test framework; BDD style</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan" rowspan="3"><Bilingual><span slot="zh">游戏引擎</span><span slot="en">Game</span></Bilingual></td><td class="py-2 pr-4 font-mono">SDL2</td><td class="py-2 pr-4"><Bilingual><span slot="zh">跨平台窗口/输入/音频（底层基础）</span><span slot="en">Cross-platform window/input/audio</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono">EnTT</td><td class="py-2 pr-4"><Bilingual><span slot="zh">ECS（实体组件系统）实现，高性能</span><span slot="en">High-performance ECS (Entity-Component-System)</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 font-mono">Dear ImGui</td><td class="py-2 pr-4"><Bilingual><span slot="zh">即时模式调试 UI，引擎工具标配</span><span slot="en">Immediate-mode debug UI; engine tooling standard</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 深入阅读 -->
+    <p class="text-xs text-ink-muted"><Bilingual><span slot="zh">深入阅读：<a class="text-primary-cyan underline" href="/topics/cpp-memory">内存与指针</a>、<a class="text-primary-cyan underline" href="/topics/cpp-raii">RAII 与智能指针</a>、<a class="text-primary-cyan underline" href="/topics/cpp-templates">模板与泛型</a>、<a class="text-primary-cyan underline" href="/topics/cpp-move">移动语义</a>、<a class="text-primary-cyan underline" href="/topics/cpp-concurrency">多线程并发</a>、<a class="text-primary-cyan underline" href="/topics/cpp-modern">现代 C++ 特性</a>。</span><span slot="en">Deep dive: <a class="text-primary-cyan underline" href="/topics/cpp-memory">Memory & Pointers</a>, <a class="text-primary-cyan underline" href="/topics/cpp-raii">RAII & Smart Pointers</a>, <a class="text-primary-cyan underline" href="/topics/cpp-templates">Templates</a>, <a class="text-primary-cyan underline" href="/topics/cpp-move">Move Semantics</a>, <a class="text-primary-cyan underline" href="/topics/cpp-concurrency">Concurrency</a>, <a class="text-primary-cyan underline" href="/topics/cpp-modern">Modern C++</a>.</span></Bilingual></p>
   </article>
 </BaseLayout>
 

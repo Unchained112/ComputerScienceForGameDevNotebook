@@ -1,0 +1,455 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="KV & Document Databases · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Databases / KV & Document</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">KV 与文档数据库</span><span slot="en">KV & Document Databases</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh"><b class="text-func-red">Redis</b> 与 <b class="text-func-green">MongoDB</b> 是游戏后端最常用的两种 NoSQL。Redis 是<b>内存 KV 存储</b>，微秒级延迟，用作缓存、会话、排行榜；MongoDB 是<b>文档数据库</b>，存 BSON（二进制 JSON），Schema 灵活，适合玩家存档与配置数据。二者常搭配使用：MongoDB 做持久层，Redis 做热数据缓存。点击下方切换 Redis 的五种数据结构。</span>
+          <span slot="en"><b class="text-func-red">Redis</b> and <b class="text-func-green">MongoDB</b> are the two most-used NoSQL stores in game backends. Redis is an <b>in-memory KV store</b> with microsecond latency, used for cache, sessions, and leaderboards; MongoDB is a <b>document database</b> storing BSON (binary JSON), with flexible schemas for player saves and config data. They're often paired: MongoDB for persistence, Redis for hot-data cache. Click below to switch Redis's five data structures.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：Redis 数据结构切换 -->
+    <div class="glass p-5" data-viz="redis-structures">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <button class="btn redis-btn btn-primary" data-type="string">String</button>
+        <button class="btn redis-btn" data-type="list">List</button>
+        <button class="btn redis-btn" data-type="hash">Hash</button>
+        <button class="btn redis-btn" data-type="set">Set</button>
+        <button class="btn redis-btn" data-type="zset">ZSet</button>
+      </div>
+      <svg id="redis-svg" viewBox="0 0 800 300" class="w-full h-75 viz-stage"></svg>
+    </div>
+
+    <!-- Redis 命令示例 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Redis 游戏场景命令实战</span><span slot="en">Redis Commands for Game Scenarios</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">Redis 的五种数据结构覆盖了游戏后端 90% 的缓存需求：<b>String</b> 存计数器与限流，<b>List</b> 存消息队列，<b>Hash</b> 存玩家会话，<b>Set</b> 存标签与去重，<b>ZSet</b>（有序集合）是排行榜的<b>杀手级应用</b>。</span><span slot="en">Redis's five data structures cover 90% of game backend caching needs: <b>String</b> for counters/rate-limiting, <b>List</b> for message queues, <b>Hash</b> for player sessions, <b>Set</b> for tags/dedup, and <b>ZSet</b> (sorted set) is the <b>killer app</b> for leaderboards.</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-func-amber">-- 排行榜（ZSet：分数排序，游戏最常用）</span>
+ZADD leaderboard 9500 "player:1" 8800 "player:2" 9500 "player:3"
+ZREVRANGE leaderboard 0 2 WITHSCORES    <span class="text-ink-muted">-- 取前三名（降序）</span>
+ZSCORE leaderboard "player:1"           <span class="text-ink-muted">-- 查某玩家分数</span>
+ZINCRBY leaderboard 100 "player:1"      <span class="text-ink-muted">-- 加分（原子操作）</span>
+
+<span class="text-func-amber">-- 玩家会话（Hash：字段-值映射）</span>
+HSET session:42 user_id 42 name "张三" login_at 1700000000
+HGET session:42 name                     <span class="text-ink-muted">-- → "张三"</span>
+HGETALL session:42                       <span class="text-ink-muted">-- 所有字段</span>
+EXPIRE session:42 3600                   <span class="text-ink-muted">-- 1小时后自动过期</span>
+
+<span class="text-func-amber">-- 限流（String + 过期：API 调用频率控制）</span>
+INCR rate_limit:42:msg                   <span class="text-ink-muted">-- 递增计数</span>
+EXPIRE rate_limit:42:msg 60              <span class="text-ink-muted">-- 60秒窗口</span>
+<span class="text-ink-muted">-- 若返回值 &gt; 10 则拒绝（每分钟最多10条消息）</span>
+
+<span class="text-func-amber">-- 好友集合（Set：去重与交集）</span>
+SADD friends:1 2 3 4                     <span class="text-ink-muted">-- 玩家1的好友</span>
+SADD friends:2 3 5 6                     <span class="text-ink-muted">-- 玩家2的好友</span>
+SINTER friends:1 friends:2               <span class="text-ink-muted">-- 共同好友 → {3}</span>
+
+<span class="text-func-amber">-- 最近消息（List：队列）</span>
+LPUSH messages:42 "系统通知" "好友消息"     <span class="text-ink-muted">-- 头部插入</span>
+LRANGE messages:42 0 9                   <span class="text-ink-muted">-- 取最近10条</span>
+LTRIM messages:42 0 99                   <span class="text-ink-muted">-- 只保留前100条</span></code></pre>
+    </section>
+
+    <!-- MongoDB 文档示例 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">MongoDB：玩家存档文档设计</span><span slot="en">MongoDB: Player Save Document Design</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">MongoDB 以 JSON 文档存储数据，一条文档可以嵌套复杂结构——<b>一个玩家的完整存档就是一条文档</b>，无需 JOIN 多表。这是文档数据库相比关系型的核心优势：<b>读取一次即得完整对象</b>。代价是文档间关系查询弱（需应用层处理）。</span><span slot="en">MongoDB stores data as JSON documents; one document can nest complex structures — <b>a player's entire save is one document</b>, no multi-table JOIN needed. This is the document DB's core advantage over relational: <b>one read gets the complete object</b>. The trade-off: cross-document relation queries are weak (app-layer handling needed).</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-func-amber">// MongoDB 玩家存档文档（一条 BSON 文档 = 一个完整玩家状态）</span>
+&#123;
+  <span class="text-primary-cyan">"_id"</span>: ObjectId(<span class="text-func-amber">"65a..."</span>),
+  <span class="text-primary-cyan">"player_id"</span>: 42,
+  <span class="text-primary-cyan">"name"</span>: <span class="text-func-amber">"张三"</span>,
+  <span class="text-primary-cyan">"level"</span>: 99,
+  <span class="text-primary-cyan">"gold"</span>: 99999,
+  <span class="text-primary-cyan">"inventory"</span>: [              <span class="text-ink-muted">// 物品数组（嵌套）</span>
+    &#123; <span class="text-primary-cyan">"item_id"</span>: 1, <span class="text-primary-cyan">"name"</span>: <span class="text-func-amber">"铁剑"</span>, <span class="text-primary-cyan">"qty"</span>: 1, <span class="text-primary-cyan">"enchant"</span>: +5 &#125;,
+    &#123; <span class="text-primary-cyan">"item_id"</span>: 5, <span class="text-primary-cyan">"name"</span>: <span class="text-func-amber">"药水"</span>, <span class="text-primary-cyan">"qty"</span>: 99 &#125;
+  ],
+  <span class="text-primary-cyan">"stats"</span>: &#123;                  <span class="text-ink-muted">// 属性（嵌套对象）</span>
+    <span class="text-primary-cyan">"hp"</span>: 850,
+    <span class="text-primary-cyan">"mp"</span>: 300,
+    <span class="text-primary-cyan">"atk"</span>: 120,
+    <span class="text-primary-cyan">"def"</span>: 80
+  &#125;,
+  <span class="text-primary-cyan">"guild"</span>: &#123; <span class="text-primary-cyan">"id"</span>: 7, <span class="text-primary-cyan">"role"</span>: <span class="text-func-amber">"officer"</span> &#125;,
+  <span class="text-primary-cyan">"last_login"</span>: ISODate(<span class="text-func-amber">"2025-07-24T10:30:00Z"</span>),
+  <span class="text-primary-cyan">"version"</span>: <span class="text-func-green">3</span>                  <span class="text-ink-muted">// Schema 版本（迁移用）</span>
+&#125;
+
+<span class="text-func-amber">// MongoDB 查询示例</span>
+db.players.find(&#123; <span class="text-primary-cyan">"level"</span>: &#123; $gte: 90 &#125; &#125;)                    <span class="text-ink-muted">// 等级≥90</span>
+db.players.find(&#123; <span class="text-primary-cyan">"inventory.item_id"</span>: 1 &#125;)               <span class="text-ink-muted">// 拥有铁剑的玩家</span>
+db.players.updateOne(&#123; player_id: 42 &#125;, &#123; $inc: &#123; gold: 100 &#125; &#125;)     <span class="text-ink-muted">// 加金币</span></code></pre>
+    </section>
+
+    <!-- Redis vs MongoDB -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Redis vs MongoDB：选型对比</span><span slot="en">Redis vs MongoDB: Selection Guide</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">二者不是竞争而是<b>互补</b>：Redis 快但数据量受内存限制，适合热数据；MongoDB 持久化到磁盘，适合海量冷数据。游戏后端标准架构：<b>MongoDB 存玩家存档（持久）+ Redis 缓存热数据（极速）</b>，通过 Cache-Aside 模式同步。</span><span slot="en">They're not competitors but <b>complements</b>: Redis is fast but memory-limited, for hot data; MongoDB persists to disk, for massive cold data. Standard game backend: <b>MongoDB for player saves (persistent) + Redis for hot cache (fast)</b>, synced via Cache-Aside pattern.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">维度</span><span slot="en">Dimension</span></Bilingual></th><th class="py-2 pr-4 text-func-red">Redis</th><th class="py-2 pr-4 text-func-green">MongoDB</th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">数据模型</span><span slot="en">Data model</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">KV（5 种结构）</span><span slot="en">KV (5 structures)</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">文档（BSON/JSON）</span><span slot="en">Document (BSON/JSON)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">存储</span><span slot="en">Storage</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">内存为主（可持久化）</span><span slot="en">In-memory (optional persist)</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">磁盘（内存缓存热数据）</span><span slot="en">Disk (memory cache hot)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">延迟</span><span slot="en">Latency</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">微秒级（~0.1ms）</span><span slot="en">Microsecond (~0.1ms)</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">毫秒级（~1-10ms）</span><span slot="en">Millisecond (~1-10ms)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">数据量</span><span slot="en">Data volume</span></Bilingual></td><td class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">受内存限制（GB 级）</span><span slot="en">Memory-limited (GB)</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">TB 级（磁盘）</span><span slot="en">TB-scale (disk)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">事务</span><span slot="en">Transactions</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">单命令原子，Lua 脚本</span><span slot="en">Single-cmd atomic, Lua</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">多文档事务（4.0+）</span><span slot="en">Multi-doc (4.0+)</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">游戏场景</span><span slot="en">Game use</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">缓存/会话/排行榜/限流</span><span slot="en">Cache/session/leaderboard</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">玩家存档/配置/日志</span><span slot="en">Player saves/config/logs</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // Redis 数据结构切换交互
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('redis-svg') as unknown as SVGSVGElement;
+  const redisButtons = document.querySelectorAll<HTMLButtonElement>('.redis-btn');
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  interface RedisType {
+    nameZh: string; nameEn: string; color: string;
+    gameUseZh: string; gameUseEn: string;
+    cmdZh: string; cmdEn: string;
+  }
+
+  const TYPES: Record<string, RedisType> = {
+    string: {
+      nameZh: 'String（字符串）', nameEn: 'String', color: '#22D3EE',
+      gameUseZh: '计数器、缓存对象、限流', gameUseEn: 'Counters, object cache, rate-limiting',
+      cmdZh: 'SET / GET / INCR / EXPIRE', cmdEn: 'SET / GET / INCR / EXPIRE',
+    },
+    list: {
+      nameZh: 'List（双向链表）', nameEn: 'List (doubly linked)', color: '#FBBF24',
+      gameUseZh: '消息队列、最近操作、时间线', gameUseEn: 'Message queue, recent ops, timeline',
+      cmdZh: 'LPUSH / RPUSH / LPOP / LRANGE', cmdEn: 'LPUSH / RPUSH / LPOP / LRANGE',
+    },
+    hash: {
+      nameZh: 'Hash（字段-值映射）', nameEn: 'Hash (field-value map)', color: '#22C55E',
+      gameUseZh: '玩家会话、对象属性存储', gameUseEn: 'Player session, object attributes',
+      cmdZh: 'HSET / HGET / HGETALL / HINCRBY', cmdEn: 'HSET / HGET / HGETALL / HINCRBY',
+    },
+    set: {
+      nameZh: 'Set（无序集合）', nameEn: 'Set (unordered)', color: '#A78BFA',
+      gameUseZh: '标签、去重、共同好友', gameUseEn: 'Tags, dedup, mutual friends',
+      cmdZh: 'SADD / SMEMBERS / SINTER / SDIFF', cmdEn: 'SADD / SMEMBERS / SINTER / SDIFF',
+    },
+    zset: {
+      nameZh: 'ZSet（有序集合）', nameEn: 'ZSet (sorted set)', color: '#F472B6',
+      gameUseZh: '排行榜、优先级队列 ⭐', gameUseEn: 'Leaderboards, priority queue ⭐',
+      cmdZh: 'ZADD / ZRANGE / ZINCRBY / ZRANK', cmdEn: 'ZADD / ZRANGE / ZINCRBY / ZRANK',
+    },
+  };
+
+  function render(type: string) {
+    svg.innerHTML = '';
+    const data = TYPES[type];
+    if (!data) return;
+
+    // 标题
+    const titleBg = document.createElementNS(SVGNS, 'rect');
+    titleBg.setAttribute('x', '20'); titleBg.setAttribute('y', '10');
+    titleBg.setAttribute('width', '760'); titleBg.setAttribute('height', '36');
+    titleBg.setAttribute('rx', '8'); titleBg.setAttribute('fill', data.color + '15');
+    titleBg.setAttribute('stroke', data.color + '44'); titleBg.setAttribute('stroke-width', '1.5');
+    svg.appendChild(titleBg);
+
+    const title = document.createElementNS(SVGNS, 'text');
+    title.setAttribute('x', '40'); title.setAttribute('y', '34');
+    title.setAttribute('font-size', '16'); title.setAttribute('font-weight', '700');
+    title.setAttribute('fill', data.color);
+    title.textContent = lang() === 'en' ? data.nameEn : data.nameZh;
+    svg.appendChild(title);
+
+    // 根据类型绘制不同结构
+    const startY = 65;
+    if (type === 'string') {
+      drawKeyValue(100, startY, 'player:42:gold', '99999', data.color);
+      drawKeyValue(100, startY + 50, 'player:42:level', '99', data.color);
+      drawKeyValue(100, startY + 100, 'rate_limit:42:msg', '7', data.color);
+    } else if (type === 'list') {
+      drawLinkedList(80, startY, ['msg1', 'msg2', 'msg3', 'msg4'], data.color);
+    } else if (type === 'hash') {
+      drawHash(100, startY, 'session:42', [
+        ['user_id', '42'], ['name', '张三'], ['login_at', '1700...'], ['ip', '1.2.3.4']
+      ], data.color);
+    } else if (type === 'set') {
+      drawSet(100, startY, 'friends:1', ['2', '3', '4', '7', '9'], data.color);
+    } else if (type === 'zset') {
+      drawZSet(80, startY, 'leaderboard', [
+        ['player:3', 9500], ['player:1', 9500], ['player:2', 8800], ['player:5', 7600], ['player:4', 5000]
+      ], data.color);
+    }
+
+    // 游戏用途与命令
+    const infoY = 220;
+    const useLabel = document.createElementNS(SVGNS, 'text');
+    useLabel.setAttribute('x', '40'); useLabel.setAttribute('y', String(infoY));
+    useLabel.setAttribute('font-size', '13'); useLabel.setAttribute('fill', '#CBD5E1');
+    useLabel.textContent = lang() === 'en' ? `Game use: ${data.gameUseEn}` : `游戏场景：${data.gameUseZh}`;
+    svg.appendChild(useLabel);
+
+    const cmdLabel = document.createElementNS(SVGNS, 'text');
+    cmdLabel.setAttribute('x', '40'); cmdLabel.setAttribute('y', String(infoY + 28));
+    cmdLabel.setAttribute('font-size', '13'); cmdLabel.setAttribute('fill', data.color);
+    cmdLabel.setAttribute('font-family', 'monospace');
+    cmdLabel.textContent = lang() === 'en' ? `Commands: ${data.cmdEn}` : `命令：${data.cmdZh}`;
+    svg.appendChild(cmdLabel);
+
+    const hint = document.createElementNS(SVGNS, 'text');
+    hint.setAttribute('x', '40'); hint.setAttribute('y', String(infoY + 56));
+    hint.setAttribute('font-size', '11'); hint.setAttribute('fill', '#64748B');
+    hint.textContent = lang() === 'en' ? 'All operations are atomic and O(1) or O(log N)' : '所有操作原子且 O(1) 或 O(log N)';
+    svg.appendChild(hint);
+  }
+
+  function drawKeyValue(x: number, y: number, key: string, value: string, color: string) {
+    const kw = 200, vw = 100, h = 36;
+    const keyBg = document.createElementNS(SVGNS, 'rect');
+    keyBg.setAttribute('x', String(x)); keyBg.setAttribute('y', String(y));
+    keyBg.setAttribute('width', String(kw)); keyBg.setAttribute('height', String(h));
+    keyBg.setAttribute('rx', '6'); keyBg.setAttribute('fill', color + '15');
+    keyBg.setAttribute('stroke', color + '55'); keyBg.setAttribute('stroke-width', '1.5');
+    svg.appendChild(keyBg);
+    const kt = document.createElementNS(SVGNS, 'text');
+    kt.setAttribute('x', String(x + 10)); kt.setAttribute('y', String(y + 23));
+    kt.setAttribute('font-size', '12'); kt.setAttribute('fill', color); kt.setAttribute('font-family', 'monospace');
+    kt.textContent = key;
+    svg.appendChild(kt);
+
+    const arrow = document.createElementNS(SVGNS, 'text');
+    arrow.setAttribute('x', String(x + kw + 8)); arrow.setAttribute('y', String(y + 23));
+    arrow.setAttribute('font-size', '14'); arrow.setAttribute('fill', '#64748B');
+    arrow.textContent = '→';
+    svg.appendChild(arrow);
+
+    const valBg = document.createElementNS(SVGNS, 'rect');
+    valBg.setAttribute('x', String(x + kw + 30)); valBg.setAttribute('y', String(y));
+    valBg.setAttribute('width', String(vw)); valBg.setAttribute('height', String(h));
+    valBg.setAttribute('rx', '6'); valBg.setAttribute('fill', 'rgba(148,163,184,0.08)');
+    valBg.setAttribute('stroke', 'rgba(148,163,184,0.2)'); valBg.setAttribute('stroke-width', '1');
+    svg.appendChild(valBg);
+    const vt = document.createElementNS(SVGNS, 'text');
+    vt.setAttribute('x', String(x + kw + 40)); vt.setAttribute('y', String(y + 23));
+    vt.setAttribute('font-size', '12'); vt.setAttribute('fill', '#CBD5E1'); vt.setAttribute('font-family', 'monospace');
+    vt.textContent = value;
+    svg.appendChild(vt);
+  }
+
+  function drawLinkedList(x: number, y: number, items: string[], color: string) {
+    const nodeW = 100, gap = 20, h = 40;
+    for (let i = 0; i < items.length; i++) {
+      const nx = x + i * (nodeW + gap);
+      const bg = document.createElementNS(SVGNS, 'rect');
+      bg.setAttribute('x', String(nx)); bg.setAttribute('y', String(y));
+      bg.setAttribute('width', String(nodeW)); bg.setAttribute('height', String(h));
+      bg.setAttribute('rx', '6'); bg.setAttribute('fill', color + '15');
+      bg.setAttribute('stroke', color + '55'); bg.setAttribute('stroke-width', '1.5');
+      svg.appendChild(bg);
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(nx + nodeW / 2)); t.setAttribute('y', String(y + 25));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '12');
+      t.setAttribute('fill', color); t.setAttribute('font-family', 'monospace');
+      t.textContent = items[i];
+      svg.appendChild(t);
+      if (i < items.length - 1) {
+        const arrow = document.createElementNS(SVGNS, 'text');
+        arrow.setAttribute('x', String(nx + nodeW + 5)); arrow.setAttribute('y', String(y + 25));
+        arrow.setAttribute('font-size', '14'); arrow.setAttribute('fill', '#64748B');
+        arrow.textContent = '⇄';
+        svg.appendChild(arrow);
+      }
+    }
+    const head = document.createElementNS(SVGNS, 'text');
+    head.setAttribute('x', String(x - 10)); head.setAttribute('y', String(y - 8));
+    head.setAttribute('font-size', '11'); head.setAttribute('fill', '#94A3B8');
+    head.textContent = lang() === 'en' ? 'Head ←' : '← 头部';
+    svg.appendChild(head);
+    const tail = document.createElementNS(SVGNS, 'text');
+    tail.setAttribute('x', String(x + items.length * (nodeW + gap) - gap)); tail.setAttribute('y', String(y - 8));
+    tail.setAttribute('font-size', '11'); tail.setAttribute('fill', '#94A3B8');
+    tail.textContent = lang() === 'en' ? '→ Tail' : '尾部 →';
+    svg.appendChild(tail);
+  }
+
+  function drawHash(x: number, y: number, name: string, fields: [string, string][], color: string) {
+    const nameBg = document.createElementNS(SVGNS, 'rect');
+    nameBg.setAttribute('x', String(x)); nameBg.setAttribute('y', String(y));
+    nameBg.setAttribute('width', '300'); nameBg.setAttribute('height', '30');
+    nameBg.setAttribute('rx', '6'); nameBg.setAttribute('fill', color + '15');
+    nameBg.setAttribute('stroke', color + '55'); nameBg.setAttribute('stroke-width', '1.5');
+    svg.appendChild(nameBg);
+    const nt = document.createElementNS(SVGNS, 'text');
+    nt.setAttribute('x', String(x + 15)); nt.setAttribute('y', String(y + 20));
+    nt.setAttribute('font-size', '13'); nt.setAttribute('fill', color); nt.setAttribute('font-family', 'monospace');
+    nt.textContent = name;
+    svg.appendChild(nt);
+
+    for (let i = 0; i < fields.length; i++) {
+      const fy = y + 40 + i * 30;
+      const fBg = document.createElementNS(SVGNS, 'rect');
+      fBg.setAttribute('x', String(x)); fBg.setAttribute('y', String(fy));
+      fBg.setAttribute('width', '140'); fBg.setAttribute('height', '24');
+      fBg.setAttribute('rx', '4'); fBg.setAttribute('fill', 'rgba(148,163,184,0.08)');
+      fBg.setAttribute('stroke', 'rgba(148,163,184,0.15)'); fBg.setAttribute('stroke-width', '1');
+      svg.appendChild(fBg);
+      const ft = document.createElementNS(SVGNS, 'text');
+      ft.setAttribute('x', String(x + 10)); ft.setAttribute('y', String(fy + 16));
+      ft.setAttribute('font-size', '11'); ft.setAttribute('fill', '#94A3B8'); ft.setAttribute('font-family', 'monospace');
+      ft.textContent = fields[i][0];
+      svg.appendChild(ft);
+
+      const arrow = document.createElementNS(SVGNS, 'text');
+      arrow.setAttribute('x', String(x + 148)); arrow.setAttribute('y', String(fy + 16));
+      arrow.setAttribute('font-size', '12'); arrow.setAttribute('fill', '#64748B');
+      arrow.textContent = '→';
+      svg.appendChild(arrow);
+
+      const vBg = document.createElementNS(SVGNS, 'rect');
+      vBg.setAttribute('x', String(x + 165)); vBg.setAttribute('y', String(fy));
+      vBg.setAttribute('width', '135'); vBg.setAttribute('height', '24');
+      vBg.setAttribute('rx', '4'); vBg.setAttribute('fill', color + '0A');
+      vBg.setAttribute('stroke', color + '22'); vBg.setAttribute('stroke-width', '1');
+      svg.appendChild(vBg);
+      const vt = document.createElementNS(SVGNS, 'text');
+      vt.setAttribute('x', String(x + 175)); vt.setAttribute('y', String(fy + 16));
+      vt.setAttribute('font-size', '11'); vt.setAttribute('fill', '#CBD5E1'); vt.setAttribute('font-family', 'monospace');
+      vt.textContent = fields[i][1];
+      svg.appendChild(vt);
+    }
+  }
+
+  function drawSet(x: number, y: number, name: string, members: string[], color: string) {
+    const nameBg = document.createElementNS(SVGNS, 'rect');
+    nameBg.setAttribute('x', String(x)); nameBg.setAttribute('y', String(y));
+    nameBg.setAttribute('width', '200'); nameBg.setAttribute('height', '30');
+    nameBg.setAttribute('rx', '6'); nameBg.setAttribute('fill', color + '15');
+    nameBg.setAttribute('stroke', color + '55'); nameBg.setAttribute('stroke-width', '1.5');
+    svg.appendChild(nameBg);
+    const nt = document.createElementNS(SVGNS, 'text');
+    nt.setAttribute('x', String(x + 15)); nt.setAttribute('y', String(y + 20));
+    nt.setAttribute('font-size', '13'); nt.setAttribute('fill', color); nt.setAttribute('font-family', 'monospace');
+    nt.textContent = name;
+    svg.appendChild(nt);
+
+    const ellipse = document.createElementNS(SVGNS, 'ellipse');
+    ellipse.setAttribute('cx', String(x + 250)); ellipse.setAttribute('cy', String(y + 75));
+    ellipse.setAttribute('rx', '200'); ellipse.setAttribute('ry', '70');
+    ellipse.setAttribute('fill', color + '08'); ellipse.setAttribute('stroke', color + '33');
+    ellipse.setAttribute('stroke-width', '1.5'); ellipse.setAttribute('stroke-dasharray', '5,3');
+    svg.appendChild(ellipse);
+
+    for (let i = 0; i < members.length; i++) {
+      const angle = (i / members.length) * Math.PI * 2 - Math.PI / 2;
+      const mx = x + 250 + Math.cos(angle) * 130;
+      const my = y + 75 + Math.sin(angle) * 45;
+      const dot = document.createElementNS(SVGNS, 'circle');
+      dot.setAttribute('cx', String(mx)); dot.setAttribute('cy', String(my));
+      dot.setAttribute('r', '18'); dot.setAttribute('fill', color + '22');
+      dot.setAttribute('stroke', color); dot.setAttribute('stroke-width', '1.5');
+      svg.appendChild(dot);
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(mx)); t.setAttribute('y', String(my + 5));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '12');
+      t.setAttribute('fill', color); t.setAttribute('font-family', 'monospace');
+      t.textContent = members[i];
+      svg.appendChild(t);
+    }
+  }
+
+  function drawZSet(x: number, y: number, name: string, entries: [string, number][], color: string) {
+    const nameBg = document.createElementNS(SVGNS, 'rect');
+    nameBg.setAttribute('x', String(x)); nameBg.setAttribute('y', String(y));
+    nameBg.setAttribute('width', '640'); nameBg.setAttribute('height', '28');
+    nameBg.setAttribute('rx', '6'); nameBg.setAttribute('fill', color + '15');
+    nameBg.setAttribute('stroke', color + '55'); nameBg.setAttribute('stroke-width', '1.5');
+    svg.appendChild(nameBg);
+    const nt = document.createElementNS(SVGNS, 'text');
+    nt.setAttribute('x', String(x + 15)); nt.setAttribute('y', String(y + 19));
+    nt.setAttribute('font-size', '13'); nt.setAttribute('fill', color); nt.setAttribute('font-family', 'monospace');
+    nt.textContent = `${name}  (sorted by score DESC)`;
+    svg.appendChild(nt);
+
+    const rankHeader = document.createElementNS(SVGNS, 'text');
+    rankHeader.setAttribute('x', String(x + 10)); rankHeader.setAttribute('y', String(y + 50));
+    rankHeader.setAttribute('font-size', '11'); rankHeader.setAttribute('fill', '#64748B');
+    rankHeader.textContent = lang() === 'en' ? 'Rank' : '排名';
+    svg.appendChild(rankHeader);
+
+    for (let i = 0; i < entries.length; i++) {
+      const ey = y + 65 + i * 28;
+      // 排名
+      const rank = document.createElementNS(SVGNS, 'text');
+      rank.setAttribute('x', String(x + 15)); rank.setAttribute('y', String(ey + 5));
+      rank.setAttribute('font-size', '14'); rank.setAttribute('font-weight', '700');
+      rank.setAttribute('fill', i < 3 ? color : '#94A3B8');
+      rank.textContent = `#${i + 1}`;
+      svg.appendChild(rank);
+
+      // 成员
+      const mBg = document.createElementNS(SVGNS, 'rect');
+      mBg.setAttribute('x', String(x + 60)); mBg.setAttribute('y', String(ey - 10));
+      mBg.setAttribute('width', '200'); mBg.setAttribute('height', '22');
+      mBg.setAttribute('rx', '4'); mBg.setAttribute('fill', color + '12');
+      mBg.setAttribute('stroke', color + '33'); mBg.setAttribute('stroke-width', '1');
+      svg.appendChild(mBg);
+      const mt = document.createElementNS(SVGNS, 'text');
+      mt.setAttribute('x', String(x + 70)); mt.setAttribute('y', String(ey + 5));
+      mt.setAttribute('font-size', '12'); mt.setAttribute('fill', '#CBD5E1'); mt.setAttribute('font-family', 'monospace');
+      mt.textContent = entries[i][0];
+      svg.appendChild(mt);
+
+      // 分数
+      const sBg = document.createElementNS(SVGNS, 'rect');
+      sBg.setAttribute('x', String(x + 280)); sBg.setAttribute('y', String(ey - 10));
+      sBg.setAttribute('width', '120'); sBg.setAttribute('height', '22');
+      sBg.setAttribute('rx', '4'); sBg.setAttribute('fill', color + '1A');
+      sBg.setAttribute('stroke', color + '44'); sBg.setAttribute('stroke-width', '1');
+      svg.appendChild(sBg);
+      const st = document.createElementNS(SVGNS, 'text');
+      st.setAttribute('x', String(x + 290)); st.setAttribute('y', String(ey + 5));
+      st.setAttribute('font-size', '12'); st.setAttribute('font-weight', '700'); st.setAttribute('fill', color);
+      st.setAttribute('font-family', 'monospace');
+      st.textContent = String(entries[i][1]);
+      svg.appendChild(st);
+
+      // 分数条
+      const maxScore = entries[0][1];
+      const barW = (entries[i][1] / maxScore) * 200;
+      const bar = document.createElementNS(SVGNS, 'rect');
+      bar.setAttribute('x', String(x + 420)); bar.setAttribute('y', String(ey - 6));
+      bar.setAttribute('width', String(barW)); bar.setAttribute('height', '14');
+      bar.setAttribute('rx', '3'); bar.setAttribute('fill', color + '55');
+      svg.appendChild(bar);
+    }
+  }
+
+  function setActive(type: string) {
+    redisButtons.forEach(b => {
+      b.classList.toggle('btn-primary', b.dataset.type === type);
+    });
+    render(type);
+  }
+
+  redisButtons.forEach(b => b.addEventListener('click', () => setActive(b.dataset.type!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.redis-btn.btn-primary');
+    render(active?.dataset.type || 'string');
+  });
+  setActive('string');
+</script>

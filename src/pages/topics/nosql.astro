@@ -1,0 +1,275 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="NoSQL Overview · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Databases / NoSQL</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">NoSQL 概览</span><span slot="en">NoSQL Overview</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">NoSQL（Not Only SQL）泛指非关系型数据库，诞生于<b>大数据与高并发</b>时代——当单机关系型数据库无法承载海量数据与吞吐时，NoSQL 以<b>牺牲强一致性</b>换取<b>水平扩展</b>与<b>灵活 Schema</b>。理解 NoSQL 的核心是 <b>CAP 定理</b>：分布式系统在一致性（C）、可用性（A）、分区容错（P）三者中<b>最多只能保证两个</b>。点击下方 CAP 三角图，查看不同数据库的取舍。</span>
+          <span slot="en">NoSQL (Not Only SQL) refers to non-relational databases, born in the era of <b>big data and high concurrency</b> — when single-machine relational DBs can't handle massive data and throughput, NoSQL trades <b>strong consistency</b> for <b>horizontal scaling</b> and <b>flexible schemas</b>. The key to understanding NoSQL is the <b>CAP theorem</b>: a distributed system can guarantee at most two of Consistency (C), Availability (A), and Partition tolerance (P). Click the CAP triangle below to see each database's trade-off.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：CAP 定理三角图 -->
+    <div class="glass p-5" data-viz="cap-theorem">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <button class="btn cap-btn btn-primary" data-cap="cp">
+          <span data-lang="zh">CP（一致+分区）</span><span data-lang="en">CP (Consistency+Partition)</span>
+        </button>
+        <button class="btn cap-btn" data-cap="ap">
+          <span data-lang="zh">AP（可用+分区）</span><span data-lang="en">AP (Availability+Partition)</span>
+        </button>
+        <button class="btn cap-btn" data-cap="ca">
+          <span data-lang="zh">CA（一致+可用）</span><span class="text-ink-muted" data-lang="en">CA (Consistency+Avail.)</span>
+        </button>
+      </div>
+      <svg id="cap-svg" viewBox="0 0 800 360" class="w-full h-90 viz-stage"></svg>
+    </div>
+
+    <!-- 四类 NoSQL -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">四类 NoSQL：按数据模型分类</span><span slot="en">Four NoSQL Categories: By Data Model</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">NoSQL 不是一个东西，而是四种截然不同的数据模型，各有最佳适用场景：<b class="text-func-amber">KV 存储</b>最简单极速，适合缓存与会话；<b class="text-func-green">文档数据库</b>存 JSON，适合灵活结构；<b class="text-primary-purple">列族数据库</b>按列存储，适合海量写入与时序；<b class="text-func-red">图数据库</b>存节点关系，适合社交与推荐。</span><span slot="en">NoSQL isn't one thing but four distinct data models, each with its best-fit use case: <b class="text-func-amber">KV stores</b> are simplest and fastest, for cache/sessions; <b class="text-func-green">document DBs</b> store JSON, for flexible structures; <b class="text-primary-purple">column-family DBs</b> store by column, for massive writes/time-series; <b class="text-func-red">graph DBs</b> store nodes+edges, for social/recommendations.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">类别</span><span slot="en">Category</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">数据模型</span><span slot="en">Model</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">代表</span><span slot="en">Examples</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">强项</span><span slot="en">Strength</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">弱项</span><span slot="en">Weakness</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">KV 存储</span><span slot="en">Key-Value</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">键→值</span><span slot="en">key→value</span></Bilingual></td><td class="py-2 pr-4 font-mono">Redis · DynamoDB</td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">极速读写</span><span slot="en">Ultra-fast R/W</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">无范围查询</span><span slot="en">No range queries</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">文档型</span><span slot="en">Document</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">JSON/BSON</span><span slot="en">JSON/BSON</span></Bilingual></td><td class="py-2 pr-4 font-mono">MongoDB · CouchDB</td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">Schema 灵活</span><span slot="en">Flexible schema</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">无 JOIN</span><span slot="en">No JOINs</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple"><Bilingual><span slot="zh">列族</span><span slot="en">Column-family</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">行键→列族→列</span><span slot="en">rowkey→family→col</span></Bilingual></td><td class="py-2 pr-4 font-mono">Cassandra · HBase</td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">海量写入</span><span slot="en">Massive writes</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">强一致弱</span><span slot="en">Weak consistency</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">图数据库</span><span slot="en">Graph</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">节点+关系</span><span slot="en">nodes+edges</span></Bilingual></td><td class="py-2 pr-4 font-mono">Neo4j · ArangoDB</td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">关系查询强</span><span slot="en">Strong relations</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">大规模成本高</span><span slot="en">Costly at scale</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- BASE 模型 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">BASE：NoSQL 的一致性哲学</span><span slot="en">BASE: NoSQL's Consistency Philosophy</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">关系型数据库追求 ACID（强一致），NoSQL 追求 <b>BASE</b>——接受<b>最终一致性</b>换取可用性与扩展性。这意味着：写入后数据不立即可见，但在可预期的短时间内会<b>收敛一致</b>。游戏场景中，排行榜、好友状态、缓存数据用 BASE 完全够用；但<b>充值、交易</b>必须用 ACID 关系型数据库。</span><span slot="en">Relational DBs pursue ACID (strong consistency); NoSQL pursues <b>BASE</b> — accepting <b>eventual consistency</b> for availability and scalability. This means: data isn't immediately visible after write, but converges to consistency within a predictable timeframe. In games, leaderboards, friend status, and cache are fine with BASE; but <b>payments and trades</b> must use ACID relational databases.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">缩写</span><span slot="en">Acronym</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">全称</span><span slot="en">Full Name</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">含义</span><span slot="en">Meaning</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber">BA</td><td class="py-2 pr-4"><Bilingual><span slot="zh">Basically Available</span><span slot="en">Basically Available</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">基本可用——允许部分降级</span><span slot="en">Core available; partial degradation OK</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber">S</td><td class="py-2 pr-4"><Bilingual><span slot="zh">Soft State</span><span slot="en">Soft State</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">软状态——允许中间不一致状态</span><span slot="en">Soft state; intermediate inconsistency allowed</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-func-amber">E</td><td class="py-2 pr-4"><Bilingual><span slot="zh">Eventually Consistent</span><span slot="en">Eventually Consistent</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">最终一致——收敛而非即时</span><span slot="en">Eventual consistency; converges, not instant</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // CAP 定理三角图交互
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('cap-svg') as unknown as SVGSVGElement;
+  const capButtons = document.querySelectorAll<HTMLButtonElement>('.cap-btn');
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  interface DBInfo { zh: string; en: string; }
+  interface CapData {
+    titleZh: string; titleEn: string; color: string;
+    sacrificeZh: string; sacrificeEn: string;
+    descZh: string; descEn: string;
+    dbs: DBInfo[];
+  }
+
+  const CAPS: Record<string, CapData> = {
+    cp: {
+      titleZh: 'CP：一致性 + 分区容错', titleEn: 'CP: Consistency + Partition Tolerance',
+      color: '#22D3EE',
+      sacrificeZh: '牺牲可用性', sacrificeEn: 'Sacrifices Availability',
+      descZh: '分区发生时，拒绝写入以保证所有节点数据一致。适合金融、配置等不能容忍不一致的场景。',
+      descEn: 'During partitions, rejects writes to keep all nodes consistent. For finance/config where inconsistency is intolerable.',
+      dbs: [
+        { zh: 'MongoDB（默认）', en: 'MongoDB (default)' },
+        { zh: 'HBase', en: 'HBase' },
+        { zh: 'Redis Cluster（主从同步）', en: 'Redis Cluster (sync replication)' },
+      ],
+    },
+    ap: {
+      titleZh: 'AP：可用性 + 分区容错', titleEn: 'AP: Availability + Partition Tolerance',
+      color: '#FBBF24',
+      sacrificeZh: '牺牲一致性', sacrificeEn: 'Sacrifices Consistency',
+      descZh: '分区发生时，各节点继续接受读写，数据可能暂时不一致，但最终收敛。适合缓存、社交等容忍不一致的场景。',
+      descEn: 'During partitions, nodes keep accepting R/W; data may be temporarily inconsistent but eventually converges. For cache/social where inconsistency is tolerable.',
+      dbs: [
+        { zh: 'Cassandra', en: 'Cassandra' },
+        { zh: 'DynamoDB', en: 'DynamoDB' },
+        { zh: 'CouchDB', en: 'CouchDB' },
+      ],
+    },
+    ca: {
+      titleZh: 'CA：一致性 + 可用性', titleEn: 'CA: Consistency + Availability',
+      color: '#94A3B8',
+      sacrificeZh: '牺牲分区容错（单机）', sacrificeEn: 'Sacrifices Partition Tolerance (single-node)',
+      descZh: '不发生分区（单机部署）时，可同时保证一致性与可用性。传统单机关系型数据库属于此类。分布式环境下无法选 CA。',
+      descEn: 'Without partitions (single-node), both consistency and availability are guaranteed. Traditional single-node relational DBs fall here. CA is impossible in distributed settings.',
+      dbs: [
+        { zh: 'MySQL（单机）', en: 'MySQL (single-node)' },
+        { zh: 'PostgreSQL（单机）', en: 'PostgreSQL (single-node)' },
+        { zh: 'SQLite', en: 'SQLite' },
+      ],
+    },
+  };
+
+  function render(cap: string) {
+    svg.innerHTML = '';
+    const data = CAPS[cap];
+    if (!data) return;
+
+    // 三角形三个顶点
+    const cx = 400, cy = 180, r = 130;
+    const topX = cx, topY = cy - r;       // C (顶部)
+    const leftX = cx - r * 0.866, leftY = cy + r * 0.5;   // A (左下)
+    const rightX = cx + r * 0.866, rightY = cy + r * 0.5;  // P (右下)
+
+    // 高亮的两个顶点
+    const activeVertices: Record<string, [number, number, string][]> = {
+      cp: [[topX, topY, 'C'], [rightX, rightY, 'P']],
+      ap: [[leftX, leftY, 'A'], [rightX, rightY, 'P']],
+      ca: [[topX, topY, 'C'], [leftX, leftY, 'A']],
+    };
+    const active = activeVertices[cap] || [];
+    const activeSet = new Set(active.map(v => v[2]));
+
+    // 三角形边
+    const drawEdge = (x1: number, y1: number, x2: number, y2: number, isActive: boolean) => {
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', String(x1)); line.setAttribute('y1', String(y1));
+      line.setAttribute('x2', String(x2)); line.setAttribute('y2', String(y2));
+      line.setAttribute('stroke', isActive ? data.color : 'rgba(148,163,184,0.2)');
+      line.setAttribute('stroke-width', isActive ? '3' : '1.5');
+      svg.appendChild(line);
+    };
+    drawEdge(topX, topY, leftX, leftY, activeSet.has('C') && activeSet.has('A'));
+    drawEdge(leftX, leftY, rightX, rightY, activeSet.has('A') && activeSet.has('P'));
+    drawEdge(topX, topY, rightX, rightY, activeSet.has('C') && activeSet.has('P'));
+
+    // 三个顶点圆 + 标签
+    const vertices = [
+      { x: topX, y: topY, label: 'C', nameZh: '一致性', nameEn: 'Consistency', color: '#22D3EE' },
+      { x: leftX, y: leftY, label: 'A', nameZh: '可用性', nameEn: 'Availability', color: '#FBBF24' },
+      { x: rightX, y: rightY, label: 'P', nameZh: '分区容错', nameEn: 'Partition Tolerance', color: '#A78BFA' },
+    ];
+
+    for (const v of vertices) {
+      const isActive = activeSet.has(v.label);
+      const circle = document.createElementNS(SVGNS, 'circle');
+      circle.setAttribute('cx', String(v.x)); circle.setAttribute('cy', String(v.y));
+      circle.setAttribute('r', isActive ? '32' : '24');
+      circle.setAttribute('fill', isActive ? v.color : 'rgba(148,163,184,0.15)');
+      circle.setAttribute('stroke', v.color); circle.setAttribute('stroke-width', isActive ? '3' : '2');
+      svg.appendChild(circle);
+
+      const label = document.createElementNS(SVGNS, 'text');
+      label.setAttribute('x', String(v.x)); label.setAttribute('y', String(v.y + 6));
+      label.setAttribute('text-anchor', 'middle'); label.setAttribute('font-size', '18');
+      label.setAttribute('font-weight', '700'); label.setAttribute('fill', isActive ? '#fff' : v.color);
+      label.textContent = v.label;
+      svg.appendChild(label);
+
+      // 名称
+      const name = document.createElementNS(SVGNS, 'text');
+      const offsetY = v.label === 'C' ? -45 : 50;
+      name.setAttribute('x', String(v.x)); name.setAttribute('y', String(v.y + offsetY));
+      name.setAttribute('text-anchor', 'middle'); name.setAttribute('font-size', '12');
+      name.setAttribute('fill', v.color); name.setAttribute('font-weight', '600');
+      name.textContent = lang() === 'en' ? v.nameEn : v.nameZh;
+      svg.appendChild(name);
+    }
+
+    // 被牺牲的顶点标注
+    const sacrificedLabel = active.find(v => !activeSet.has(v[2]));
+    // 找出被牺牲的
+    const allLabels = ['C', 'A', 'P'];
+    const sacrificed = allLabels.find(l => !activeSet.has(l))!;
+    const sacVertex = vertices.find(v => v.label === sacrificed)!;
+
+    const sacText = document.createElementNS(SVGNS, 'text');
+    sacText.setAttribute('x', String(sacVertex.x)); sacText.setAttribute('y', String(sacVertex.y + 65));
+    sacText.setAttribute('text-anchor', 'middle'); sacText.setAttribute('font-size', '11');
+    sacText.setAttribute('fill', '#EF4444');
+    sacText.textContent = `✗ ${lang() === 'en' ? data.sacrificeEn : data.sacrificeZh}`;
+    svg.appendChild(sacText);
+
+    // 右侧详情卡片
+    const cardX = 580, cardY = 60, cardW = 200, cardH = 240;
+    const card = document.createElementNS(SVGNS, 'rect');
+    card.setAttribute('x', String(cardX)); card.setAttribute('y', String(cardY));
+    card.setAttribute('width', String(cardW)); card.setAttribute('height', String(cardH));
+    card.setAttribute('rx', '10'); card.setAttribute('fill', data.color + '11');
+    card.setAttribute('stroke', data.color + '44'); card.setAttribute('stroke-width', '1.5');
+    svg.appendChild(card);
+
+    // 卡片标题
+    const cardTitle = document.createElementNS(SVGNS, 'text');
+    cardTitle.setAttribute('x', String(cardX + 15)); cardTitle.setAttribute('y', String(cardY + 28));
+    cardTitle.setAttribute('font-size', '14'); cardTitle.setAttribute('font-weight', '700');
+    cardTitle.setAttribute('fill', data.color);
+    cardTitle.textContent = lang() === 'en' ? data.titleEn : data.titleZh;
+    svg.appendChild(cardTitle);
+
+    // 描述（换行）
+    const desc = lang() === 'en' ? data.descEn : data.descZh;
+    const words = desc.split('');
+    const maxLineLen = 24;
+    let lineY = cardY + 50;
+    for (let i = 0; i < desc.length; i += maxLineLen) {
+      const line = desc.substring(i, i + maxLineLen);
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(cardX + 15)); t.setAttribute('y', String(lineY));
+      t.setAttribute('font-size', '11'); t.setAttribute('fill', '#94A3B8');
+      t.textContent = line;
+      svg.appendChild(t);
+      lineY += 15;
+    }
+
+    // 代表数据库
+    const dbTitle = document.createElementNS(SVGNS, 'text');
+    dbTitle.setAttribute('x', String(cardX + 15)); dbTitle.setAttribute('y', String(lineY + 10));
+    dbTitle.setAttribute('font-size', '12'); dbTitle.setAttribute('font-weight', '600');
+    dbTitle.setAttribute('fill', data.color);
+    dbTitle.textContent = lang() === 'en' ? 'Examples:' : '代表：';
+    svg.appendChild(dbTitle);
+
+    lineY += 28;
+    for (const db of data.dbs) {
+      const dot = document.createElementNS(SVGNS, 'circle');
+      dot.setAttribute('cx', String(cardX + 20)); dot.setAttribute('cy', String(lineY - 4));
+      dot.setAttribute('r', '3'); dot.setAttribute('fill', data.color);
+      svg.appendChild(dot);
+
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(cardX + 30)); t.setAttribute('y', String(lineY));
+      t.setAttribute('font-size', '11'); t.setAttribute('fill', '#CBD5E1');
+      t.textContent = lang() === 'en' ? db.en : db.zh;
+      svg.appendChild(t);
+      lineY += 18;
+    }
+  }
+
+  function setActive(cap: string) {
+    capButtons.forEach(b => {
+      b.classList.toggle('btn-primary', b.dataset.cap === cap);
+    });
+    render(cap);
+  }
+
+  capButtons.forEach(b => b.addEventListener('click', () => setActive(b.dataset.cap!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.cap-btn.btn-primary');
+    render(active?.dataset.cap || 'cp');
+  });
+  setActive('cp');
+</script>

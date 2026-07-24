@@ -1,0 +1,250 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="SQL Basics · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Databases / SQL</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">SQL 基础</span><span slot="en">SQL Basics</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">SQL（Structured Query Language）是<b>声明式</b>查询语言——你描述"要什么"，数据库决定"怎么取"。关键在于理解<b>逻辑执行顺序</b>：SQL 书写顺序（SELECT→FROM→WHERE...）与引擎实际执行顺序（FROM→JOIN→WHERE→GROUP BY→HAVING→SELECT→ORDER BY→LIMIT）<b>恰好相反</b>。掌握执行顺序，才能写出正确的聚合、过滤与排序。点击下方逐步查看每个子句的执行时机。</span>
+          <span slot="en">SQL (Structured Query Language) is a <b>declarative</b> query language — you describe "what" you want, the database decides "how" to fetch it. The key is understanding <b>logical execution order</b>: the written order (SELECT→FROM→WHERE...) is the <b>reverse</b> of the engine's actual execution (FROM→JOIN→WHERE→GROUP BY→HAVING→SELECT→ORDER BY→LIMIT). Master this order to write correct aggregation, filtering, and sorting. Click below to step through each clause's execution timing.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：SQL 执行顺序逐步高亮 -->
+    <div class="glass p-5" data-viz="sql-order">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <button class="btn sql-step-btn btn-primary" data-step="0">FROM</button>
+        <button class="btn sql-step-btn" data-step="1">JOIN</button>
+        <button class="btn sql-step-btn" data-step="2">WHERE</button>
+        <button class="btn sql-step-btn" data-step="3">GROUP BY</button>
+        <button class="btn sql-step-btn" data-step="4">HAVING</button>
+        <button class="btn sql-step-btn" data-step="5">SELECT</button>
+        <button class="btn sql-step-btn" data-step="6">ORDER BY</button>
+        <button class="btn sql-step-btn" data-step="7">LIMIT</button>
+      </div>
+      <svg id="sql-order-svg" viewBox="0 0 800 200" class="w-full h-50 viz-stage"></svg>
+    </div>
+
+    <!-- SELECT 基础 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">SELECT：查询的四件套</span><span slot="en">SELECT: The Query Quartet</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">90% 的查询由四种子句组合而成：<b>SELECT</b>（取哪些列）、<b>FROM</b>（从哪张表）、<b>WHERE</b>（过滤哪些行）、<b>ORDER BY</b>（按什么排序）。掌握这四个，再叠加聚合（GROUP BY）与连接（JOIN），就能覆盖绝大多数业务查询。</span><span slot="en">90% of queries combine four clauses: <b>SELECT</b> (which columns), <b>FROM</b> (which table), <b>WHERE</b> (which rows to keep), <b>ORDER BY</b> (sort order). Master these four, then add aggregation (GROUP BY) and joins (JOIN) to cover most business queries.</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-func-amber">-- 查询等级大于 10 的玩家，按等级降序取前 5 名</span>
+<span class="text-primary-cyan">SELECT</span> player_id, name, level, gold
+<span class="text-primary-cyan">FROM</span> players
+<span class="text-primary-cyan">WHERE</span> level &gt; 10 <span class="text-func-green">AND</span> status = <span class="text-func-amber">'active'</span>   <span class="text-ink-muted">-- 行过滤</span>
+<span class="text-primary-cyan">ORDER BY</span> level <span class="text-primary-purple">DESC</span>, gold <span class="text-primary-purple">DESC</span>           <span class="text-ink-muted">-- 排序（等级优先，金币次之）</span>
+<span class="text-primary-cyan">LIMIT</span> 5;                                  <span class="text-ink-muted">-- 只取前 5 条</span>
+
+<span class="text-func-amber">-- 聚合：统计每个公会的玩家数与平均等级</span>
+<span class="text-primary-cyan">SELECT</span> guild_id,
+       <span class="text-func-green">COUNT</span>(*) <span class="text-primary-cyan">AS</span> player_count,          <span class="text-ink-muted">-- 计数</span>
+       <span class="text-func-green">AVG</span>(level) <span class="text-primary-cyan">AS</span> avg_level,            <span class="text-ink-muted">-- 平均值</span>
+       <span class="text-func-green">MAX</span>(gold) <span class="text-primary-cyan">AS</span> richest                <span class="text-ink-muted">-- 最大值</span>
+<span class="text-primary-cyan">FROM</span> players
+<span class="text-primary-cyan">WHERE</span> status = <span class="text-func-amber">'active'</span>                     <span class="text-ink-muted">-- 先过滤行（WHERE 在 GROUP BY 前）</span>
+<span class="text-primary-cyan">GROUP BY</span> guild_id                           <span class="text-ink-muted">-- 按公会分组</span>
+<span class="text-primary-cyan">HAVING</span> <span class="text-func-green">COUNT</span>(*) &gt; 3                       <span class="text-ink-muted">-- 过滤分组（HAVING 在 GROUP BY 后）</span>
+<span class="text-primary-cyan">ORDER BY</span> avg_level <span class="text-primary-purple">DESC</span>;</code></pre>
+      <div class="overflow-x-auto mt-4">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">聚合函数</span><span slot="en">Aggregate</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">作用</span><span slot="en">Purpose</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏场景</span><span slot="en">Game Use Case</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-amber">COUNT(*)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">行数</span><span slot="en">Row count</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">在线人数、公会人数</span><span slot="en">Online count, guild size</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-amber">SUM(col)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">求和</span><span slot="en">Sum</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">总充值、总消费</span><span slot="en">Total revenue, spending</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-amber">AVG(col)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">平均值</span><span slot="en">Average</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">平均等级、平均在线时长</span><span slot="en">Avg level, avg session</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-amber">MAX/MIN</td><td class="py-2 pr-4"><Bilingual><span slot="zh">极值</span><span slot="en">Extremes</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">最高分、最低价</span><span slot="en">High score, lowest price</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 font-mono text-func-amber">GROUP_CONCAT</td><td class="py-2 pr-4"><Bilingual><span slot="zh">拼接</span><span slot="en">Concat</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">玩家名列表、标签合并</span><span slot="en">Name list, tag merge</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- JOIN 连接 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">JOIN：多表关联查询</span><span slot="en">JOIN: Multi-Table Queries</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">JOIN 是关系型数据库的灵魂——它把分散在多张表中的数据按关联条件"拼接"成一张结果表。四种 JOIN 的区别在于<b>如何处理不匹配的行</b>：<b class="text-func-green">INNER</b> 只保留两边都匹配的；<b class="text-primary-cyan">LEFT</b> 保留左表全部（右表缺失填 NULL）；<b class="text-func-amber">RIGHT</b> 反之；<b class="text-primary-purple">FULL</b> 两边都保留。</span><span slot="en">JOIN is the soul of relational databases — it "stitches" data scattered across tables into one result set based on a join condition. The four JOIN types differ in <b>how they handle unmatched rows</b>: <b class="text-func-green">INNER</b> keeps only matched pairs; <b class="text-primary-cyan">LEFT</b> keeps all left rows (NULL for missing right); <b class="text-func-amber">RIGHT</b> vice versa; <b class="text-primary-purple">FULL</b> keeps both.</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-func-amber">-- INNER JOIN：查询有公会的玩家及其公会名</span>
+<span class="text-primary-cyan">SELECT</span> p.name <span class="text-primary-cyan">AS</span> player, g.name <span class="text-primary-cyan">AS</span> guild
+<span class="text-primary-cyan">FROM</span> players p
+<span class="text-primary-cyan">INNER JOIN</span> guilds g <span class="text-primary-cyan">ON</span> p.guild_id = g.id;
+<span class="text-ink-muted">-- 结果：只有 guild_id 在 guilds 表中存在的玩家才出现</span>
+
+<span class="text-func-amber">-- LEFT JOIN：查询所有玩家（含无公会的，公会名显示 NULL）</span>
+<span class="text-primary-cyan">SELECT</span> p.name, g.name <span class="text-primary-cyan">AS</span> guild
+<span class="text-primary-cyan">FROM</span> players p
+<span class="text-primary-cyan">LEFT JOIN</span> guilds g <span class="text-primary-cyan">ON</span> p.guild_id = g.id;
+<span class="text-ink-muted">-- 结果：所有玩家都出现，无公会的 guild 列为 NULL</span>
+
+<span class="text-func-amber">-- 三表 JOIN：玩家 + 公会 + 物品（统计每个公会的物品总量）</span>
+<span class="text-primary-cyan">SELECT</span> g.name <span class="text-primary-cyan">AS</span> guild,
+       <span class="text-func-green">COUNT</span>(i.item_id) <span class="text-primary-cyan">AS</span> item_count,
+       <span class="text-func-green">SUM</span>(i.qty) <span class="text-primary-cyan">AS</span> total_qty
+<span class="text-primary-cyan">FROM</span> guilds g
+<span class="text-primary-cyan">LEFT JOIN</span> players p <span class="text-primary-cyan">ON</span> p.guild_id = g.id      <span class="text-ink-muted">-- 公会 → 玩家</span>
+<span class="text-primary-cyan">LEFT JOIN</span> items i  <span class="text-primary-cyan">ON</span> i.owner_id = p.player_id  <span class="text-ink-muted">-- 玩家 → 物品</span>
+<span class="text-primary-cyan">GROUP BY</span> g.id, g.name
+<span class="text-primary-cyan">ORDER BY</span> total_qty <span class="text-primary-purple">DESC</span>;</code></pre>
+      <div class="overflow-x-auto mt-4">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">JOIN 类型</span><span slot="en">JOIN Type</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">保留行</span><span slot="en">Rows Kept</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏场景</span><span slot="en">Game Use Case</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green">INNER JOIN</td><td class="py-2 pr-4"><Bilingual><span slot="zh">仅两边都匹配</span><span slot="en">Matched only</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">有公会的玩家 + 公会信息</span><span slot="en">Guilded players + guild info</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan">LEFT JOIN</td><td class="py-2 pr-4"><Bilingual><span slot="zh">左表全部 + 右表匹配</span><span slot="en">All left + matched right</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">所有玩家（含散人）+ 公会名</span><span slot="en">All players (incl. unguilded) + guild</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber">RIGHT JOIN</td><td class="py-2 pr-4"><Bilingual><span slot="zh">右表全部 + 左表匹配</span><span slot="en">All right + matched left</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">所有公会（含空公会）+ 成员</span><span slot="en">All guilds (incl. empty) + members</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-primary-purple">FULL JOIN</td><td class="py-2 pr-4"><Bilingual><span slot="zh">两边全部</span><span slot="en">Both sides</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">对账：找出孤儿数据</span><span slot="en">Reconciliation: find orphans</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 增删改 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">增删改：INSERT / UPDATE / DELETE</span><span slot="en">Write Ops: INSERT / UPDATE / DELETE</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">除了查询（CRUD 中的 R），SQL 还有三种写操作。<b>关键铁律</b>：UPDATE 和 DELETE 必须带 WHERE，否则会修改/删除<b>全表</b>——这是生产事故的头号原因。建议先用 SELECT 验证 WHERE 条件命中的行，再改写为 UPDATE/DELETE。</span><span slot="en">Beyond queries (the R in CRUD), SQL has three write ops. <b>Iron rule</b>: UPDATE and DELETE must always carry a WHERE, or they affect <b>the entire table</b> — the #1 cause of production incidents. Best practice: run a SELECT with the same WHERE first to verify affected rows, then convert to UPDATE/DELETE.</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-func-amber">-- INSERT：插入新玩家</span>
+<span class="text-primary-cyan">INSERT INTO</span> players (name, email, level) <span class="text-primary-cyan">VALUES</span>
+    (<span class="text-func-amber">'王五'</span>, <span class="text-func-amber">'ww@game.com'</span>, 1),
+    (<span class="text-func-amber">'赵六'</span>, <span class="text-func-amber">'zl@game.com'</span>, 1);
+
+<span class="text-func-amber">-- UPDATE：修改（务必带 WHERE！）</span>
+<span class="text-primary-cyan">UPDATE</span> players <span class="text-primary-cyan">SET</span> level = level + 1, gold = gold + 100
+<span class="text-primary-cyan">WHERE</span> player_id = 42;          <span class="text-func-red">-- 没有这条 WHERE，全表升级！</span>
+
+<span class="text-func-amber">-- DELETE：删除（务必带 WHERE！）</span>
+<span class="text-primary-cyan">DELETE FROM</span> players <span class="text-primary-cyan">WHERE</span> status = <span class="text-func-amber">'banned'</span> <span class="text-func-green">AND</span> last_login &lt; <span class="text-func-amber">'2024-01-01'</span>;
+
+<span class="text-func-amber">-- 安全实践：先 SELECT 验证，再 DELETE</span>
+<span class="text-primary-cyan">SELECT</span> * <span class="text-primary-cyan">FROM</span> players <span class="text-primary-cyan">WHERE</span> status = <span class="text-func-amber">'banned'</span> <span class="text-func-green">AND</span> last_login &lt; <span class="text-func-amber">'2024-01-01'</span>;
+<span class="text-ink-muted">-- 确认结果无误后，再执行上面的 DELETE</span></code></pre>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // SQL 执行顺序逐步高亮交互
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('sql-order-svg') as unknown as SVGSVGElement;
+  const stepButtons = document.querySelectorAll<HTMLButtonElement>('.sql-step-btn');
+
+  interface StepInfo { descZh: string; descEn: string; color: string; }
+  const STEPS: StepInfo[] = [
+    { descZh: '确定数据来源表', descEn: 'Identify source table(s)', color: '#22D3EE' },
+    { descZh: '按 ON 条件连接多表', descEn: 'Connect tables via ON condition', color: '#22D3EE' },
+    { descZh: '逐行过滤（不能用聚合函数）', descEn: 'Filter rows (no aggregates)', color: '#FBBF24' },
+    { descZh: '按列分组，准备聚合', descEn: 'Group rows for aggregation', color: '#A78BFA' },
+    { descZh: '过滤分组（可用聚合函数）', descEn: 'Filter groups (aggregates OK)', color: '#FBBF24' },
+    { descZh: '选择输出列/计算表达式', descEn: 'Pick output columns', color: '#22C55E' },
+    { descZh: '对结果排序', descEn: 'Sort the result set', color: '#F472B6' },
+    { descZh: '截取前 N 行', descEn: 'Take top N rows', color: '#94A3B8' },
+  ];
+  const STEP_NAMES = ['FROM', 'JOIN', 'WHERE', 'GROUP BY', 'HAVING', 'SELECT', 'ORDER BY', 'LIMIT'];
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  function render(step: number) {
+    svg.innerHTML = '';
+    const total = STEPS.length;
+    const stepW = 88, gap = 6;
+    const totalW = total * stepW + (total - 1) * gap;
+    const startX = (800 - totalW) / 2;
+    const y = 35;
+
+    // 书写顺序提示
+    const writeLabel = document.createElementNS(SVGNS, 'text');
+    writeLabel.setAttribute('x', String(startX)); writeLabel.setAttribute('y', String(y - 12));
+    writeLabel.setAttribute('font-size', '11'); writeLabel.setAttribute('fill', '#64748B');
+    writeLabel.textContent = lang() === 'en' ? 'Written order (SELECT first)' : '书写顺序（SELECT 在前）';
+    svg.appendChild(writeLabel);
+
+    // 执行方向提示
+    const execLabel = document.createElementNS(SVGNS, 'text');
+    execLabel.setAttribute('x', String(startX + totalW)); execLabel.setAttribute('y', String(y - 12));
+    execLabel.setAttribute('text-anchor', 'end'); execLabel.setAttribute('font-size', '11');
+    execLabel.setAttribute('fill', '#22D3EE');
+    execLabel.textContent = lang() === 'en' ? 'Execution order (FROM first) →' : '执行顺序（FROM 在前）→';
+    svg.appendChild(execLabel);
+
+    for (let i = 0; i < total; i++) {
+      const x = startX + i * (stepW + gap);
+      const isActive = i === step;
+      const isDone = i < step;
+      const data = STEPS[i];
+      const color = isActive ? data.color : isDone ? data.color + '88' : 'rgba(148,163,184,0.3)';
+
+      const card = document.createElementNS(SVGNS, 'rect');
+      card.setAttribute('x', String(x)); card.setAttribute('y', String(y));
+      card.setAttribute('width', String(stepW)); card.setAttribute('height', '46');
+      card.setAttribute('rx', '8');
+      card.setAttribute('fill', isActive ? data.color + '22' : isDone ? data.color + '11' : 'rgba(148,163,184,0.05)');
+      card.setAttribute('stroke', color); card.setAttribute('stroke-width', isActive ? '2' : '1');
+      svg.appendChild(card);
+
+      const name = document.createElementNS(SVGNS, 'text');
+      name.setAttribute('x', String(x + stepW / 2)); name.setAttribute('y', String(y + 20));
+      name.setAttribute('text-anchor', 'middle'); name.setAttribute('font-size', '13');
+      name.setAttribute('font-weight', '700'); name.setAttribute('fill', isActive ? data.color : '#94A3B8');
+      name.textContent = STEP_NAMES[i];
+      svg.appendChild(name);
+
+      const num = document.createElementNS(SVGNS, 'text');
+      num.setAttribute('x', String(x + stepW / 2)); num.setAttribute('y', String(y + 38));
+      num.setAttribute('text-anchor', 'middle'); num.setAttribute('font-size', '10');
+      num.setAttribute('fill', '#64748B');
+      num.textContent = `${i + 1}/${total}`;
+      svg.appendChild(num);
+
+      if (i < total - 1) {
+        const arrow = document.createElementNS(SVGNS, 'path');
+        const ax1 = x + stepW + 2, ax2 = x + stepW + gap - 2, ay = y + 23;
+        arrow.setAttribute('d', `M ${ax1} ${ay} L ${ax2} ${ay - 3} L ${ax2} ${ay + 3} Z`);
+        arrow.setAttribute('fill', isDone ? STEPS[i].color + '88' : 'rgba(148,163,184,0.3)');
+        svg.appendChild(arrow);
+      }
+    }
+
+    // 当前步骤详情卡片
+    const data = STEPS[step];
+    const detailY = y + 60;
+    const detailBg = document.createElementNS(SVGNS, 'rect');
+    detailBg.setAttribute('x', String(startX)); detailBg.setAttribute('y', String(detailY));
+    detailBg.setAttribute('width', String(totalW)); detailBg.setAttribute('height', '70');
+    detailBg.setAttribute('rx', '10'); detailBg.setAttribute('fill', data.color + '11');
+    detailBg.setAttribute('stroke', data.color + '44'); detailBg.setAttribute('stroke-width', '1.5');
+    svg.appendChild(detailBg);
+
+    const stepLabel = document.createElementNS(SVGNS, 'text');
+    stepLabel.setAttribute('x', String(startX + 20)); stepLabel.setAttribute('y', String(detailY + 28));
+    stepLabel.setAttribute('font-size', '16'); stepLabel.setAttribute('font-weight', '700');
+    stepLabel.setAttribute('fill', data.color);
+    stepLabel.textContent = `${step + 1}. ${STEP_NAMES[step]}`;
+    svg.appendChild(stepLabel);
+
+    const desc = document.createElementNS(SVGNS, 'text');
+    desc.setAttribute('x', String(startX + 20)); desc.setAttribute('y', String(detailY + 52));
+    desc.setAttribute('font-size', '13'); desc.setAttribute('fill', '#CBD5E1');
+    desc.textContent = lang() === 'en' ? data.descEn : data.descZh;
+    svg.appendChild(desc);
+  }
+
+  function setActive(step: number) {
+    stepButtons.forEach(b => {
+      b.classList.toggle('btn-primary', parseInt(b.dataset.step!) === step);
+    });
+    render(step);
+  }
+
+  stepButtons.forEach(b => b.addEventListener('click', () => setActive(parseInt(b.dataset.step!))));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.sql-step-btn.btn-primary');
+    render(active ? parseInt(active.dataset.step!) : 0);
+  });
+  setActive(0);
+</script>

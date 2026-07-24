@@ -1,0 +1,274 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Graph Databases & Game Saves · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Databases / Graph DB</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">图数据库与游戏存档</span><span slot="en">Graph Databases & Game Saves</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">图数据库用<b>节点</b>（实体）和<b>关系</b>（边）建模数据，关系是<b>一等公民</b>——与关系型数据库把关系藏在 JOIN 中不同，图数据库把关系显式存储为带属性的边。这使得<b>多跳关系查询</b>（如"朋友的朋友喜欢的游戏"）在图数据库中是 O(1)~O(depth)，而在关系型数据库中是 O(n) 多表 JOIN。<b class="text-func-amber">Neo4j</b> 是最流行的图数据库，使用 Cypher 查询语言。点击下方节点查看关系网络。</span>
+          <span slot="en">Graph databases model data with <b>nodes</b> (entities) and <b>relationships</b> (edges), where relationships are <b>first-class citizens</b> — unlike relational DBs that hide relations inside JOINs, graph DBs store them explicitly as edges with properties. This makes <b>multi-hop relationship queries</b> (e.g. "friends-of-friends who like this game") O(1)~O(depth) in graph DBs, versus O(n) multi-table JOINs in relational DBs. <b class="text-func-amber">Neo4j</b> is the most popular graph database, using the Cypher query language. Click a node below to explore the relationship network.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：节点-关系图 -->
+    <div class="glass p-5" data-viz="graph-network">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <span class="text-sm text-ink-muted"><Bilingual><span slot="zh">高亮关系：</span><span slot="en">Highlight edge:</span></Bilingual></span>
+        <button class="btn graph-btn btn-primary" data-rel="all">
+          <span data-lang="zh">全部</span><span data-lang="en">All</span>
+        </button>
+        <button class="btn graph-btn" data-rel="OWNS">
+          <span data-lang="zh">拥有物品</span><span data-lang="en">OWNS item</span>
+        </button>
+        <button class="btn graph-btn" data-rel="FRIEND">
+          <span data-lang="zh">好友</span><span data-lang="en">FRIEND</span>
+        </button>
+        <button class="btn graph-btn" data-rel="JOINED">
+          <span data-lang="zh">加入公会</span><span data-lang="en">JOINED guild</span>
+        </button>
+      </div>
+      <svg id="graph-svg" viewBox="0 0 800 400" class="w-full h-100 viz-stage"></svg>
+    </div>
+
+    <!-- Cypher 查询 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">Cypher 查询语言</span><span slot="en">Cypher Query Language</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">Cypher 是 Neo4j 的声明式图查询语言，语法直观如"画图"：<code>(node)</code> 表示节点，<code>-[RELATION]-&gt;</code> 表示关系。模式匹配是核心——你画出要找的子图结构，数据库返回匹配的节点与关系。下方示例覆盖游戏中最常见的关系查询。</span><span slot="en">Cypher is Neo4j's declarative graph query language, with intuitive "draw the graph" syntax: <code>(node)</code> for nodes, <code>-[RELATION]-&gt;</code> for relationships. Pattern matching is core — you sketch the subgraph structure you want, the database returns matching nodes and relationships. The examples below cover common game relationship queries.</span></Bilingual></p>
+      <pre class="glass p-4 overflow-x-auto text-sm"><code><span class="text-func-amber">// 创建节点与关系</span>
+<span class="text-primary-cyan">CREATE</span> (p:Player &#123;name: <span class="text-func-amber">"张三"</span>, level: 99&#125;)
+<span class="text-primary-cyan">CREATE</span> (i:Item &#123;name: <span class="text-func-amber">"屠龙刀"</span>, rarity: <span class="text-func-amber">"legendary"</span>&#125;)
+<span class="text-primary-cyan">CREATE</span> (p)-[:OWNS &#123;qty: 1, since: <span class="text-func-amber">"2025-01-01"</span>&#125;]-&gt;(i)
+
+<span class="text-func-amber">// 查询：张三拥有的所有物品</span>
+<span class="text-primary-cyan">MATCH</span> (p:Player &#123;name: <span class="text-func-amber">"张三"</span>&#125;)-[:OWNS]-&gt;(i:Item)
+<span class="text-primary-cyan">RETURN</span> i.name, i.rarity
+
+<span class="text-func-amber">// 查询：张三好友的好友（二跳关系，图数据库的杀手级查询）</span>
+<span class="text-primary-cyan">MATCH</span> (p:Player &#123;name: <span class="text-func-amber">"张三"</span>&#125;)-[:FRIEND]-&gt;(:Player)-[:FRIEND]-&gt;(fof:Player)
+<span class="text-primary-cyan">RETURN DISTINCT</span> fof.name
+
+<span class="text-func-amber">// 查询：找出公会中拥有传说装备的成员</span>
+<span class="text-primary-cyan">MATCH</span> (g:Guild &lt;-[:JOINED]-(p:Player)-[:OWNS]-&gt;(i:Item &#123;rarity: <span class="text-func-amber">"legendary"</span>&#125;)
+<span class="text-primary-cyan">WHERE</span> g.name = <span class="text-func-amber">"战神殿"</span>
+<span class="text-primary-cyan">RETURN</span> p.name, collect(i.name) <span class="text-primary-cyan">AS</span> legendaries
+
+<span class="text-func-amber">// 最短路径：张三到李四的好友链路</span>
+<span class="text-primary-cyan">MATCH</span> path = shortestPath(
+  (p1:Player &#123;name: <span class="text-func-amber">"张三"</span>&#125;)-[:FRIEND*..5]-(p2:Player &#123;name: <span class="text-func-amber">"李四"</span>&#125;)
+)
+<span class="text-primary-cyan">RETURN</span> path</code></pre>
+    </section>
+
+    <!-- 图数据库 vs 关系型 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">图数据库 vs 关系型：关系密集查询对比</span><span slot="en">Graph vs Relational: Relationship-Dense Queries</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">关系型数据库的"关系"藏在 JOIN 中——每多一跳关系，就多一次 JOIN，性能随深度<b>指数下降</b>。图数据库把关系存为指针，多跳查询只需沿边遍历，性能仅与<b>匹配的子图大小</b>成正比。下表对比"查询 N 跳好友"的差异。</span><span slot="en">In relational DBs, "relations" hide inside JOINs — each hop adds a JOIN, with performance degrading <b>exponentially</b> with depth. Graph DBs store relations as pointers; multi-hop queries just traverse edges, with performance proportional only to the <b>matched subgraph size</b>. The table below compares "query N-hop friends".</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">维度</span><span slot="en">Dimension</span></Bilingual></th><th class="py-2 pr-4 text-primary-cyan"><Bilingual><span slot="zh">关系型（JOIN）</span><span slot="en">Relational (JOIN)</span></Bilingual></th><th class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">图数据库</span><span slot="en">Graph DB</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">1 跳好友</span><span slot="en">1-hop friends</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">1 次 JOIN，快</span><span slot="en">1 JOIN, fast</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">直接遍历，快</span><span slot="en">Direct traversal, fast</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">3 跳好友</span><span slot="en">3-hop friends</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">3 次 JOIN，慢</span><span slot="en">3 JOINs, slow</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">沿边遍历，快</span><span slot="en">Edge traversal, fast</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">最短路径</span><span slot="en">Shortest path</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">需递归 CTE，极慢</span><span slot="en">Recursive CTE, very slow</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">内置 BFS，O(V+E)</span><span slot="en">Built-in BFS, O(V+E)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">关系属性</span><span slot="en">Edge properties</span></Bilingual></td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">需中间表存储</span><span slot="en">Requires junction table</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">边自带属性</span><span slot="en">Edges have native properties</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">结构化数据</span><span slot="en">Structured data</span></Bilingual></td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">强（ACID/聚合）</span><span slot="en">Strong (ACID/aggregation)</span></Bilingual></td><td class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">一般</span><span slot="en">Fair</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 游戏存档设计 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">游戏存档设计：用图建模玩家世界</span><span slot="en">Game Save Design: Modeling the Player World as a Graph</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">游戏存档本质是一张<b>以玩家为中心的关系图</b>：玩家拥有物品、完成成就、结交好友、加入公会、探索地图。用图数据库建模，所有关系查询都变成自然的图遍历。对比关系型数据库需要 5+ 张表 JOIN，图数据库一条 Cypher 搞定。</span><span slot="en">A game save is fundamentally a <b>player-centric relationship graph</b>: the player owns items, completes achievements, makes friends, joins guilds, explores maps. Modeling with a graph DB turns all relationship queries into natural graph traversals. Compared to 5+ table JOINs in relational DBs, one Cypher query does it all.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">节点类型</span><span slot="en">Node Type</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">关系类型</span><span slot="en">Edge Type</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏查询场景</span><span slot="en">Game Query Scenario</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber">Player</td><td class="py-2 pr-4 font-mono text-func-green">-[:OWNS]-&gt;Item</td><td class="py-2 pr-4"><Bilingual><span slot="zh">玩家拥有的物品清单</span><span slot="en">Player's item inventory</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber">Player</td><td class="py-2 pr-4 font-mono text-func-green">-[:FRIEND]-&gt;Player</td><td class="py-2 pr-4"><Bilingual><span slot="zh">好友列表、共同好友、推荐好友</span><span slot="en">Friends, mutual friends, recommendations</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber">Player</td><td class="py-2 pr-4 font-mono text-func-green">-[:JOINED]-&gt;Guild</td><td class="py-2 pr-4"><Bilingual><span slot="zh">公会成员、公会间联盟关系</span><span slot="en">Guild members, guild alliances</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber">Player</td><td class="py-2 pr-4 font-mono text-func-green">-[:ACHIEVED]-&gt;Achievement</td><td class="py-2 pr-4"><Bilingual><span slot="zh">成就进度、稀有成就玩家</span><span slot="en">Achievement progress, rare achievers</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber">Player</td><td class="py-2 pr-4 font-mono text-func-green">-[:VISITED]-&gt;Location</td><td class="py-2 pr-4"><Bilingual><span slot="zh">探索地图、推荐未去地点</span><span slot="en">Explored maps, suggest unvisited</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-func-amber">Player</td><td class="py-2 pr-4 font-mono text-func-green">-[:TRADED]-&gt;Player</td><td class="py-2 pr-4"><Bilingual><span slot="zh">交易历史、信任网络、欺诈检测</span><span slot="en">Trade history, trust network, fraud detection</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <pre class="glass p-4 overflow-x-auto text-sm mt-4"><code><span class="text-func-amber">// 游戏存档图建模：一个玩家的完整关系网络</span>
+<span class="text-primary-cyan">CREATE</span> (p:Player &#123;id: 42, name: <span class="text-func-amber">"张三"</span>, level: 99&#125;)
+<span class="text-primary-cyan">CREATE</span> (sword:Item &#123;name: <span class="text-func-amber">"屠龙刀"</span>, rarity: <span class="text-func-amber">"legendary"</span>&#125;)
+<span class="text-primary-cyan">CREATE</span> (guild:Guild &#123;name: <span class="text-func-amber">"战神殿"</span>, level: 10&#125;)
+<span class="text-primary-cyan">CREATE</span> (achi:Achievement &#123;name: <span class="text-func-amber">"屠龙者"</span>, rarity: <span class="text-func-amber">"mythic"</span>&#125;)
+
+<span class="text-primary-cyan">CREATE</span> (p)-[:OWNS &#123;qty: 1, enchanted: <span class="text-func-green">true</span>&#125;]-&gt;(sword)
+<span class="text-primary-cyan">CREATE</span> (p)-[:JOINED &#123;role: <span class="text-func-amber">"officer"</span>, since: <span class="text-func-amber">"2024-01-01"</span>&#125;]-&gt;(guild)
+<span class="text-primary-cyan">CREATE</span> (p)-[:ACHIEVED &#123;date: <span class="text-func-amber">"2025-07-20"</span>&#125;]-&gt;(achi)
+
+<span class="text-func-amber">// 查询：张三的完整存档（一条查询获取所有关联）</span>
+<span class="text-primary-cyan">MATCH</span> (p:Player &#123;id: 42&#125;)-[r]-(related)
+<span class="text-primary-cyan">RETURN</span> p, type(r), related</code></pre>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 节点-关系图交互
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('graph-svg') as unknown as SVGSVGElement;
+  const graphButtons = document.querySelectorAll<HTMLButtonElement>('.graph-btn');
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  interface GNode { id: string; label: string; x: number; y: number; type: 'player' | 'item' | 'guild'; }
+  interface GEdge { from: string; to: string; type: string; label: string; }
+
+  const NODES: GNode[] = [
+    { id: 'p1', label: '张三', x: 200, y: 100, type: 'player' },
+    { id: 'p2', label: '李四', x: 400, y: 200, type: 'player' },
+    { id: 'p3', label: '王五', x: 200, y: 300, type: 'player' },
+    { id: 'i1', label: '屠龙刀', x: 50, y: 200, type: 'item' },
+    { id: 'i2', label: '药水×99', x: 50, y: 50, type: 'item' },
+    { id: 'g1', label: '战神殿', x: 400, y: 50, type: 'guild' },
+    { id: 'g2', label: '英雄联盟', x: 600, y: 300, type: 'guild' },
+  ];
+
+  const EDGES: GEdge[] = [
+    { from: 'p1', to: 'i1', type: 'OWNS', label: '拥有' },
+    { from: 'p1', to: 'i2', type: 'OWNS', label: '拥有' },
+    { from: 'p1', to: 'p2', type: 'FRIEND', label: '好友' },
+    { from: 'p1', to: 'p3', type: 'FRIEND', label: '好友' },
+    { from: 'p2', to: 'p3', type: 'FRIEND', label: '好友' },
+    { from: 'p1', to: 'g1', type: 'JOINED', label: '加入' },
+    { from: 'p2', to: 'g1', type: 'JOINED', label: '加入' },
+    { from: 'p3', to: 'g2', type: 'JOINED', label: '加入' },
+  ];
+
+  const TYPE_COLORS: Record<string, string> = {
+    player: '#22D3EE', item: '#FBBF24', guild: '#A78BFA',
+  };
+  const EDGE_COLORS: Record<string, string> = {
+    OWNS: '#FBBF24', FRIEND: '#22C55E', JOINED: '#A78BFA',
+  };
+
+  function render(highlight: string) {
+    svg.innerHTML = '';
+
+    // 绘制边
+    for (const edge of EDGES) {
+      const from = NODES.find(n => n.id === edge.from)!;
+      const to = NODES.find(n => n.id === edge.to)!;
+      const isHighlight = highlight === 'all' || highlight === edge.type;
+      const color = EDGE_COLORS[edge.type];
+
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', String(from.x)); line.setAttribute('y1', String(from.y));
+      line.setAttribute('x2', String(to.x)); line.setAttribute('y2', String(to.y));
+      line.setAttribute('stroke', isHighlight ? color : 'rgba(148,163,184,0.15)');
+      line.setAttribute('stroke-width', isHighlight ? '2.5' : '1');
+      line.setAttribute('stroke-dasharray', isHighlight ? 'none' : '3,3');
+      svg.appendChild(line);
+
+      // 关系标签
+      if (isHighlight) {
+        const midX = (from.x + to.x) / 2;
+        const midY = (from.y + to.y) / 2;
+        const labelBg = document.createElementNS(SVGNS, 'rect');
+        const labelText = lang() === 'en' ? edge.type : edge.label;
+        const labelW = labelText.length * 8 + 10;
+        labelBg.setAttribute('x', String(midX - labelW / 2)); labelBg.setAttribute('y', String(midY - 9));
+        labelBg.setAttribute('width', String(labelW)); labelBg.setAttribute('height', '18');
+        labelBg.setAttribute('rx', '4'); labelBg.setAttribute('fill', 'rgba(15,23,42,0.8)');
+        svg.appendChild(labelBg);
+        const label = document.createElementNS(SVGNS, 'text');
+        label.setAttribute('x', String(midX)); label.setAttribute('y', String(midY + 4));
+        label.setAttribute('text-anchor', 'middle'); label.setAttribute('font-size', '10');
+        label.setAttribute('fill', color); label.setAttribute('font-weight', '600');
+        label.textContent = labelText;
+        svg.appendChild(label);
+      }
+    }
+
+    // 绘制节点
+    for (const node of NODES) {
+      const color = TYPE_COLORS[node.type];
+      const r = node.type === 'player' ? 28 : 24;
+
+      // 光环
+      const halo = document.createElementNS(SVGNS, 'circle');
+      halo.setAttribute('cx', String(node.x)); halo.setAttribute('cy', String(node.y));
+      halo.setAttribute('r', String(r + 4)); halo.setAttribute('fill', color + '15');
+      svg.appendChild(halo);
+
+      // 节点圆
+      const circle = document.createElementNS(SVGNS, 'circle');
+      circle.setAttribute('cx', String(node.x)); circle.setAttribute('cy', String(node.y));
+      circle.setAttribute('r', String(r)); circle.setAttribute('fill', color + '22');
+      circle.setAttribute('stroke', color); circle.setAttribute('stroke-width', '2');
+      svg.appendChild(circle);
+
+      // 标签
+      const label = document.createElementNS(SVGNS, 'text');
+      label.setAttribute('x', String(node.x)); label.setAttribute('y', String(node.y + 5));
+      label.setAttribute('text-anchor', 'middle'); label.setAttribute('font-size', '12');
+      label.setAttribute('font-weight', '600'); label.setAttribute('fill', color);
+      label.textContent = node.label;
+      svg.appendChild(label);
+
+      // 类型标签（上方）
+      const typeLabel = document.createElementNS(SVGNS, 'text');
+      typeLabel.setAttribute('x', String(node.x)); typeLabel.setAttribute('y', String(node.y - r - 8));
+      typeLabel.setAttribute('text-anchor', 'middle'); typeLabel.setAttribute('font-size', '9');
+      typeLabel.setAttribute('fill', '#64748B'); typeLabel.setAttribute('font-family', 'monospace');
+      const typeNames: Record<string, {zh: string, en: string}> = {
+        player: { zh: 'Player', en: 'Player' },
+        item: { zh: 'Item', en: 'Item' },
+        guild: { zh: 'Guild', en: 'Guild' },
+      };
+      typeLabel.textContent = typeNames[node.type][lang()];
+      svg.appendChild(typeLabel);
+    }
+
+    // 图例
+    const legendY = 370;
+    const legends = [
+      { x: 80, color: '#22D3EE', label: lang() === 'en' ? 'Player' : '玩家' },
+      { x: 180, color: '#FBBF24', label: lang() === 'en' ? 'Item' : '物品' },
+      { x: 280, color: '#A78BFA', label: lang() === 'en' ? 'Guild' : '公会' },
+      { x: 420, color: '#FBBF24', label: lang() === 'en' ? 'OWNS' : '拥有' },
+      { x: 520, color: '#22C55E', label: lang() === 'en' ? 'FRIEND' : '好友' },
+      { x: 620, color: '#A78BFA', label: lang() === 'en' ? 'JOINED' : '加入' },
+    ];
+    for (const l of legends) {
+      const dot = document.createElementNS(SVGNS, 'circle');
+      dot.setAttribute('cx', String(l.x - 12)); dot.setAttribute('cy', String(legendY));
+      dot.setAttribute('r', '5'); dot.setAttribute('fill', l.color);
+      svg.appendChild(dot);
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(l.x)); t.setAttribute('y', String(legendY + 4));
+      t.setAttribute('font-size', '11'); t.setAttribute('fill', '#94A3B8');
+      t.textContent = l.label;
+      svg.appendChild(t);
+    }
+  }
+
+  function setActive(rel: string) {
+    graphButtons.forEach(b => {
+      b.classList.toggle('btn-primary', b.dataset.rel === rel);
+    });
+    render(rel);
+  }
+
+  graphButtons.forEach(b => b.addEventListener('click', () => setActive(b.dataset.rel!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.graph-btn.btn-primary');
+    render(active?.dataset.rel || 'all');
+  });
+  setActive('all');
+</script>

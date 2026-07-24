@@ -1,0 +1,207 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Databases Overview · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Databases / Overview</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">数据库概览</span><span slot="en">Databases Overview</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">数据库是<b>持久化存储</b>与<b>高效查询</b>的基石。游戏开发中，玩家存档、物品系统、排行榜、社交关系都需要数据库承载。两大阵营各有取舍：<b class="text-primary-cyan">关系型数据库</b>（SQL）保证 ACID 事务与强一致性，适合复杂查询与金融级可靠场景；<b class="text-func-amber">NoSQL</b> 牺牲部分一致性换取水平扩展与灵活 Schema，适合海量数据与高并发读写。点击下方切换两大阵营的核心特征。</span>
+          <span slot="en">Databases are the foundation of <b>persistent storage</b> and <b>efficient querying</b>. In game development, player saves, item systems, leaderboards, and social graphs all need database backing. Two camps each make different trade-offs: <b class="text-primary-cyan">relational databases</b> (SQL) guarantee ACID transactions and strong consistency, ideal for complex queries and mission-critical reliability; <b class="text-func-amber">NoSQL</b> trades some consistency for horizontal scaling and flexible schemas, suited for massive data and high-throughput workloads. Click below to toggle between the two camps' core traits.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：关系型 vs NoSQL 选型矩阵 -->
+    <div class="glass p-5" data-viz="db-matrix">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button class="btn db-btn btn-primary" data-db="rel">
+          <span data-lang="zh">关系型 SQL</span><span data-lang="en">Relational SQL</span>
+        </button>
+        <button class="btn db-btn" data-db="nosql">
+          <span data-lang="zh">非关系型 NoSQL</span><span data-lang="en">NoSQL</span>
+        </button>
+      </div>
+      <svg id="db-matrix-svg" viewBox="0 0 800 340" class="w-full h-85 viz-stage"></svg>
+    </div>
+
+    <!-- 主流数据库分类速查 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">主流数据库分类速查</span><span slot="en">Mainstream Database Categories</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">数据库按数据模型分为五大类。游戏开发中最常用的是<b>关系型</b>（玩家/物品结构化数据）和<b>KV 型</b>（会话/缓存/排行榜）。选型核心问题：数据是否高度结构化？是否需要跨表事务？读写量级多大？关系是否比数据本身更重要？</span><span slot="en">Databases are classified into five categories by data model. In game dev, <b>relational</b> (structured player/item data) and <b>KV stores</b> (sessions/cache/leaderboards) are most common. Key selection questions: is the data highly structured? Do you need cross-table transactions? What's the read/write volume? Are relationships more important than the data itself?</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">类别</span><span slot="en">Category</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">数据模型</span><span slot="en">Data Model</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">代表产品</span><span slot="en">Examples</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏场景</span><span slot="en">Game Use Case</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan"><Bilingual><span slot="zh">关系型</span><span slot="en">Relational</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">表 / 行 / 列 + 关系</span><span slot="en">Table / row / column</span></Bilingual></td><td class="py-2 pr-4 font-mono">MySQL · PostgreSQL · SQLite</td><td class="py-2 pr-4"><Bilingual><span slot="zh">玩家账号、物品系统、订单</span><span slot="en">Accounts, items, orders</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">KV 存储</span><span slot="en">Key-Value</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">键值对</span><span slot="en">Key-value pairs</span></Bilingual></td><td class="py-2 pr-4 font-mono">Redis · Memcached · DynamoDB</td><td class="py-2 pr-4"><Bilingual><span slot="zh">缓存、会话、排行榜</span><span slot="en">Cache, sessions, leaderboards</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">文档型</span><span slot="en">Document</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">JSON / BSON 文档</span><span slot="en">JSON / BSON docs</span></Bilingual></td><td class="py-2 pr-4 font-mono">MongoDB · CouchDB</td><td class="py-2 pr-4"><Bilingual><span slot="zh">玩家存档、配置数据</span><span slot="en">Player saves, config data</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple"><Bilingual><span slot="zh">列族</span><span slot="en">Column-family</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">列族存储</span><span slot="en">Column families</span></Bilingual></td><td class="py-2 pr-4 font-mono">Cassandra · HBase</td><td class="py-2 pr-4"><Bilingual><span slot="zh">日志、时序数据、大规模写入</span><span slot="en">Logs, time-series, massive writes</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">图数据库</span><span slot="en">Graph</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">节点 + 关系</span><span slot="en">Nodes + edges</span></Bilingual></td><td class="py-2 pr-4 font-mono">Neo4j · ArangoDB</td><td class="py-2 pr-4"><Bilingual><span slot="zh">社交关系、好友图、推荐</span><span slot="en">Social graph, friends, recommendations</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 关系型 vs NoSQL 选型决策 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">选型决策：何时用关系型，何时用 NoSQL？</span><span slot="en">Decision: Relational vs NoSQL?</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">这不是"二选一"——现代游戏后端常<b>混合使用</b>：关系型存核心交易数据（账号、付费），Redis 做缓存与排行榜，MongoDB 存灵活的玩家存档。选型维度从左至右逐条对照，倾向多数维度的一方。</span><span slot="en">This isn't "either/Or" — modern game backends often <b>mix</b>: relational for core transactional data (accounts, payments), Redis for cache and leaderboards, MongoDB for flexible player saves. Score each dimension left-to-right; lean toward whichever wins more.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">维度</span><span slot="en">Dimension</span></Bilingual></th><th class="py-2 pr-4 text-primary-cyan"><Bilingual><span slot="zh">选关系型</span><span slot="en">Pick Relational</span></Bilingual></th><th class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">选 NoSQL</span><span slot="en">Pick NoSQL</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">数据结构</span><span slot="en">Data structure</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">高度结构化、关系明确</span><span slot="en">Highly structured, clear relations</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">半结构化、Schema 多变</span><span slot="en">Semi-structured, evolving schema</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">事务需求</span><span slot="en">Transactions</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">需要 ACID（付费/交易）</span><span slot="en">Need ACID (payments/trades)</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">最终一致即可（缓存/日志）</span><span slot="en">Eventual consistency OK (cache/logs)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">查询模式</span><span slot="en">Query pattern</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">复杂 JOIN、聚合、即席查询</span><span slot="en">Complex JOINs, ad-hoc queries</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">按 key 读写为主</span><span slot="en">Mostly key-based read/write</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">规模</span><span slot="en">Scale</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">单机可承载（垂直扩展）</span><span slot="en">Single-machine (vertical scale)</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">需水平扩展（分片）</span><span slot="en">Horizontal scaling (sharding)</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-ink-muted"><Bilingual><span slot="zh">关系密集度</span><span slot="en">Relationship density</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">中等关系（外键关联）</span><span slot="en">Moderate (FK relations)</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">极高关系（用图数据库）</span><span slot="en">Very high (use graph DB)</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">深入阅读：<a class="text-primary-cyan underline" href="/topics/relational">关系型概览</a>、<a class="text-primary-cyan underline" href="/topics/sql">SQL 基础</a>、<a class="text-primary-cyan underline" href="/topics/index-transaction">索引与事务</a>、<a class="text-primary-cyan underline" href="/topics/normalization">范式与连接</a>、<a class="text-primary-cyan underline" href="/topics/nosql">NoSQL 概览</a>、<a class="text-primary-cyan underline" href="/topics/kv-document">KV/文档数据库</a>、<a class="text-primary-cyan underline" href="/topics/graph-db">图数据库</a>。</span><span slot="en">Deep dive: <a class="text-primary-cyan underline" href="/topics/relational">Relational</a>, <a class="text-primary-cyan underline" href="/topics/sql">SQL</a>, <a class="text-primary-cyan underline" href="/topics/index-transaction">Index & Transaction</a>, <a class="text-primary-cyan underline" href="/topics/normalization">Normalization</a>, <a class="text-primary-cyan underline" href="/topics/nosql">NoSQL</a>, <a class="text-primary-cyan underline" href="/topics/kv-document">KV/Document</a>, <a class="text-primary-cyan underline" href="/topics/graph-db">Graph DB</a>.</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 关系型 vs NoSQL 选型矩阵交互
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('db-matrix-svg') as unknown as SVGSVGElement;
+  const dbButtons = document.querySelectorAll<HTMLButtonElement>('.db-btn');
+
+  interface Trait { zh: string; en: string; }
+  interface DBData {
+    titleZh: string; titleEn: string;
+    color: string;
+    traits: Trait[];
+  }
+
+  const DBS: Record<string, DBData> = {
+    rel: {
+      titleZh: '关系型数据库 (SQL)', titleEn: 'Relational Databases (SQL)',
+      color: '#0891B2',
+      traits: [
+        { zh: '数据模型：表/行/列，Schema 严格固定', en: 'Model: table/row/column, rigid schema' },
+        { zh: '查询语言：SQL（声明式，标准化）', en: 'Query: SQL (declarative, standardized)' },
+        { zh: '事务：ACID 保证（原子/一致/隔离/持久）', en: 'Transactions: ACID guaranteed' },
+        { zh: '一致性：强一致（读到的总是最新写入）', en: 'Consistency: strong (always read latest)' },
+        { zh: '扩展：垂直为主（单机升级），水平较难', en: 'Scaling: mostly vertical, hard to shard' },
+        { zh: 'JOIN：原生支持多表关联查询', en: 'JOINs: native multi-table queries' },
+        { zh: '代表：MySQL / PostgreSQL / SQLite', en: 'Examples: MySQL / PostgreSQL / SQLite' },
+        { zh: '游戏场景：玩家账号、付费、物品系统', en: 'Game use: accounts, payments, items' },
+      ],
+    },
+    nosql: {
+      titleZh: '非关系型数据库 (NoSQL)', titleEn: 'Non-Relational Databases (NoSQL)',
+      color: '#D97706',
+      traits: [
+        { zh: '数据模型：KV/文档/列族/图，Schema 灵活', en: 'Model: KV/doc/column/graph, flexible schema' },
+        { zh: '查询语言：各家专有 API（无统一标准）', en: 'Query: proprietary APIs (no standard)' },
+        { zh: '事务：多数仅单文档/单 key 原子', en: 'Transactions: mostly single-key/doc' },
+        { zh: '一致性：最终一致为主（BASE 模型）', en: 'Consistency: eventual (BASE model)' },
+        { zh: '扩展：水平扩展原生支持（分片）', en: 'Scaling: native horizontal (sharding)' },
+        { zh: 'JOIN：弱或无（关系需应用层处理）', en: 'JOINs: weak/none (app-layer relations)' },
+        { zh: '代表：Redis / MongoDB / Cassandra / Neo4j', en: 'Examples: Redis / MongoDB / Cassandra / Neo4j' },
+        { zh: '游戏场景：缓存、存档、排行榜、社交图', en: 'Game use: cache, saves, leaderboards, social' },
+      ],
+    },
+  };
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  function render(db: string) {
+    const data = DBS[db];
+    if (!data) return;
+    svg.innerHTML = '';
+
+    // 标题区
+    const titleBg = document.createElementNS(SVGNS, 'rect');
+    titleBg.setAttribute('x', '20'); titleBg.setAttribute('y', '15');
+    titleBg.setAttribute('width', '760'); titleBg.setAttribute('height', '44');
+    titleBg.setAttribute('rx', '10'); titleBg.setAttribute('fill', data.color + '15');
+    titleBg.setAttribute('stroke', data.color + '55'); titleBg.setAttribute('stroke-width', '1.5');
+    svg.appendChild(titleBg);
+
+    const title = document.createElementNS(SVGNS, 'text');
+    title.setAttribute('x', '40'); title.setAttribute('y', '44');
+    title.setAttribute('font-size', '18'); title.setAttribute('font-weight', '700');
+    title.setAttribute('fill', data.color);
+    title.textContent = lang() === 'en' ? data.titleEn : data.titleZh;
+    svg.appendChild(title);
+
+    // 特性卡片（两列四行）
+    const traits = data.traits;
+    const colW = 370, rowH = 62, startX = 20, startY = 75;
+    for (let i = 0; i < traits.length; i++) {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const x = startX + col * (colW + 10);
+      const y = startY + row * (rowH + 8);
+
+      // 卡片背景
+      const card = document.createElementNS(SVGNS, 'rect');
+      card.setAttribute('x', String(x)); card.setAttribute('y', String(y));
+      card.setAttribute('width', String(colW)); card.setAttribute('height', String(rowH));
+      card.setAttribute('rx', '8'); card.setAttribute('fill', 'rgba(148,163,184,0.06)');
+      card.setAttribute('stroke', 'rgba(148,163,184,0.12)'); card.setAttribute('stroke-width', '1');
+      svg.appendChild(card);
+
+      // 图标圆点
+      const dot = document.createElementNS(SVGNS, 'circle');
+      dot.setAttribute('cx', String(x + 18)); dot.setAttribute('cy', String(y + rowH / 2));
+      dot.setAttribute('r', '6'); dot.setAttribute('fill', data.color + '88');
+      svg.appendChild(dot);
+
+      const innerDot = document.createElementNS(SVGNS, 'circle');
+      innerDot.setAttribute('cx', String(x + 18)); innerDot.setAttribute('cy', String(y + rowH / 2));
+      innerDot.setAttribute('r', '3'); dot.setAttribute('fill', data.color);
+      svg.appendChild(innerDot);
+
+      // 文本（自动换行处理）
+      const text = lang() === 'en' ? traits[i].en : traits[i].zh;
+      const maxChars = 38;
+      if (text.length <= maxChars) {
+        const t = document.createElementNS(SVGNS, 'text');
+        t.setAttribute('x', String(x + 36)); t.setAttribute('y', String(y + rowH / 2 + 5));
+        t.setAttribute('font-size', '12'); t.setAttribute('fill', '#CBD5E1');
+        t.textContent = text;
+        svg.appendChild(t);
+      } else {
+        const split = text.lastIndexOf('：', maxChars);
+        const breakAt = split > 8 ? split + 1 : maxChars;
+        const line1 = text.substring(0, breakAt);
+        const line2 = text.substring(breakAt);
+        const t1 = document.createElementNS(SVGNS, 'text');
+        t1.setAttribute('x', String(x + 36)); t1.setAttribute('y', String(y + 24));
+        t1.setAttribute('font-size', '12'); t1.setAttribute('fill', '#CBD5E1');
+        t1.textContent = line1;
+        svg.appendChild(t1);
+        const t2 = document.createElementNS(SVGNS, 'text');
+        t2.setAttribute('x', String(x + 36)); t2.setAttribute('y', String(y + 44));
+        t2.setAttribute('font-size', '12'); t2.setAttribute('fill', '#94A3B8');
+        t2.textContent = line2;
+        svg.appendChild(t2);
+      }
+    }
+  }
+
+  function setActive(db: string) {
+    dbButtons.forEach(b => {
+      b.classList.toggle('btn-primary', b.dataset.db === db);
+    });
+    render(db);
+  }
+
+  dbButtons.forEach(b => b.addEventListener('click', () => setActive(b.dataset.db!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.db-btn.btn-primary');
+    render(active?.dataset.db || 'rel');
+  });
+  setActive('rel');
+</script>

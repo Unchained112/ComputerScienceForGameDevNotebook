@@ -1,0 +1,309 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Index & Transaction · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Databases / Index & Transaction</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">索引与事务</span><span slot="en">Index & Transaction</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">索引和事务是关系型数据库的两大核心机制：<b>索引</b>让查询从 O(n) 全表扫描变为 O(log n) 定位，代价是写入时需维护索引树；<b>事务</b>保证多操作要么全部成功、要么全部回滚，是金融级可靠性的基石。理解 B+ 树结构与 ACID 特性，才能在"查询快"与"写入稳"之间做出正确权衡。点击下方 B+ 树图示，查看索引查找路径。</span>
+          <span slot="en">Indexes and transactions are two core mechanisms of relational databases: <b>indexes</b> turn O(n) full-table scans into O(log n) lookups, at the cost of maintaining the index tree on writes; <b>transactions</b> ensure multiple operations either all succeed or all roll back, the foundation of mission-critical reliability. Understanding B+ tree structure and ACID properties lets you balance "fast queries" against "stable writes". Click the B+ tree below to trace an index lookup path.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：B+ 树索引结构 -->
+    <div class="glass p-5" data-viz="bptree">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <span class="text-sm text-ink-muted"><Bilingual><span slot="zh">查找键值：</span><span slot="en">Lookup key:</span></Bilingual></span>
+        <button class="btn btree-btn btn-primary" data-key="8">8</button>
+        <button class="btn btree-btn" data-key="15">15</button>
+        <button class="btn btree-btn" data-key="23">23</button>
+        <button class="btn btree-btn" data-key="42">42</button>
+        <button class="btn btree-btn" data-key="67">67</button>
+      </div>
+      <svg id="btree-svg" viewBox="0 0 800 340" class="w-full h-85 viz-stage"></svg>
+    </div>
+
+    <!-- 索引类型 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">索引类型与适用场景</span><span slot="en">Index Types & Use Cases</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">索引不是"建了就快"——选错类型或建在低选择性列上，反而拖慢写入且不提升查询。<b>黄金法则</b>：索引建在 WHERE / JOIN / ORDER BY 频繁出现的列上；选择性低的列（如性别只有男/女）建索引收益极小；写多读少的表少建索引。</span><span slot="en">Indexes aren't "build it and it's fast" — the wrong type or a low-selectivity column slows writes without helping queries. <b>Golden rule</b>: index columns frequently used in WHERE / JOIN / ORDER BY; low-selectivity columns (e.g. gender with only M/F) gain little; minimize indexes on write-heavy tables.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">索引类型</span><span slot="en">Index Type</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">特性</span><span slot="en">Trait</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏场景</span><span slot="en">Game Use Case</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber">主键索引</td><td class="py-2 pr-4"><Bilingual><span slot="zh">聚簇索引，数据按主键物理排序</span><span slot="en">Clustered; data sorted by PK</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">player_id 查询</span><span slot="en">player_id lookups</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan">唯一索引</td><td class="py-2 pr-4"><Bilingual><span slot="zh">保证列值唯一 + 加速查询</span><span slot="en">Enforce uniqueness + speed queries</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">邮箱、用户名注册</span><span slot="en">Email, username registration</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green">联合索引</td><td class="py-2 pr-4"><Bilingual><span slot="zh">多列组合，遵循最左前缀原则</span><span slot="en">Multi-column; leftmost-prefix rule</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">(guild_id, level) 复合查询</span><span slot="en">(guild_id, level) compound query</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-purple">覆盖索引</td><td class="py-2 pr-4"><Bilingual><span slot="zh">索引含查询所有列，免回表</span><span slot="en">Index covers all query cols; no table lookup</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">排行榜（只取名+分）</span><span slot="en">Leaderboards (name + score only)</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-func-red">全文索引</td><td class="py-2 pr-4"><Bilingual><span slot="zh">倒排索引，支持模糊匹配</span><span slot="en">Inverted index; fuzzy matching</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">物品名搜索、聊天检索</span><span slot="en">Item search, chat retrieval</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <pre class="glass p-4 overflow-x-auto text-sm mt-4"><code><span class="text-func-amber">-- 索引创建示例</span>
+<span class="text-primary-cyan">CREATE INDEX</span> idx_guild_level <span class="text-primary-cyan">ON</span> players(guild_id, level);  <span class="text-ink-muted">-- 联合索引</span>
+<span class="text-primary-cyan">CREATE UNIQUE INDEX</span> idx_email <span class="text-primary-cyan">ON</span> players(email);          <span class="text-ink-muted">-- 唯一索引</span>
+
+<span class="text-func-amber">-- 查看查询是否走索引（EXPLAIN 是调优利器）</span>
+<span class="text-primary-cyan">EXPLAIN</span> <span class="text-primary-cyan">SELECT</span> * <span class="text-primary-cyan">FROM</span> players <span class="text-primary-cyan">WHERE</span> guild_id = 5 <span class="text-func-green">AND</span> level &gt; 10;
+<span class="text-ink-muted">-- type=ref 说明走了 idx_guild_level 索引 ✓</span>
+<span class="text-ink-muted">-- type=ALL 说明全表扫描，需加索引 ✗</span></code></pre>
+    </section>
+
+    <!-- ACID 事务 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">ACID：事务的四大保证</span><span slot="en">ACID: Four Transaction Guarantees</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">事务是一组"要么全做、要么全不做"的操作。经典场景：玩家 A 给 B 转账 100 金币——A 扣款和 B 加款必须同时成功或同时失败，绝不能"A 扣了 B 没加"。ACID 四特性保证这一点：<b>原子性</b>（全做或全不做）、<b>一致性</b>（数据约束不被破坏）、<b>隔离性</b>（并发互不干扰）、<b>持久性</b>（提交后不丢）。</span><span slot="en">A transaction is a group of operations that "all succeed or all fail". Classic example: player A transfers 100 gold to B — A's deduction and B's credit must both succeed or both fail; never "A deducted but B not credited". ACID guarantees this: <b>Atomicity</b> (all or nothing), <b>Consistency</b> (constraints intact), <b>Isolation</b> (concurrent ops don't interfere), <b>Durability</b> (committed data survives).</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">特性</span><span slot="en">Property</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">含义</span><span slot="en">Meaning</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏场景</span><span slot="en">Game Scenario</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">A 原子性</span><span slot="en">Atomicity</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">事务内操作全部成功或全部回滚</span><span slot="en">All ops commit or all rollback</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">交易：扣款+加物品同时成功</span><span slot="en">Trade: deduct + add item together</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan"><Bilingual><span slot="zh">C 一致性</span><span slot="en">Consistency</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">事务前后数据满足所有约束</span><span slot="en">Data satisfies constraints before & after</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">金币总数守恒（A-100 + B+100）</span><span slot="en">Gold conservation (A-100 + B+100)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">I 隔离性</span><span slot="en">Isolation</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">并发事务互不干扰</span><span slot="en">Concurrent transactions don't interfere</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">两人同时买同一物品不冲突</span><span slot="en">Two players buying same item don't conflict</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-primary-purple"><Bilingual><span slot="zh">D 持久性</span><span slot="en">Durability</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">提交后即使宕机也不丢</span><span slot="en">Committed data survives crashes</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">充值到账后服务器重启不丢失</span><span slot="en">Payment survives server restart</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <pre class="glass p-4 overflow-x-auto text-sm mt-4"><code><span class="text-func-amber">-- 事务示例：玩家间安全转账</span>
+<span class="text-primary-cyan">BEGIN</span>;  <span class="text-ink-muted">-- 开启事务</span>
+
+<span class="text-primary-cyan">UPDATE</span> players <span class="text-primary-cyan">SET</span> gold = gold - 100 <span class="text-primary-cyan">WHERE</span> player_id = 1;  <span class="text-ink-muted">-- A 扣款</span>
+<span class="text-primary-cyan">UPDATE</span> players <span class="text-primary-cyan">SET</span> gold = gold + 100 <span class="text-primary-cyan">WHERE</span> player_id = 2;  <span class="text-ink-muted">-- B 加款</span>
+<span class="text-primary-cyan">INSERT INTO</span> trade_log (from_id, to_id, amount) <span class="text-primary-cyan">VALUES</span> (1, 2, 100);
+
+<span class="text-primary-cyan">COMMIT</span>;  <span class="text-func-green">-- 全部成功，提交 ✓</span>
+<span class="text-ink-muted">-- 若任一步失败：ROLLBACK; 全部撤销 ✗</span></code></pre>
+    </section>
+
+    <!-- 隔离级别 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">隔离级别与并发异常</span><span slot="en">Isolation Levels & Concurrency Anomalies</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">隔离级别越高，并发性能越低。四种级别逐级解决三类并发异常：<b class="text-func-red">脏读</b>（读到未提交数据）、<b class="text-func-amber">不可重复读</b>（同一行两次读结果不同）、<b class="text-primary-purple">幻读</b>（同一查询两次行数不同）。游戏后端常用<b>读已提交</b>（PostgreSQL 默认）或<b>可重复读</b>（MySQL 默认）。</span><span slot="en">Higher isolation means lower concurrency. Four levels progressively eliminate three anomalies: <b class="text-func-red">dirty read</b> (reading uncommitted data), <b class="text-func-amber">non-repeatable read</b> (same row reads differently), <b class="text-primary-purple">phantom read</b> (same query returns different row counts). Game backends typically use <b>Read Committed</b> (PostgreSQL default) or <b>Repeatable Read</b> (MySQL default).</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">隔离级别</span><span slot="en">Isolation Level</span></Bilingual></th><th class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">脏读</span><span slot="en">Dirty Read</span></Bilingual></th><th class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">不可重复读</span><span slot="en">Non-Repeatable</span></Bilingual></th><th class="py-2 pr-4 text-primary-purple"><Bilingual><span slot="zh">幻读</span><span slot="en">Phantom</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">性能</span><span slot="en">Perf</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4">读未提交 Read Uncommitted</td><td class="py-2 pr-4 text-func-red">✗</td><td class="py-2 pr-4 text-func-red">✗</td><td class="py-2 pr-4 text-func-red">✗</td><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">最高</span><span slot="en">Highest</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green">读已提交 Read Committed</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4 text-func-red">✗</td><td class="py-2 pr-4 text-func-red">✗</td><td class="py-2 pr-4"><Bilingual><span slot="zh">高</span><span slot="en">High</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan">可重复读 Repeatable Read</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4 text-func-red">✗</td><td class="py-2 pr-4"><Bilingual><span slot="zh">中</span><span slot="en">Medium</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 text-func-amber">串行化 Serializable</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4 text-func-green">✓</td><td class="py-2 pr-4 text-func-red"><Bilingual><span slot="zh">最低</span><span slot="en">Lowest</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-ink-muted mt-3"><Bilingual><span slot="zh">✓ = 该级别下此异常<b>不会发生</b>；✗ = <b>可能发生</b>。MySQL 的可重复读通过 MVCC + 间隙锁额外解决了幻读。</span><span slot="en">✓ = anomaly <b>prevented</b> at this level; ✗ = <b>may occur</b>. MySQL's Repeatable Read additionally prevents phantom reads via MVCC + gap locks.</span></Bilingual></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // B+ 树索引结构可视化
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('btree-svg') as unknown as SVGSVGElement;
+  const btreeButtons = document.querySelectorAll<HTMLButtonElement>('.btree-btn');
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  // B+ 树结构：根节点 → 中间节点 → 叶子节点（链表相连）
+  // 叶子节点含实际数据指针
+  const TREE = {
+    root: { x: 380, y: 30, keys: [20, 50] },
+    internal: [
+      { x: 180, y: 100, keys: [10] },
+      { x: 380, y: 100, keys: [30, 40] },
+      { x: 600, y: 100, keys: [60] },
+    ],
+    leaves: [
+      { x: 70, y: 200, keys: [8, 10], idx: 0 },
+      { x: 230, y: 200, keys: [15, 20], idx: 1 },
+      { x: 380, y: 200, keys: [23, 30], idx: 2 },
+      { x: 470, y: 200, keys: [40], idx: 3 },
+      { x: 570, y: 200, keys: [42, 50], idx: 4 },
+      { x: 680, y: 200, keys: [67, 80], idx: 5 },
+    ],
+  };
+
+  function findPath(target: number): number[] {
+    // 返回查找路径上的节点索引（leaf idx）
+    const path: number[] = [];
+    // 根节点路由
+    let internalIdx: number;
+    if (target < 20) internalIdx = 0;
+    else if (target < 50) internalIdx = 1;
+    else internalIdx = 2;
+
+    // 中间节点路由到叶子
+    const leafIdx = findLeaf(internalIdx, target);
+    path.push(internalIdx);
+    path.push(leafIdx);
+    return path;
+  }
+
+  function findLeaf(internalIdx: number, target: number): number {
+    if (internalIdx === 0) return 0; // keys=[10], target<10 -> leaf0, else leaf1
+    if (internalIdx === 1) {
+      if (target < 30) return 2;
+      return 3;
+    }
+    if (internalIdx === 2) {
+      if (target < 60) return 4;
+      return 5;
+    }
+    return 0;
+  }
+
+  function render(targetKey: number) {
+    svg.innerHTML = '';
+    const path = findPath(targetKey);
+    const activeInternal = path[0];
+    const activeLeaf = path[1];
+
+    const nodeW = 70, nodeH = 36;
+    const activeColor = '#22D3EE', normalColor = 'rgba(148,163,184,0.4)';
+
+    // 绘制根节点
+    drawNode(TREE.root.x, TREE.root.y, TREE.root.keys, '#FBBF24', 'rgba(251,191,36,0.1)', true);
+
+    // 绘制中间节点
+    TREE.internal.forEach((node, i) => {
+      const isActive = i === activeInternal;
+      drawNode(node.x, node.y, node.keys, isActive ? activeColor : '#A78BFA',
+        isActive ? activeColor + '22' : 'rgba(167,139,250,0.08)', isActive);
+    });
+
+    // 绘制叶子节点
+    TREE.leaves.forEach((leaf, i) => {
+      const isActive = i === activeLeaf;
+      drawNode(leaf.x, leaf.y, leaf.keys, isActive ? activeColor : '#64748B',
+        isActive ? activeColor + '22' : 'rgba(100,116,139,0.06)', isActive);
+    });
+
+    // 根 → 中间节点连线
+    TREE.internal.forEach((node, i) => {
+      drawLine(TREE.root.x, TREE.root.y + nodeH, node.x, node.y, i === activeInternal ? activeColor : 'rgba(148,163,184,0.2)');
+    });
+
+    // 中间节点 → 叶子节点连线
+    const internalToLeaves: Record<number, number[]> = { 0: [0, 1], 1: [2, 3], 2: [4, 5] };
+    for (const [intIdx, leafIdxs] of Object.entries(internalToLeaves)) {
+      const intNode = TREE.internal[parseInt(intIdx)];
+      for (const li of leafIdxs) {
+        const leaf = TREE.leaves[li];
+        const onPath = parseInt(intIdx) === activeInternal && li === activeLeaf;
+        drawLine(intNode.x, intNode.y + nodeH, leaf.x, leaf.y, onPath ? activeColor : 'rgba(148,163,184,0.15)');
+      }
+    }
+
+    // 叶子节点链表连线（B+ 树特征：叶子层双向链表）
+    for (let i = 0; i < TREE.leaves.length - 1; i++) {
+      const l1 = TREE.leaves[i], l2 = TREE.leaves[i + 1];
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', String(l1.x + nodeW / 2)); line.setAttribute('y1', String(l1.y + nodeH / 2));
+      line.setAttribute('x2', String(l2.x - nodeW / 2)); line.setAttribute('y2', String(l2.y + nodeH / 2));
+      line.setAttribute('stroke', 'rgba(148,163,184,0.25)'); line.setAttribute('stroke-width', '1.5');
+      line.setAttribute('stroke-dasharray', '4,3');
+      svg.appendChild(line);
+    }
+
+    // 标签
+    const rootLabel = document.createElementNS(SVGNS, 'text');
+    rootLabel.setAttribute('x', '20'); rootLabel.setAttribute('y', String(TREE.root.y + 20));
+    rootLabel.setAttribute('font-size', '11'); rootLabel.setAttribute('fill', '#FBBF24');
+    rootLabel.textContent = lang() === 'en' ? 'Root' : '根节点';
+    svg.appendChild(rootLabel);
+
+    const intLabel = document.createElementNS(SVGNS, 'text');
+    intLabel.setAttribute('x', '20'); intLabel.setAttribute('y', String(TREE.internal[0].y + 20));
+    intLabel.setAttribute('font-size', '11'); intLabel.setAttribute('fill', '#A78BFA');
+    intLabel.textContent = lang() === 'en' ? 'Internal' : '中间节点';
+    svg.appendChild(intLabel);
+
+    const leafLabel = document.createElementNS(SVGNS, 'text');
+    leafLabel.setAttribute('x', '20'); leafLabel.setAttribute('y', String(TREE.leaves[0].y + 20));
+    leafLabel.setAttribute('font-size', '11'); leafLabel.setAttribute('fill', '#64748B');
+    leafLabel.textContent = lang() === 'en' ? 'Leaves' : '叶子节点';
+    svg.appendChild(leafLabel);
+
+    const chainLabel = document.createElementNS(SVGNS, 'text');
+    chainLabel.setAttribute('x', '400'); chainLabel.setAttribute('y', '260');
+    chainLabel.setAttribute('text-anchor', 'middle'); chainLabel.setAttribute('font-size', '11');
+    chainLabel.setAttribute('fill', '#94A3B8');
+    chainLabel.textContent = lang() === 'en' ? '← Leaf linked list (range query O(n)) →' : '← 叶子链表（范围查询 O(n)）→';
+    svg.appendChild(chainLabel);
+
+    // 查找结果
+    const resultBg = document.createElementNS(SVGNS, 'rect');
+    resultBg.setAttribute('x', '40'); resultBg.setAttribute('y', '285');
+    resultBg.setAttribute('width', '720'); resultBg.setAttribute('height', '42');
+    resultBg.setAttribute('rx', '8'); resultBg.setAttribute('fill', activeColor + '11');
+    resultBg.setAttribute('stroke', activeColor + '44'); resultBg.setAttribute('stroke-width', '1.5');
+    svg.appendChild(resultBg);
+
+    const result = document.createElementNS(SVGNS, 'text');
+    result.setAttribute('x', '60'); result.setAttribute('y', '312');
+    result.setAttribute('font-size', '13'); result.setAttribute('fill', activeColor);
+    const found = TREE.leaves[activeLeaf].keys.includes(targetKey);
+    result.textContent = lang() === 'en'
+      ? `Lookup key=${targetKey}: Root → Internal[${activeInternal}] → Leaf[${activeLeaf}] → ${found ? 'FOUND ✓' : 'NOT FOUND (would insert here)'}`
+      : `查找 key=${targetKey}：根 → 中间[${activeInternal}] → 叶子[${activeLeaf}] → ${found ? '命中 ✓' : '未命中（将在此插入）'}`;
+    svg.appendChild(result);
+  }
+
+  function drawNode(cx: number, cy: number, keys: number[], color: string, fill: string, active: boolean) {
+    const nodeW = 70, nodeH = 36;
+    // 节点背景
+    const bg = document.createElementNS(SVGNS, 'rect');
+    bg.setAttribute('x', String(cx - nodeW / 2)); bg.setAttribute('y', String(cy));
+    bg.setAttribute('width', String(nodeW)); bg.setAttribute('height', String(nodeH));
+    bg.setAttribute('rx', '6'); bg.setAttribute('fill', fill);
+    bg.setAttribute('stroke', color); bg.setAttribute('stroke-width', active ? '2.5' : '1.5');
+    svg.appendChild(bg);
+
+    // 分隔线 + key 文本
+    const slotW = nodeW / (keys.length + 1);
+    for (let i = 0; i < keys.length; i++) {
+      const kx = cx - nodeW / 2 + (i + 1) * slotW;
+      if (i > 0) {
+        const sep = document.createElementNS(SVGNS, 'line');
+        sep.setAttribute('x1', String(kx - slotW / 2)); sep.setAttribute('y1', String(cy));
+        sep.setAttribute('x2', String(kx - slotW / 2)); sep.setAttribute('y2', String(cy + nodeH));
+        sep.setAttribute('stroke', 'rgba(148,163,184,0.2)'); sep.setAttribute('stroke-width', '1');
+        svg.appendChild(sep);
+      }
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', String(kx)); t.setAttribute('y', String(cy + 23));
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '13');
+      t.setAttribute('font-weight', '700'); t.setAttribute('fill', active ? color : '#94A3B8');
+      t.textContent = String(keys[i]);
+      svg.appendChild(t);
+    }
+  }
+
+  function drawLine(x1: number, y1: number, x2: number, y2: number, color: string) {
+    const line = document.createElementNS(SVGNS, 'line');
+    line.setAttribute('x1', String(x1)); line.setAttribute('y1', String(y1));
+    line.setAttribute('x2', String(x2)); line.setAttribute('y2', String(y2));
+    line.setAttribute('stroke', color); line.setAttribute('stroke-width', '1.5');
+    svg.appendChild(line);
+  }
+
+  function setActive(key: number) {
+    btreeButtons.forEach(b => {
+      b.classList.toggle('btn-primary', parseInt(b.dataset.key!) === key);
+    });
+    render(key);
+  }
+
+  btreeButtons.forEach(b => b.addEventListener('click', () => setActive(parseInt(b.dataset.key!))));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.btree-btn.btn-primary');
+    render(active ? parseInt(active.dataset.key!) : 8);
+  });
+  setActive(8);
+</script>

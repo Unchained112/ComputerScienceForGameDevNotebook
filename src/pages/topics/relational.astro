@@ -1,0 +1,318 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Bilingual from '../../components/Bilingual.astro';
+---
+<BaseLayout title="Relational Databases · CS Notebook">
+  <article class="space-y-6">
+    <header>
+      <p class="text-sm uppercase tracking-[0.2em] text-primary-cyan mb-2">Databases / Relational</p>
+      <h1 class="text-3xl font-bold mb-2">
+        <Bilingual><span slot="zh">关系型数据库概览</span><span slot="en">Relational Databases Overview</span></Bilingual>
+      </h1>
+      <p class="text-ink-muted leading-relaxed">
+        <Bilingual>
+          <span slot="zh">关系型数据库基于 1970 年 Codd 提出的<b>关系模型</b>——数据组织为<b>表</b>（关系），每行是一条<b>元组</b>（记录），每列是一个<b>属性</b>（字段）。表与表之间通过<b>外键</b>建立关联，通过<b>主键</b>唯一标识每行。这套模型的威力在于：<b>数据完整性</b>由约束保证，<b>复杂查询</b>由 SQL JOIN 表达，<b>事务</b>保证多表操作的原子性。点击下方表结构图查看主键与外键的关联。</span>
+          <span slot="en">Relational databases are based on Codd's 1970 <b>relational model</b> — data is organized into <b>tables</b> (relations), each row is a <b>tuple</b> (record), each column an <b>attribute</b> (field). Tables relate via <b>foreign keys</b>; each row is uniquely identified by a <b>primary key</b>. The model's power: <b>data integrity</b> enforced by constraints, <b>complex queries</b> expressed via SQL JOINs, <b>transactions</b> guaranteeing atomic multi-table operations. Click the table structure below to explore PK/FK relations.</span>
+        </Bilingual>
+      </p>
+    </header>
+
+    <!-- 交互：表结构可视化 -->
+    <div class="glass p-5" data-viz="table-schema">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button class="btn schema-btn btn-primary" data-focus="all">
+          <span data-lang="zh">全部</span><span data-lang="en">All</span>
+        </button>
+        <button class="btn schema-btn" data-focus="pk">
+          <span data-lang="zh">主键 PK</span><span data-lang="en">Primary Key</span>
+        </button>
+        <button class="btn schema-btn" data-focus="fk">
+          <span data-lang="zh">外键 FK</span><span data-lang="en">Foreign Key</span>
+        </button>
+        <button class="btn schema-btn" data-focus="relation">
+          <span data-lang="zh">关联线</span><span data-lang="en">Relations</span>
+        </button>
+      </div>
+      <svg id="schema-svg" viewBox="0 0 800 380" class="w-full h-95 viz-stage"></svg>
+    </div>
+
+    <!-- 表/行/列概念 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">表、行、列：关系模型的三个层级</span><span slot="en">Table, Row, Column: Three Levels of the Relational Model</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">理解关系型数据库，从这三个基本概念开始：<b>表</b>（Table）是同类数据的集合，类似 Excel 工作表；<b>行</b>（Row/Tuple）是一条具体记录，如"玩家 ID=42 的张三"；<b>列</b>（Column/Attribute）是数据的某个属性，如"等级""金币"。表的设计（哪些列、什么类型、什么约束）就是<b>Schema</b>，它决定了数据的结构与质量。</span><span slot="en">Understanding relational databases starts with three basics: a <b>table</b> is a collection of like data, similar to an Excel sheet; a <b>row</b> (tuple) is a single record, e.g. "player ID=42, Zhang San"; a <b>column</b> (attribute) is a data property, e.g. "level" or "gold". The table design — which columns, what types, what constraints — is the <b>schema</b>, determining data structure and quality.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">概念</span><span slot="en">Concept</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">别名</span><span slot="en">Aliases</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">类比</span><span slot="en">Analogy</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">示例</span><span slot="en">Example</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan"><Bilingual><span slot="zh">表 Table</span><span slot="en">Table</span></Bilingual></td><td class="py-2 pr-4 font-mono">Relation</td><td class="py-2 pr-4"><Bilingual><span slot="zh">Excel 工作表</span><span slot="en">Excel sheet</span></Bilingual></td><td class="py-2 pr-4 font-mono">players</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber"><Bilingual><span slot="zh">行 Row</span><span slot="en">Row</span></Bilingual></td><td class="py-2 pr-4 font-mono">Tuple / Record</td><td class="py-2 pr-4"><Bilingual><span slot="zh">一条数据记录</span><span slot="en">A single record</span></Bilingual></td><td class="py-2 pr-4 font-mono">(42, '张三', 99)</td></tr>
+            <tr><td class="py-2 pr-4 text-func-green"><Bilingual><span slot="zh">列 Column</span><span slot="en">Column</span></Bilingual></td><td class="py-2 pr-4 font-mono">Attribute / Field</td><td class="py-2 pr-4"><Bilingual><span slot="zh">数据的某个属性</span><span slot="en">A data property</span></Bilingual></td><td class="py-2 pr-4 font-mono">level (INT)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 键与约束 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">键与约束：数据完整性的守护者</span><span slot="en">Keys & Constraints: Guardians of Data Integrity</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">约束是关系型数据库区别于"带列的文件"的核心——它在<b>数据库层</b>而非应用层保证数据正确。<b>主键</b>唯一标识每行（不能为空、不能重复）；<b>外键</b>保证引用完整性（引用的行必须存在）；<b>唯一键</b>防止重复值；<b>非空</b>与<b>检查</b>约束限制取值范围。应用层校验可能被绕过，但数据库约束永远不会。</span><span slot="en">Constraints are what separates relational DBs from "files with columns" — they guarantee correctness at the <b>database layer</b>, not the application layer. A <b>primary key</b> uniquely identifies each row (non-null, unique); a <b>foreign key</b> enforces referential integrity (referenced rows must exist); <b>unique keys</b> prevent duplicates; <b>NOT NULL</b> and <b>CHECK</b> constrain value ranges. App-layer validation can be bypassed; database constraints never can.</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">约束</span><span slot="en">Constraint</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">作用</span><span slot="en">Purpose</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">示例</span><span slot="en">Example</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-amber">PRIMARY KEY</td><td class="py-2 pr-4"><Bilingual><span slot="zh">唯一标识每行，非空+唯一</span><span slot="en">Uniquely identify each row; non-null + unique</span></Bilingual></td><td class="py-2 pr-4 font-mono">player_id INT PRIMARY KEY</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-primary-cyan">FOREIGN KEY</td><td class="py-2 pr-4"><Bilingual><span slot="zh">引用另一表的主键，保证引用完整性</span><span slot="en">Reference another table's PK; referential integrity</span></Bilingual></td><td class="py-2 pr-4 font-mono">guild_id REFERENCES guilds(id)</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-green">UNIQUE</td><td class="py-2 pr-4"><Bilingual><span slot="zh">列值唯一（允许一个 NULL）</span><span slot="en">Column values unique (one NULL allowed)</span></Bilingual></td><td class="py-2 pr-4 font-mono">email VARCHAR UNIQUE</td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 text-func-red">NOT NULL</td><td class="py-2 pr-4"><Bilingual><span slot="zh">列不允许为空</span><span slot="en">Column cannot be null</span></Bilingual></td><td class="py-2 pr-4 font-mono">name VARCHAR NOT NULL</td></tr>
+            <tr><td class="py-2 pr-4 text-primary-purple">CHECK</td><td class="py-2 pr-4"><Bilingual><span slot="zh">自定义条件约束</span><span slot="en">Custom condition constraint</span></Bilingual></td><td class="py-2 pr-4 font-mono">level INT CHECK(level &gt;= 1)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <pre class="glass p-4 overflow-x-auto text-sm mt-4"><code><span class="text-func-amber">-- 建表示例：玩家表 + 物品表 + 外键关联</span>
+<span class="text-primary-cyan">CREATE TABLE</span> guilds (
+    id      <span class="text-func-green">INT PRIMARY KEY</span> AUTO_INCREMENT,
+    name    VARCHAR(50) <span class="text-func-red">NOT NULL</span>,
+    level   <span class="text-func-green">INT DEFAULT</span> 1
+);
+
+<span class="text-primary-cyan">CREATE TABLE</span> players (
+    player_id  <span class="text-func-green">INT PRIMARY KEY</span> AUTO_INCREMENT,
+    name       VARCHAR(50) <span class="text-func-red">NOT NULL</span>,
+    email      VARCHAR(100) <span class="text-func-green">UNIQUE</span>,           <span class="text-ink-muted">-- 邮箱不重复</span>
+    level      <span class="text-func-green">INT DEFAULT</span> 1 <span class="text-primary-purple">CHECK</span> (level &gt;= 1),  <span class="text-ink-muted">-- 等级正数</span>
+    guild_id   <span class="text-func-green">INT</span>,                               <span class="text-ink-muted">-- 外键列</span>
+    <span class="text-primary-cyan">FOREIGN KEY</span> (guild_id) <span class="text-primary-cyan">REFERENCES</span> guilds(id)  <span class="text-ink-muted">-- 引用公会</span>
+);
+
+<span class="text-func-amber">-- 插入数据：外键保证 guild_id 必须存在于 guilds 表</span>
+<span class="text-primary-cyan">INSERT INTO</span> players (name, email, guild_id) <span class="text-primary-cyan">VALUES</span>
+    (<span class="text-func-amber">'张三'</span>, <span class="text-func-amber">'zs@game.com'</span>, 1),   <span class="text-func-green">-- OK，guild 1 存在</span>
+    (<span class="text-func-amber">'李四'</span>, <span class="text-func-amber">'ls@game.com'</span>, 99);  <span class="text-func-red">-- 失败！guild 99 不存在</span></code></pre>
+    </section>
+
+    <!-- 数据类型 -->
+    <section class="glass p-5">
+      <h2 class="font-semibold mb-3"><Bilingual><span slot="zh">常用数据类型速查</span><span slot="en">Common Data Types</span></Bilingual></h2>
+      <p class="text-sm text-ink-muted mb-3"><Bilingual><span slot="zh">选对数据类型不仅影响存储大小，还决定索引效率与查询语义。原则：<b>能小不大</b>（用 INT 不用 BIGINT）、<b>能定长不定长</b>（定长 CHAR 索引更快但浪费空间）、<b>时间用专用类型</b>（不用字符串存日期）。</span><span slot="en">Choosing the right type affects storage size, index efficiency, and query semantics. Principles: <b>smallest sufficient</b> (INT not BIGINT), <b>fixed over variable</b> (CHAR indexes faster but wastes space), <b>use dedicated time types</b> (never store dates as strings).</span></Bilingual></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-ink-muted text-left"><tr class="border-b border-[color:var(--glass-border)]"><th class="py-2 pr-4"><Bilingual><span slot="zh">类型</span><span slot="en">Type</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">存储</span><span slot="en">Storage</span></Bilingual></th><th class="py-2 pr-4"><Bilingual><span slot="zh">游戏用途</span><span slot="en">Game Use Case</span></Bilingual></th></tr></thead>
+          <tbody class="text-ink">
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-amber">INT / BIGINT</td><td class="py-2 pr-4">4B / 8B</td><td class="py-2 pr-4"><Bilingual><span slot="zh">ID、等级、数量</span><span slot="en">IDs, levels, counts</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-amber">DECIMAL(10,2)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">精确</span><span slot="en">Exact</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">金钱（禁止用 float！）</span><span slot="en">Money (never use float!)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-primary-cyan">VARCHAR(n)</td><td class="py-2 pr-4"><Bilingual><span slot="zh">变长</span><span slot="en">Variable</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">玩家名、邮箱</span><span slot="en">Names, emails</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-primary-cyan">TEXT</td><td class="py-2 pr-4"><Bilingual><span slot="zh">大文本</span><span slot="en">Large text</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">聊天记录、公告</span><span slot="en">Chat logs, announcements</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-green">DATETIME</td><td class="py-2 pr-4">8B</td><td class="py-2 pr-4"><Bilingual><span slot="zh">登录时间、创建时间</span><span slot="en">Login time, created_at</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-func-green">TIMESTAMP</td><td class="py-2 pr-4">4B</td><td class="py-2 pr-4"><Bilingual><span slot="zh">时间戳（2038 前安全）</span><span slot="en">Unix timestamp (safe pre-2038)</span></Bilingual></td></tr>
+            <tr class="border-b border-[color:var(--glass-border)]"><td class="py-2 pr-4 font-mono text-primary-purple">JSON</td><td class="py-2 pr-4"><Bilingual><span slot="zh">变长</span><span slot="en">Variable</span></Bilingual></td><td class="py-2 pr-4"><Bilingual><span slot="zh">扩展属性、灵活配置</span><span slot="en">Extra attrs, flexible config</span></Bilingual></td></tr>
+            <tr><td class="py-2 pr-4 font-mono text-func-red">BOOLEAN</td><td class="py-2 pr-4">1B</td><td class="py-2 pr-4"><Bilingual><span slot="zh">标志位（在线/封禁）</span><span slot="en">Flags (online/banned)</span></Bilingual></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  // 表结构可视化交互
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('schema-svg') as unknown as SVGSVGElement;
+  const schemaButtons = document.querySelectorAll<HTMLButtonElement>('.schema-btn');
+
+  function lang(): 'zh' | 'en' { return document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh'; }
+
+  interface Col { name: string; type: string; kind: 'pk' | 'fk' | 'normal'; }
+  interface TableDef { name: string; x: number; y: number; cols: Col[]; }
+
+  const TABLES: TableDef[] = [
+    {
+      name: 'guilds', x: 40, y: 40,
+      cols: [
+        { name: 'id', type: 'INT', kind: 'pk' },
+        { name: 'name', type: 'VARCHAR', kind: 'normal' },
+        { name: 'level', type: 'INT', kind: 'normal' },
+      ],
+    },
+    {
+      name: 'players', x: 40, y: 220,
+      cols: [
+        { name: 'player_id', type: 'INT', kind: 'pk' },
+        { name: 'name', type: 'VARCHAR', kind: 'normal' },
+        { name: 'email', type: 'VARCHAR', kind: 'normal' },
+        { name: 'level', type: 'INT', kind: 'normal' },
+        { name: 'guild_id', type: 'INT', kind: 'fk' },
+      ],
+    },
+    {
+      name: 'items', x: 480, y: 40,
+      cols: [
+        { name: 'item_id', type: 'INT', kind: 'pk' },
+        { name: 'owner_id', type: 'INT', kind: 'fk' },
+        { name: 'name', type: 'VARCHAR', kind: 'normal' },
+        { name: 'qty', type: 'INT', kind: 'normal' },
+      ],
+    },
+  ];
+
+  function render(focus: string) {
+    svg.innerHTML = '';
+    const colH = 26, headerH = 32, tableW = 260;
+    const pkColor = '#FBBF24', fkColor = '#22D3EE', normalColor = '#64748B';
+
+    const showPK = focus === 'all' || focus === 'pk';
+    const showFK = focus === 'all' || focus === 'fk';
+    const showRelation = focus === 'all' || focus === 'relation';
+
+    // 绘制每个表
+    for (const tbl of TABLES) {
+      const totalH = headerH + tbl.cols.length * colH;
+
+      // 表背景
+      const bg = document.createElementNS(SVGNS, 'rect');
+      bg.setAttribute('x', String(tbl.x)); bg.setAttribute('y', String(tbl.y));
+      bg.setAttribute('width', String(tableW)); bg.setAttribute('height', String(totalH));
+      bg.setAttribute('rx', '8'); bg.setAttribute('fill', 'rgba(148,163,184,0.06)');
+      bg.setAttribute('stroke', 'rgba(148,163,184,0.2)'); bg.setAttribute('stroke-width', '1.5');
+      svg.appendChild(bg);
+
+      // 表头背景
+      const headerBg = document.createElementNS(SVGNS, 'rect');
+      headerBg.setAttribute('x', String(tbl.x)); headerBg.setAttribute('y', String(tbl.y));
+      headerBg.setAttribute('width', String(tableW)); headerBg.setAttribute('height', String(headerH));
+      headerBg.setAttribute('rx', '8'); headerBg.setAttribute('fill', 'rgba(8,145,178,0.15)');
+      svg.appendChild(headerBg);
+
+      // 表名
+      const title = document.createElementNS(SVGNS, 'text');
+      title.setAttribute('x', String(tbl.x + 14)); title.setAttribute('y', String(tbl.y + 22));
+      title.setAttribute('font-size', '15'); title.setAttribute('font-weight', '700');
+      title.setAttribute('fill', '#22D3EE');
+      title.textContent = tbl.name;
+      svg.appendChild(title);
+
+      // 列
+      for (let i = 0; i < tbl.cols.length; i++) {
+        const col = tbl.cols[i];
+        const cy = tbl.y + headerH + i * colH + colH / 2;
+        const colColor = col.kind === 'pk' ? pkColor : col.kind === 'fk' ? fkColor : normalColor;
+        const highlight = (col.kind === 'pk' && showPK) || (col.kind === 'fk' && showFK);
+
+        // 列背景（高亮时）
+        if (highlight) {
+          const colBg = document.createElementNS(SVGNS, 'rect');
+          colBg.setAttribute('x', String(tbl.x)); colBg.setAttribute('y', String(tbl.y + headerH + i * colH));
+          colBg.setAttribute('width', String(tableW)); colBg.setAttribute('height', String(colH));
+          colBg.setAttribute('fill', colColor + '15');
+          svg.appendChild(colBg);
+        }
+
+        // 标记图标
+        if (col.kind === 'pk' && showPK) {
+          const pkIcon = document.createElementNS(SVGNS, 'text');
+          pkIcon.setAttribute('x', String(tbl.x + 8)); pkIcon.setAttribute('y', String(cy + 4));
+          pkIcon.setAttribute('font-size', '10'); pkIcon.setAttribute('font-weight', '700');
+          pkIcon.setAttribute('fill', pkColor);
+          pkIcon.textContent = 'PK';
+          svg.appendChild(pkIcon);
+        } else if (col.kind === 'fk' && showFK) {
+          const fkIcon = document.createElementNS(SVGNS, 'text');
+          fkIcon.setAttribute('x', String(tbl.x + 8)); fkIcon.setAttribute('y', String(cy + 4));
+          fkIcon.setAttribute('font-size', '10'); fkIcon.setAttribute('font-weight', '700');
+          fkIcon.setAttribute('fill', fkColor);
+          fkIcon.textContent = 'FK';
+          svg.appendChild(fkIcon);
+        }
+
+        // 列名
+        const colName = document.createElementNS(SVGNS, 'text');
+        colName.setAttribute('x', String(tbl.x + 40)); colName.setAttribute('y', String(cy + 4));
+        colName.setAttribute('font-size', '12'); colName.setAttribute('fill', highlight ? colColor : '#CBD5E1');
+        colName.textContent = col.name;
+        svg.appendChild(colName);
+
+        // 类型
+        const colType = document.createElementNS(SVGNS, 'text');
+        colType.setAttribute('x', String(tbl.x + tableW - 14)); colType.setAttribute('y', String(cy + 4));
+        colType.setAttribute('text-anchor', 'end'); colType.setAttribute('font-size', '11');
+        colType.setAttribute('fill', '#64748B'); colType.setAttribute('font-family', 'monospace');
+        colType.textContent = col.type;
+        svg.appendChild(colType);
+
+        // 分隔线
+        if (i < tbl.cols.length - 1) {
+          const line = document.createElementNS(SVGNS, 'line');
+          line.setAttribute('x1', String(tbl.x + 8)); line.setAttribute('y1', String(tbl.y + headerH + (i + 1) * colH));
+          line.setAttribute('x2', String(tbl.x + tableW - 8)); line.setAttribute('y2', String(tbl.y + headerH + (i + 1) * colH));
+          line.setAttribute('stroke', 'rgba(148,163,184,0.1)'); line.setAttribute('stroke-width', '1');
+          svg.appendChild(line);
+        }
+      }
+    }
+
+    // 关联线
+    if (showRelation) {
+      // players.guild_id -> guilds.id
+      const drawRelation = (fromX: number, fromY: number, toX: number, toY: number, color: string) => {
+        const path = document.createElementNS(SVGNS, 'path');
+        const midX = (fromX + toX) / 2;
+        path.setAttribute('d', `M ${fromX} ${fromY} C ${midX} ${fromY}, ${midX} ${toY}, ${toX} ${toY}`);
+        path.setAttribute('stroke', color); path.setAttribute('stroke-width', '2');
+        path.setAttribute('fill', 'none'); path.setAttribute('stroke-dasharray', '5,3');
+        svg.appendChild(path);
+
+        // 端点圆
+        const d1 = document.createElementNS(SVGNS, 'circle');
+        d1.setAttribute('cx', String(fromX)); d1.setAttribute('cy', String(fromY));
+        d1.setAttribute('r', '4'); d1.setAttribute('fill', color);
+        svg.appendChild(d1);
+        const d2 = document.createElementNS(SVGNS, 'circle');
+        d2.setAttribute('cx', String(toX)); d2.setAttribute('cy', String(toY));
+        d2.setAttribute('r', '4'); d2.setAttribute('fill', color);
+        svg.appendChild(d2);
+      };
+
+      // players.guild_id (row 5, index 4) -> guilds.id (row 1, index 0)
+      const guildsIdY = TABLES[0].y + headerH + 0 * colH + colH / 2;
+      const playersGuildY = TABLES[1].y + headerH + 4 * colH + colH / 2;
+      drawRelation(TABLES[1].x + tableW, playersGuildY, TABLES[0].x + tableW, guildsIdY, '#22D3EE');
+
+      // items.owner_id -> players.player_id
+      const playersPkY = TABLES[1].y + headerH + 0 * colH + colH / 2;
+      const itemsOwnerY = TABLES[2].y + headerH + 1 * colH + colH / 2;
+      drawRelation(TABLES[2].x, itemsOwnerY, TABLES[1].x + tableW, playersPkY, '#FBBF24');
+
+      // 图例
+      const legendY = 350;
+      const labels = [
+        { x: 200, color: '#FBBF24', text: lang() === 'en' ? 'FK → PK (items.owner → players)' : '外键 → 主键 (items.owner → players)' },
+        { x: 200, y: legendY + 18, color: '#22D3EE', text: lang() === 'en' ? 'FK → PK (players.guild → guilds)' : '外键 → 主键 (players.guild → guilds)' },
+      ];
+      // PK legend
+      for (const l of labels) {
+        const dot = document.createElementNS(SVGNS, 'circle');
+        dot.setAttribute('cx', String(l.x - 10)); dot.setAttribute('cy', String(l.y || legendY));
+        dot.setAttribute('r', '4'); dot.setAttribute('fill', l.color);
+        svg.appendChild(dot);
+        const t = document.createElementNS(SVGNS, 'text');
+        t.setAttribute('x', String(l.x)); t.setAttribute('y', String((l.y || legendY) + 4));
+        t.setAttribute('font-size', '11'); t.setAttribute('fill', '#94A3B8');
+        t.textContent = l.text;
+        svg.appendChild(t);
+      }
+    }
+  }
+
+  function setActive(focus: string) {
+    schemaButtons.forEach(b => {
+      b.classList.toggle('btn-primary', b.dataset.focus === focus);
+    });
+    render(focus);
+  }
+
+  schemaButtons.forEach(b => b.addEventListener('click', () => setActive(b.dataset.focus!)));
+  document.addEventListener('langchange', () => {
+    const active = document.querySelector<HTMLButtonElement>('.schema-btn.btn-primary');
+    render(active?.dataset.focus || 'all');
+  });
+  setActive('all');
+</script>
